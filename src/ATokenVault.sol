@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
 
 import {ERC4626} from "solmate/mixins/ERC4626.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Ownable} from "openzeppelin/access/Ownable.sol";
+
+import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
+// import {IPoolDataProvider} from "../interfaces/IPoolDataProvider.sol";
+import {IPool} from "aave/interfaces/IPool.sol";
 
 contract ATokenVault is ERC4626, Ownable {
     uint256 internal constant SCALE = 1e18;
