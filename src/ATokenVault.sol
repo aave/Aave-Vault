@@ -21,7 +21,9 @@ contract ATokenVault is ERC4626, Ownable {
     event FeeUpdated(uint256 oldFee, uint256 newFee);
 
     // TODO add dynamic strings for name/symbol
-    constructor(ERC20 aToken) ERC4626(aToken, "Wrapped [aTKN]", "w[aTKN]") {}
+    constructor(ERC20 underlying) ERC4626(underlying, "Wrapped [aTKN]", "w[aTKN]") {}
+
+    // TODO deposit underlying into Aave on deposit/mint
 
     // TODO take fee on withdraw/redeem
 
@@ -35,6 +37,7 @@ contract ATokenVault is ERC4626, Ownable {
         emit FeeUpdated(oldFee, _newFee);
     }
 
+    // TODO return balanceOf aTokens == owned underlying
     function totalAssets() public view override returns (uint256) {
         return 0;
     }
