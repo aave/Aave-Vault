@@ -8,20 +8,33 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Ownable} from "openzeppelin/access/Ownable.sol";
 
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
-// import {IPoolDataProvider} from "../interfaces/IPoolDataProvider.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
+import {IAToken} from "aave/interfaces/IAToken.sol";
 
 contract ATokenVault is ERC4626, Ownable {
+    IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
+
     uint256 internal constant SCALE = 1e18;
+
+    IPool public aavePool;
+    IAToken public aToken;
 
     uint256 public lastUpdated;
     uint256 public lastVaultBalance;
     uint256 public fee;
 
+    // TODO may need MasterChef accounting for staking positions
+
     event FeeUpdated(uint256 oldFee, uint256 newFee);
 
     // TODO add dynamic strings for name/symbol
-    constructor(ERC20 underlying) ERC4626(underlying, "Wrapped [aTKN]", "w[aTKN]") {}
+    constructor(ERC20 underlying, IPoolAddressesProvider poolAddressesProvider)
+        ERC4626(underlying, "Wrapped [aTKN]", "w[aTKN]")
+    {
+        POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
+        aavePool = IPool(poolAddressesProvider.getPool());
+        aToken = IAToken(aavePool.getReserveData(address(underlying)).aTokenAddress);
+    }
 
     // TODO deposit underlying into Aave on deposit/mint
 
@@ -36,6 +49,8 @@ contract ATokenVault is ERC4626, Ownable {
 
         emit FeeUpdated(oldFee, _newFee);
     }
+
+    // TODO owner can update the address of aToken and aavePool
 
     // TODO return balanceOf aTokens == owned underlying
     function totalAssets() public view override returns (uint256) {
