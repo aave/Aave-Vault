@@ -22,25 +22,31 @@ contract ATokenVault is ERC4626, Ownable {
     IPool public aavePool;
     IAToken public aToken;
 
-    uint256 public lastUpdated;
+    uint256 public lastUpdated; // timestamp of last accrueYield action
     uint256 public lastVaultBalance; // total aToken incl. fees
-    uint256 public fee;
-    uint256 public accumulatedFees;
-
-    // TODO may need MasterChef accounting for staking positions
-    // Current fee mechanism doesn't account for yield since deposit,
-    // Just takes a cut of shares - users may recieve less than deposited
+    uint256 public fee; // as a fraction of 1e18
+    uint256 public accumulatedFees; // total fees accrued and withdrawable
 
     event FeeUpdated(uint256 oldFee, uint256 newFee);
     event FeeTaken(uint256 shares);
 
-    // TODO add dynamic strings for name/symbol
-    constructor(ERC20 underlying, IPoolAddressesProvider poolAddressesProvider)
-        ERC4626(underlying, "Wrapped [aTKN]", "w[aTKN]")
-    {
+    constructor(
+        ERC20 underlying,
+        string memory shareName,
+        string memory shareSymbol,
+        uint256 initialFee,
+        IPoolAddressesProvider poolAddressesProvider
+    ) ERC4626(underlying, shareName, shareSymbol) {
+        require(initialFee < SCALE, "VAULT: FEE TOO HIGH");
+
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
+
         aavePool = IPool(poolAddressesProvider.getPool());
         aToken = IAToken(aavePool.getReserveData(address(underlying)).aTokenAddress);
+
+        fee = initialFee;
+
+        emit FeeUpdated(0, initialFee);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -152,7 +158,6 @@ contract ATokenVault is ERC4626, Ownable {
 
     // Fees are accrued and claimable in aToken form
     function withdrawFees(uint256 amount, address to) public onlyOwner {
-        // TODO is require necessary? will underflow below but better error msg here
         require(amount <= accumulatedFees, "VAULT: INSUFFICIENT FEES");
 
         accumulatedFees -= amount;
@@ -166,8 +171,18 @@ contract ATokenVault is ERC4626, Ownable {
 
     function totalAssets() public view override returns (uint256) {
         // Report only the total assets net of fees, for vault share logic
-        // TODO add condition for new yield since accFees updated
-        return aToken.balanceOf(address(this)) - accumulatedFees;
+
+        if (block.timestamp == lastUpdated) {
+            // Accumulated fees already up to date
+            return aToken.balanceOf(address(this)) - accumulatedFees;
+        } else {
+            // Calculate new fees since last accrueYield
+            uint256 newVaultBalance = aToken.balanceOf(address(this));
+            uint256 newYield = newVaultBalance - lastVaultBalance;
+            uint256 newYieldNetFees = newYield.mulDivUp(SCALE - fee, SCALE);
+
+            return newVaultBalance + newYieldNetFees - accumulatedFees;
+        }
     }
 
     function feeSplit(uint256 amount) internal view returns (uint256 feeAmount, uint256 netAmount) {
