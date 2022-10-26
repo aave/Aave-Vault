@@ -158,9 +158,8 @@ contract ATokenVault is ERC4626, Ownable {
 
     // TODO add WithSig versions of deposit/mint/withdraw/redeem
 
-    // TODO refactor errors
     function setFee(uint256 _newFee) public onlyOwner {
-        require(_newFee < SCALE, "FEE_TOO_HIGH");
+        require(_newFee < SCALE, "VAULT: FEE TOO HIGH");
 
         uint256 oldFee = fee;
         fee = _newFee;
@@ -168,7 +167,9 @@ contract ATokenVault is ERC4626, Ownable {
         emit FeeUpdated(oldFee, _newFee);
     }
 
-    // TODO owner can update the address of aToken and aavePool
+    function updateAavePool() public onlyOwner {
+        aavePool = IPool(POOL_ADDRESSES_PROVIDER.getPool());
+    }
 
     /*//////////////////////////////////////////////////////////////
                           VIEW FUNCTIONS
