@@ -13,6 +13,11 @@ contract ATokenVaultTest is Test {
     address public constant POLYGON_ADAI = 0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE;
     address public constant POLYGON_AAVE_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
     address public constant POLYGON_POOL_ADDRESSES_PROVIDER = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
+
+    string constant SHARE_NAME = "Wrapped aDAI";
+    string constant SHARE_SYMBOL = "waDAI";
+    uint256 constant DEFAULT_FEE = 0.2e18; // 20%
+
     uint256 polygonFork;
     ATokenVault vault;
     ERC20 dai;
@@ -40,7 +45,13 @@ contract ATokenVaultTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function testDeploySucceedsWithValidParams() public {
-        vault = new ATokenVault(dai, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+        vault = new ATokenVault(
+            dai,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            DEFAULT_FEE,
+            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER)
+        );
         assertEq(address(vault.asset()), POLYGON_DAI);
         assertEq(address(vault.aToken()), POLYGON_ADAI);
         assertEq(address(vault.aavePool()), POLYGON_AAVE_POOL);
