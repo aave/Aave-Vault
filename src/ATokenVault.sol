@@ -28,6 +28,8 @@ contract ATokenVault is ERC4626, Ownable {
     address public feeCollector;
 
     // TODO may need MasterChef accounting for staking positions
+    // Current fee mechanism doesn't account for yield since deposit,
+    // Just takes a cut of shares - users may recieve less than deposited
 
     event FeeUpdated(uint256 oldFee, uint256 newFee);
     event FeeTaken(uint256 shares);
@@ -116,11 +118,6 @@ contract ATokenVault is ERC4626, Ownable {
         aavePool.withdraw(address(asset), assetsReceived, receiver);
     }
 
-    function takeFee(address withdrawer, uint256 shares) internal {
-        uint256 feeShares = (shares * fee) / SCALE;
-        _burn(withdrawer, feeShares);
-    }
-
     // function redeem(
     //     uint256 shares,
     //     address receiver,
@@ -156,15 +153,14 @@ contract ATokenVault is ERC4626, Ownable {
         emit FeeUpdated(oldFee, _newFee);
     }
 
+    // TODO owner can update the address of aToken and aavePool
+
     /*//////////////////////////////////////////////////////////////
                           VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    // TODO owner can update the address of aToken and aavePool
-
-    // TODO return balanceOf aTokens == owned underlying
     function totalAssets() public view override returns (uint256) {
-        return 0;
+        return aToken.balanceOf(address(this));
     }
 
     function feeSplit(uint256 amount) internal view returns (uint256 feeAmount, uint256 netAmount) {
