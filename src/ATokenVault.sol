@@ -3,7 +3,7 @@ pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
 
-import {ERC4626, SafeTransferLib} from "solmate/mixins/ERC4626.sol";
+import {ERC4626, SafeTransferLib, FixedPointMathLib} from "solmate/mixins/ERC4626.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Ownable} from "openzeppelin/access/Ownable.sol";
 
@@ -13,6 +13,7 @@ import {IAToken} from "aave/interfaces/IAToken.sol";
 
 contract ATokenVault is ERC4626, Ownable {
     using SafeTransferLib for ERC20;
+    using FixedPointMathLib for uint256;
 
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
 
@@ -24,10 +25,12 @@ contract ATokenVault is ERC4626, Ownable {
     uint256 public lastUpdated;
     uint256 public lastVaultBalance;
     uint256 public fee;
+    address public feeCollector;
 
     // TODO may need MasterChef accounting for staking positions
 
     event FeeUpdated(uint256 oldFee, uint256 newFee);
+    event FeeTaken(uint256 shares);
 
     // TODO add dynamic strings for name/symbol
     constructor(ERC20 underlying, IPoolAddressesProvider poolAddressesProvider)
@@ -75,27 +78,48 @@ contract ATokenVault is ERC4626, Ownable {
 
     // TODO take fee on withdraw/redeem
 
-    // function withdraw(
-    //     uint256 assets,
-    //     address receiver,
-    //     address owner
-    // ) public override returns (uint256 shares) {
-    //     shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public override returns (uint256 shares) {
+        shares = previewWithdraw(assets);
 
-    //     if (msg.sender != owner) {
-    //         uint256 allowed = allowance[owner][msg.sender]; // Saves gas for limited approvals.
+        if (msg.sender != owner) {
+            uint256 allowed = allowance[owner][msg.sender];
+            if (allowed != type(uint256).max) allowance[owner][msg.sender] = allowed - shares;
+        }
 
-    //         if (allowed != type(uint256).max) allowance[owner][msg.sender] = allowed - shares;
-    //     }
+        uint256 netSharesToBurn;
+        uint256 assetsReceived;
 
-    //     beforeWithdraw(assets, shares);
+        // Only take fee if share owner is not feeCollector, otherwise recursive fee
+        if (owner != feeCollector && fee > 0) {
+            uint256 feeShares;
+            (feeShares, netSharesToBurn) = feeSplit(shares);
+            assetsReceived = convertToAssets(netSharesToBurn);
 
-    //     _burn(owner, shares);
+            // Takes fee in form of vault shares
+            transferFrom(owner, feeCollector, feeShares);
 
-    //     emit Withdraw(msg.sender, receiver, owner, assets, shares);
+            emit FeeTaken(feeShares);
+        } else {
+            netSharesToBurn = shares;
+            assetsReceived = assets;
+        }
 
-    //     asset.safeTransfer(receiver, assets);
-    // }
+        _burn(owner, netSharesToBurn);
+
+        emit Withdraw(msg.sender, receiver, owner, assetsReceived, shares);
+
+        // Withdraw assets from Aave v3 and send to receiver
+        aavePool.withdraw(address(asset), assetsReceived, receiver);
+    }
+
+    function takeFee(address withdrawer, uint256 shares) internal {
+        uint256 feeShares = (shares * fee) / SCALE;
+        _burn(withdrawer, feeShares);
+    }
 
     // function redeem(
     //     uint256 shares,
@@ -141,5 +165,10 @@ contract ATokenVault is ERC4626, Ownable {
     // TODO return balanceOf aTokens == owned underlying
     function totalAssets() public view override returns (uint256) {
         return 0;
+    }
+
+    function feeSplit(uint256 amount) internal view returns (uint256 feeAmount, uint256 netAmount) {
+        feeAmount = amount.mulDivUp(fee, SCALE);
+        netAmount = amount - feeAmount;
     }
 }
