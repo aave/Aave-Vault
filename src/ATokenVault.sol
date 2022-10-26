@@ -118,28 +118,43 @@ contract ATokenVault is ERC4626, Ownable {
         aavePool.withdraw(address(asset), assetsReceived, receiver);
     }
 
-    // function redeem(
-    //     uint256 shares,
-    //     address receiver,
-    //     address owner
-    // ) public override returns (uint256 assets) {
-    //     if (msg.sender != owner) {
-    //         uint256 allowed = allowance[owner][msg.sender]; // Saves gas for limited approvals.
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) public override returns (uint256 assets) {
+        if (msg.sender != owner) {
+            uint256 allowed = allowance[owner][msg.sender];
+            if (allowed != type(uint256).max) allowance[owner][msg.sender] = allowed - shares;
+        }
 
-    //         if (allowed != type(uint256).max) allowance[owner][msg.sender] = allowed - shares;
-    //     }
+        require((assets = previewRedeem(shares)) != 0, "ZERO_ASSETS");
 
-    //     // Check for rounding error since we round down in previewRedeem.
-    //     require((assets = previewRedeem(shares)) != 0, "ZERO_ASSETS");
+        uint256 netSharesToBurn;
+        uint256 assetsReceived;
 
-    //     beforeWithdraw(assets, shares);
+        // Only take fee if share owner is not feeCollector, otherwise recursive fee
+        if (owner != feeCollector && fee > 0) {
+            uint256 feeShares;
+            (feeShares, netSharesToBurn) = feeSplit(shares);
+            assetsReceived = convertToAssets(netSharesToBurn);
 
-    //     _burn(owner, shares);
+            // Takes fee in form of vault shares
+            transferFrom(owner, feeCollector, feeShares);
 
-    //     emit Withdraw(msg.sender, receiver, owner, assets, shares);
+            emit FeeTaken(feeShares);
+        } else {
+            netSharesToBurn = shares;
+            assetsReceived = assets;
+        }
 
-    //     asset.safeTransfer(receiver, assets);
-    // }
+        _burn(owner, netSharesToBurn);
+
+        emit Withdraw(msg.sender, receiver, owner, assetsReceived, shares);
+
+        // Withdraw assets from Aave v3 and send to receiver
+        aavePool.withdraw(address(asset), assetsReceived, receiver);
+    }
 
     // TODO add WithSig versions of deposit/mint/withdraw/redeem
 
