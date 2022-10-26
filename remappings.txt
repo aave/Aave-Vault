@@ -2,3 +2,4 @@ ds-test/=lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 solmate/=lib/solmate/src/
 openzeppelin/=lib/openzeppelin-contracts/contracts/
+aave/=lib/aave-v3-core/contracts/
