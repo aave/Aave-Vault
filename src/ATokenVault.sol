@@ -25,6 +25,7 @@ contract ATokenVault is ERC4626, Ownable {
     uint256 public lastUpdated;
     uint256 public lastVaultBalance;
     uint256 public fee;
+    uint256 public accumulatedFees;
     address public feeCollector;
 
     // TODO may need MasterChef accounting for staking positions
@@ -169,8 +170,22 @@ contract ATokenVault is ERC4626, Ownable {
         emit FeeUpdated(oldFee, _newFee);
     }
 
+    function setFeeCollector(address _newCollector) public onlyOwner {
+        require(_newCollector != address(0), "VAULT: CANT BE ZERO ADDRESS");
+        feeCollector = _newCollector;
+    }
+
     function updateAavePool() public onlyOwner {
         aavePool = IPool(POOL_ADDRESSES_PROVIDER.getPool());
+    }
+
+    function withdrawFees(uint256 amount, address to) public onlyOwner {
+        // TODO is require necessary? will underflow below but better error msg here
+        require(amount <= accumulatedFees, "VAULT: INSUFFICIENT FEES");
+
+        accumulatedFees -= amount;
+
+        aToken.safeTransfer(to, amount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -184,5 +199,20 @@ contract ATokenVault is ERC4626, Ownable {
     function feeSplit(uint256 amount) internal view returns (uint256 feeAmount, uint256 netAmount) {
         feeAmount = amount.mulDivUp(fee, SCALE);
         netAmount = amount - feeAmount;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _accrueYield() internal {
+        // TODO add yield accrual logic
+        if (block.timestamp != lastUpdated) {
+            uint256 newYield = aToken.balanceOf(address(this)) - lastVaultBalance;
+
+            accumulatedFees += newYield.mulDivUp(fee, SCALE);
+
+            lastUpdated = block.timestamp;
+        }
     }
 }
