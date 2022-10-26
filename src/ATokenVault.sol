@@ -78,8 +78,6 @@ contract ATokenVault is ERC4626, Ownable {
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
-    // TODO take fee on withdraw/redeem
-
     function withdraw(
         uint256 assets,
         address receiver,
@@ -157,6 +155,10 @@ contract ATokenVault is ERC4626, Ownable {
     }
 
     // TODO add WithSig versions of deposit/mint/withdraw/redeem
+
+    /*//////////////////////////////////////////////////////////////
+                          ONLY OWNER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     function setFee(uint256 _newFee) public onlyOwner {
         require(_newFee < SCALE, "VAULT: FEE TOO HIGH");
