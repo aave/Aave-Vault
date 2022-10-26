@@ -46,9 +46,31 @@ contract ATokenVaultTest is Test {
         assertEq(address(vault.aavePool()), POLYGON_AAVE_POOL);
     }
 
+    function testDepositSuppliesAave() public {}
+
+    function testMintSuppliesAave() public {}
+
+    function testWithdrawNoFee() public {}
+
+    function testWithdrawWithFee() public {}
+
+    function testRedeemNoFee() public {}
+
+    function testRedeemWithFee() public {}
+
     /*//////////////////////////////////////////////////////////////
                                 SCENARIOS
     //////////////////////////////////////////////////////////////*/
+
+    function testFuzzMultiDepositTwoUsers() public {}
+
+    function testFuzzMultiMintTwoUsers() public {}
+
+    function testFuzzMultiWithdrawTwoUsers() public {}
+
+    function testFuzzMultiRedeemTwoUsers() public {}
+
+    function testFuzzDepositAndWithdraw() public {}
 
     /*//////////////////////////////////////////////////////////////
                                 TEST UTILS
