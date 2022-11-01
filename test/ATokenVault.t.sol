@@ -36,6 +36,18 @@ contract ATokenVaultTest is ERC4626Test {
         vm.selectFork(polygonFork);
         dai = ERC20(POLYGON_DAI);
         aDai = IAToken(POLYGON_ADAI);
+
+        vault = new ATokenVault(
+            dai,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            DEFAULT_FEE,
+            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER)
+        );
+
+        __underlying__ = POLYGON_DAI;
+        __vault__ = address(vault);
+        __delta__ = 0;
     }
 
     function testForkWorks() public {
