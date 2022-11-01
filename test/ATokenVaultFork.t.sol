@@ -2,14 +2,13 @@
 pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
-import {ERC4626Test} from "./ERC4626.t.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 
-contract ATokenVaultTest is ERC4626Test {
+contract ATokenVaultForkTest is Test {
     // Forked tests using Polygon for Aave v3
     address constant POLYGON_DAI = 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063;
     address constant POLYGON_ADAI = 0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE;
@@ -31,7 +30,7 @@ contract ATokenVaultTest is ERC4626Test {
     ERC20 dai;
     IAToken aDai;
 
-    function setUp() public override {
+    function setUp() public {
         polygonFork = vm.createFork(vm.envString("POLYGON_RPC_URL"));
         vm.selectFork(polygonFork);
         dai = ERC20(POLYGON_DAI);
@@ -44,10 +43,6 @@ contract ATokenVaultTest is ERC4626Test {
             DEFAULT_FEE,
             IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER)
         );
-
-        __underlying__ = POLYGON_DAI;
-        __vault__ = address(vault);
-        __delta__ = 0;
     }
 
     function testForkWorks() public {

@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
+import {DataTypes} from "aave/protocol/libraries/types/DataTypes.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {MockAToken} from "./MockAToken.sol";
 
 contract MockAavePool {
-    struct ReserveData {
-        address aTokenAddress;
-    }
-
     uint256 constant SCALE = 1e18;
 
     MockAToken public aToken;
@@ -17,8 +14,40 @@ contract MockAavePool {
         aToken = _aToken;
     }
 
-    function getReserveData(address _reserve) public returns (ReserveData memory) {
-        return ReserveData(address(aToken));
+    function getReserveData(address _reserve) public returns (DataTypes.ReserveData memory) {
+        return
+            DataTypes.ReserveData({
+                //stores the reserve configuration
+                configuration: DataTypes.ReserveConfigurationMap({data: 0}),
+                //the liquidity index. Expressed in ray
+                liquidityIndex: 0,
+                //the current supply rate. Expressed in ray
+                currentLiquidityRate: 0,
+                //variable borrow index. Expressed in ray
+                variableBorrowIndex: 0,
+                //the current variable borrow rate. Expressed in ray
+                currentVariableBorrowRate: 0,
+                //the current stable borrow rate. Expressed in ray
+                currentStableBorrowRate: 0,
+                //timestamp of last update
+                lastUpdateTimestamp: 0,
+                //the id of the reserve. Represents the position in the list of the active reserves
+                id: 0,
+                //aToken address
+                aTokenAddress: address(aToken),
+                //stableDebtToken address
+                stableDebtTokenAddress: address(0),
+                //variableDebtToken address
+                variableDebtTokenAddress: address(0),
+                //address of the interest rate strategy
+                interestRateStrategyAddress: address(0),
+                //the current treasury balance, scaled
+                accruedToTreasury: 0,
+                //the outstanding unbacked aTokens minted through the bridging feature
+                unbacked: 0,
+                //the outstanding debt borrowed against this asset in isolation mode
+                isolationModeTotalDebt: 0
+            });
     }
 
     function supply(
