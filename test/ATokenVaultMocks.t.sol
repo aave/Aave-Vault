@@ -56,7 +56,6 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
 
         // Alice withdraws 1 DAI
         vm.startPrank(ALICE);
-        // Approve??
         vault.withdraw(ONE, ALICE, ALICE);
         vm.stopPrank();
 
