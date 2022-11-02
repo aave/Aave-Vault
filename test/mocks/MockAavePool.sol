@@ -64,9 +64,10 @@ contract MockAavePool {
         address _asset,
         uint256 _amount,
         address _receiver
-    ) public {
+    ) public returns (uint256) {
         aToken.burn(msg.sender, _amount);
         ERC20(_asset).transfer(_receiver, _amount);
+        return _amount;
     }
 
     // Mints recipient new tokens based on current aToken balance
