@@ -10,3 +10,6 @@
 [submodule "lib/aave-v3-core"]
 	path = lib/aave-v3-core
 	url = https://github.com/aave/aave-v3-core
+[submodule "lib/erc4626-tests"]
+	path = lib/erc4626-tests
+	url = https://github.com/a16z/erc4626-tests

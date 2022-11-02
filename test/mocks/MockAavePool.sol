@@ -54,7 +54,7 @@ contract MockAavePool {
         address _asset,
         uint256 _amount,
         address _onBehalfOf,
-        uint256 _referralCode
+        uint16 _referralCode
     ) public {
         ERC20(_asset).transferFrom(msg.sender, address(this), _amount);
         aToken.mint(_onBehalfOf, _amount);
