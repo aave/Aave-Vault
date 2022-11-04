@@ -16,6 +16,7 @@ contract ATokenVaultBaseTest is Test {
     uint256 constant SCALE = 1e18;
     uint256 constant ONE = 1e18;
     uint256 constant TEN = 10e18;
+    uint256 constant HUNDRED = 100e18;
 
     address constant ALICE = address(123);
     address constant BOB = address(456);
