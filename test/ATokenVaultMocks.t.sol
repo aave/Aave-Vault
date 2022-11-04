@@ -19,7 +19,6 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
     MockAavePool pool;
     MockAToken aDai;
     MockDAI dai;
-    ATokenVault vault;
 
     function setUp() public override {
         aDai = new MockAToken();
@@ -27,6 +26,8 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));
 
         dai = new MockDAI();
+
+        daiAddress = address(dai);
 
         vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, DEFAULT_FEE, IPoolAddressesProvider(address(poolAddrProvider)));
     }

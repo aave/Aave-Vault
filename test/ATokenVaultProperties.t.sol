@@ -3,6 +3,7 @@ pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
 import "erc4626-tests/ERC4626.test.sol";
+import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
@@ -14,19 +15,13 @@ import {MockAToken} from "./mocks/MockAToken.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockDAI} from "./mocks/MockDAI.sol";
 
-contract ATokenVaultPropertiesTest is ERC4626Test {
-    string constant SHARE_NAME = "Wrapped aDAI";
-    string constant SHARE_SYMBOL = "waDAI";
-    uint256 constant DEFAULT_FEE = 0.2e18; // 20%
-
+contract ATokenVaultPropertiesTest is ERC4626Test, ATokenVaultBaseTest {
     MockAavePoolAddressesProvider poolAddrProvider;
     MockAavePool pool;
     MockAToken aDai;
     MockDAI dai;
 
-    ATokenVault vault;
-
-    function setUp() public override {
+    function setUp() public override(ERC4626Test, ATokenVaultBaseTest) {
         aDai = new MockAToken();
         pool = new MockAavePool(aDai);
         poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));

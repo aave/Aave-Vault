@@ -13,7 +13,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     // Forked tests using Polygon for Aave v3
 
     uint256 polygonFork;
-    ATokenVault vault;
+
     ERC20 dai;
     IAToken aDai;
 
@@ -22,6 +22,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.selectFork(polygonFork);
         dai = ERC20(POLYGON_DAI);
         aDai = IAToken(POLYGON_ADAI);
+
+        daiAddress = address(dai);
 
         vault = new ATokenVault(
             dai,
