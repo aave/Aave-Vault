@@ -32,7 +32,7 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(poolAddrProvider)));
     }
 
-    function testWithdrawNoFee(uint256 yieldIncrease) public {
+    function testWithdrawNoFee() public {
         // Redeploy vault with 0% fee
         vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, 0, IPoolAddressesProvider(address(poolAddrProvider)));
 
@@ -67,20 +67,15 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         assertEq(vault.balanceOf(ALICE), 0);
     }
 
-    function testYieldSplitBasicFOCUS() public {
-        // TODO move to fuzz arg
-        uint256 yieldEarned = SCALE; // 100%
-        // TODO refactor
+    function testYieldSplitBasic(uint256 yieldEarned) public {
+        yieldEarned = bound(yieldEarned, 0, type(uint128).max);
+
         uint256 expectedAssetsUser;
         uint256 expectedAssetsFees;
-
         uint256 startAmount = HUNDRED;
 
-        bound(yieldEarned, 0, 1_000_000 * SCALE);
         // Alice deposits 100 DAI
         deal(address(dai), ALICE, startAmount);
-
-        _logVaultBalances(ALICE, "START");
 
         vm.startPrank(ALICE);
         dai.approve(address(vault), startAmount);
@@ -89,60 +84,42 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
 
         _logVaultBalances(ALICE, "DEPOSITED");
 
-        // TODO clean this up
-        address recipient = address(vault);
-        console.log(aDai.balanceOf(recipient));
-        // deal(address(aDai), recipient, startAmount);
-        // aDai.mint(address(vault), startAmount);
-        console.log(aDai.balanceOf(recipient));
         // Simulate yield earned
         uint256 increaseAmount = _increaseVaultYield(yieldEarned);
         skip(1);
 
-        _logVaultBalances(ALICE, "YIELD EARNED");
-
-        // TODO refactor
         uint256 expectedAssetsTotal = startAmount + increaseAmount;
-        // uint256 expectedAssetsUser = (expectedAssetsTotal * (SCALE - fee)) / SCALE;
-        // uint256 expectedAssetsFees = (expectedAssetsTotal * fee) / SCALE;
-
         (expectedAssetsFees, expectedAssetsUser) = _expectedFeeSplitOfIncrease(increaseAmount);
-        expectedAssetsUser += HUNDRED;
-
-        console.log("yieldEarned", yieldEarned);
-        console.log("Increase", increaseAmount);
-        console.log("Total", expectedAssetsTotal);
-        console.log("User", expectedAssetsUser);
-        console.log("Fees", expectedAssetsFees);
-        console.log("Fee Set", fee);
+        expectedAssetsUser += startAmount; // above returns only yield split, add back startAmount
 
         assertEq(aDai.balanceOf(address(vault)), expectedAssetsTotal);
-        // assertEq(vault.accumulatedFees(), 0);
+        assertEq(vault.accumulatedFees(), 0);
 
         // Alice withdraws ALL assets available
         vm.startPrank(ALICE);
         vault.withdraw(vault.maxWithdraw(ALICE), ALICE, ALICE);
         vm.stopPrank();
 
-        _logVaultBalances(ALICE, "WITHDRAWN");
-
-        console.log(block.timestamp);
-
         assertEq(dai.balanceOf(ALICE), expectedAssetsUser);
         assertEq(vault.accumulatedFees(), expectedAssetsFees);
-        // assertEq(dai.balanceOf(address(vault)), 0);
-        // assertEq(aDai.balanceOf(ALICE), 0);
         assertEq(aDai.balanceOf(address(vault)), expectedAssetsFees);
         assertEq(vault.balanceOf(ALICE), 0);
         assertEq(vault.maxWithdraw(ALICE), 0);
     }
 
-    // TEST UTIL OVERRIDES
+    // TEST UTILS and OVERRIDES
 
     function _increaseVaultYield(uint256 newYieldPercentage) internal override returns (uint256 increaseAmount) {
         uint256 currentTokenBalance = ERC20(vaultAssetAddress).balanceOf(address(vault));
         increaseAmount = (((SCALE + newYieldPercentage) * currentTokenBalance) / SCALE) - currentTokenBalance;
-        // deal(vaultAssetAddress, address(vault), increaseAmount);
-        aDai.mint(address(vault), increaseAmount);
+        _mintADai(address(vault), increaseAmount);
+    }
+
+    // NOTE: Use this instead of Foundry's deal cheatcode for mocked aTokens
+    // To ensure mocked Aave pool stays solvent - underlying increases when new
+    // aTokens are minted.
+    function _mintADai(address recipient, uint256 amount) internal {
+        aDai.mint(recipient, amount);
+        dai.mint(address(pool), amount);
     }
 }

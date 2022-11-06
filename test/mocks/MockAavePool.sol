@@ -5,6 +5,13 @@ import {DataTypes} from "aave/protocol/libraries/types/DataTypes.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {MockAToken} from "./MockAToken.sol";
 
+// NOTE: Yield Simulation Design
+// To mock yield accrual, we increase the vault's aToken asset balance.
+// But, this will lead to scenarios where there are more aTokens to redeem
+// Than there are underlying assets in this mock pool.
+// As such, avoid using the deal cheatcode in Foundry and instead
+// implement utility functions which retain 1:1 asset:aToken parity
+
 contract MockAavePool {
     uint256 constant SCALE = 1e18;
 
