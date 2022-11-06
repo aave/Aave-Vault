@@ -27,18 +27,23 @@ contract ATokenVaultBaseTest is Test {
     uint256 fee = 0.2e18; // 20%
 
     ATokenVault vault;
-    address daiAddress; // must be set in setUp() of each test file
+    address vaultAssetAddress; // aDAI, must be set in every setUp
 
     function setUp() public virtual {}
 
-    function _increaseVaultYield(uint256 newYieldPercentage) internal {
-        uint256 currentTokenBalance = ERC20(daiAddress).balanceOf(address(vault));
-        uint256 newTokenAmount = ((SCALE + newYieldPercentage) * currentTokenBalance) / SCALE;
-        deal(daiAddress, address(vault), newTokenAmount);
+    function _increaseVaultYield(uint256 newYieldPercentage) internal returns (uint256 increaseAmount) {
+        uint256 currentTokenBalance = ERC20(vaultAssetAddress).balanceOf(address(vault));
+        increaseAmount = (((SCALE + newYieldPercentage) * currentTokenBalance) / SCALE) - currentTokenBalance;
+        deal(vaultAssetAddress, address(vault), increaseAmount);
     }
 
     function _increaseVaultYieldWithTokens(uint256 newTokenAmount) internal {
-        require(daiAddress != address(0), "BaseTest: daiAddress not set");
-        deal(daiAddress, address(vault), newTokenAmount);
+        require(vaultAssetAddress != address(0), "BaseTest: vaultAssetAddress not set");
+        deal(vaultAssetAddress, address(vault), newTokenAmount);
+    }
+
+    function _expectedFeeSplitOfIncrease(uint256 increaseAmount) internal returns (uint256 feeAmount, uint256 netAmount) {
+        feeAmount = (increaseAmount * fee) / SCALE;
+        netAmount = increaseAmount - feeAmount;
     }
 }

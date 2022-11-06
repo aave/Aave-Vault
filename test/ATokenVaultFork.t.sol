@@ -23,7 +23,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         dai = ERC20(POLYGON_DAI);
         aDai = IAToken(POLYGON_ADAI);
 
-        daiAddress = address(dai);
+        vaultAssetAddress = address(aDai);
 
         vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
     }

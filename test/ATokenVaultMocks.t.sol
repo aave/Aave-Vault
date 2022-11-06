@@ -27,7 +27,7 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
 
         dai = new MockDAI();
 
-        daiAddress = address(dai);
+        vaultAssetAddress = address(aDai);
 
         vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(poolAddrProvider)));
     }
@@ -67,37 +67,56 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         assertEq(vault.balanceOf(ALICE), 0);
     }
 
-    function testYieldSplitBasicFOCUS(uint256 yieldEarned) public {
+    function testYieldSplitBasicFOCUS() public {
+        // TODO move to fuzz arg
+        uint256 yieldEarned = SCALE; // 100%
         // TODO refactor
+        uint256 expectedAssetsUser;
+        uint256 expectedAssetsFees;
+
+        uint256 startAmount = HUNDRED;
 
         bound(yieldEarned, 0, 1_000_000 * SCALE);
         // Alice deposits 100 DAI
-        deal(address(dai), ALICE, HUNDRED);
+        deal(address(dai), ALICE, startAmount);
 
         vm.startPrank(ALICE);
-        dai.approve(address(vault), HUNDRED);
-        vault.mint(HUNDRED, ALICE);
+        dai.approve(address(vault), startAmount);
+        vault.mint(startAmount, ALICE);
         vm.stopPrank();
 
+        console.log(block.timestamp);
+
         // Simulate yield earned
-        _increaseVaultYield(yieldEarned);
+        uint256 increaseAmount = _increaseVaultYield(yieldEarned);
+        skip(1);
+
+        console.log(block.timestamp);
 
         // TODO refactor
-        uint256 expectedAssetsTotal = (HUNDRED * (SCALE + yieldEarned)) / SCALE;
-        uint256 expectedAssetsUser = (expectedAssetsTotal * (SCALE - fee)) / SCALE;
-        uint256 expectedAssetsFees = (expectedAssetsTotal * fee) / SCALE;
+        uint256 expectedAssetsTotal = startAmount + increaseAmount;
+        // uint256 expectedAssetsUser = (expectedAssetsTotal * (SCALE - fee)) / SCALE;
+        // uint256 expectedAssetsFees = (expectedAssetsTotal * fee) / SCALE;
 
-        console.log(expectedAssetsTotal);
-        console.log(expectedAssetsUser);
-        console.log(expectedAssetsFees);
+        (expectedAssetsFees, expectedAssetsUser) = _expectedFeeSplitOfIncrease(increaseAmount);
+        expectedAssetsUser += HUNDRED;
+
+        console.log("New Yield", yieldEarned);
+        console.log("Increase", increaseAmount);
+        console.log("Total", expectedAssetsTotal);
+        console.log("User", expectedAssetsUser);
+        console.log("Fees", expectedAssetsFees);
+        console.log("Fee Set", fee);
 
         assertEq(aDai.balanceOf(address(vault)), expectedAssetsTotal);
-        assertEq(vault.accumulatedFees(), 0);
+        // assertEq(vault.accumulatedFees(), 0);
 
         // Alice withdraws ALL assets available
         vm.startPrank(ALICE);
         vault.withdraw(vault.maxWithdraw(ALICE), ALICE, ALICE);
         vm.stopPrank();
+
+        console.log(block.timestamp);
 
         assertEq(dai.balanceOf(ALICE), expectedAssetsUser);
         assertEq(vault.accumulatedFees(), expectedAssetsFees);
