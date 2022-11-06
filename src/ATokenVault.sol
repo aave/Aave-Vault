@@ -181,7 +181,7 @@ contract ATokenVault is ERC4626, Ownable {
             uint256 newYield = newVaultBalance - lastVaultBalance;
             uint256 newYieldNetFees = newYield.mulDivUp(SCALE - fee, SCALE);
 
-            return newVaultBalance + newYieldNetFees - accumulatedFees;
+            return lastVaultBalance + newYieldNetFees - accumulatedFees;
         }
     }
 

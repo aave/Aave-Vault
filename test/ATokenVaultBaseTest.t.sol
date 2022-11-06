@@ -31,7 +31,7 @@ contract ATokenVaultBaseTest is Test {
 
     function setUp() public virtual {}
 
-    function _increaseVaultYield(uint256 newYieldPercentage) internal returns (uint256 increaseAmount) {
+    function _increaseVaultYield(uint256 newYieldPercentage) internal virtual returns (uint256 increaseAmount) {
         uint256 currentTokenBalance = ERC20(vaultAssetAddress).balanceOf(address(vault));
         increaseAmount = (((SCALE + newYieldPercentage) * currentTokenBalance) / SCALE) - currentTokenBalance;
         deal(vaultAssetAddress, address(vault), increaseAmount);
@@ -51,6 +51,7 @@ contract ATokenVaultBaseTest is Test {
         console.log("\n", label);
         console.log("ERC20 Assets\t\t\t", ERC20(vaultAssetAddress).balanceOf(address(vault)));
         console.log("totalAssets()\t\t\t", vault.totalAssets());
+        console.log("lastVaulBalance()\t\t", vault.lastVaultBalance());
         console.log("User Withdrawable\t\t", vault.maxWithdraw(user));
         console.log("accumulatedFees\t\t", vault.accumulatedFees());
         console.log("lastUpdated\t\t\t", vault.lastUpdated());

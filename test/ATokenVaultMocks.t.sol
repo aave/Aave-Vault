@@ -89,6 +89,12 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
 
         _logVaultBalances(ALICE, "DEPOSITED");
 
+        // TODO clean this up
+        address recipient = address(vault);
+        console.log(aDai.balanceOf(recipient));
+        // deal(address(aDai), recipient, startAmount);
+        // aDai.mint(address(vault), startAmount);
+        console.log(aDai.balanceOf(recipient));
         // Simulate yield earned
         uint256 increaseAmount = _increaseVaultYield(yieldEarned);
         skip(1);
@@ -103,7 +109,7 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         (expectedAssetsFees, expectedAssetsUser) = _expectedFeeSplitOfIncrease(increaseAmount);
         expectedAssetsUser += HUNDRED;
 
-        console.log("New Yield", yieldEarned);
+        console.log("yieldEarned", yieldEarned);
         console.log("Increase", increaseAmount);
         console.log("Total", expectedAssetsTotal);
         console.log("User", expectedAssetsUser);
@@ -129,5 +135,14 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(address(vault)), expectedAssetsFees);
         assertEq(vault.balanceOf(ALICE), 0);
         assertEq(vault.maxWithdraw(ALICE), 0);
+    }
+
+    // TEST UTIL OVERRIDES
+
+    function _increaseVaultYield(uint256 newYieldPercentage) internal override returns (uint256 increaseAmount) {
+        uint256 currentTokenBalance = ERC20(vaultAssetAddress).balanceOf(address(vault));
+        increaseAmount = (((SCALE + newYieldPercentage) * currentTokenBalance) / SCALE) - currentTokenBalance;
+        // deal(vaultAssetAddress, address(vault), increaseAmount);
+        aDai.mint(address(vault), increaseAmount);
     }
 }
