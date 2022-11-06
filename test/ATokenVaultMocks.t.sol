@@ -82,8 +82,6 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         vault.mint(startAmount, ALICE);
         vm.stopPrank();
 
-        _logVaultBalances(ALICE, "DEPOSITED");
-
         // Simulate yield earned
         uint256 increaseAmount = _increaseVaultYield(yieldEarned);
         skip(1);
@@ -106,6 +104,73 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         assertEq(vault.balanceOf(ALICE), 0);
         assertEq(vault.maxWithdraw(ALICE), 0);
     }
+
+    function testYieldSplitTwoUsersFOCUS(
+        uint256 aliceStart,
+        uint256 bobStart,
+        uint256 firstYield,
+        uint256 secondYield
+    ) public {
+        aliceStart = bound(aliceStart, ONE, type(uint64).max);
+        bobStart = bound(bobStart, ONE, type(uint64).max);
+        firstYield = bound(firstYield, 0, type(uint64).max);
+        secondYield = bound(secondYield, 0, type(uint64).max);
+
+        uint256 expectedFees;
+        uint256 expectedAliceYield;
+        uint256 expectedBobYield;
+
+        deal(address(dai), ALICE, aliceStart);
+        deal(address(dai), BOB, bobStart);
+
+        assertEq(vault.balanceOf(ALICE), 0);
+        assertEq(vault.balanceOf(BOB), 0);
+
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), aliceStart);
+        vault.deposit(aliceStart, ALICE);
+        vm.stopPrank();
+
+        uint256 increaseAmount1 = _increaseVaultYield(firstYield);
+        skip(1);
+
+        (expectedFees, expectedAliceYield) = _expectedFeeSplitOfIncrease(increaseAmount1);
+        assertEq(vault.accumulatedFees(), expectedFees);
+        assertEq(vault.maxWithdraw(ALICE), expectedAliceYield + aliceStart);
+
+        vm.startPrank(BOB);
+        dai.approve(address(vault), bobStart);
+        vault.deposit(bobStart, BOB);
+        vm.stopPrank();
+
+        uint256 increaseAmount2 = _increaseVaultYield(secondYield);
+        skip(1);
+
+        // TODO is this true? sum and take 20%?
+        (uint256 newFees, uint256 newUserYield) = _expectedFeeSplitOfIncrease(increaseAmount2);
+        expectedFees += newFees;
+        expectedAliceYield += (newUserYield * (aliceStart + expectedAliceYield)) / vault.totalAssets();
+        expectedBobYield = (newUserYield * bobStart) / vault.totalAssets();
+
+        assertEq(vault.accumulatedFees(), expectedFees);
+        assertEq(vault.maxWithdraw(ALICE), expectedAliceYield + aliceStart);
+        assertEq(vault.maxWithdraw(BOB), expectedBobYield + bobStart);
+
+        vm.startPrank(ALICE);
+        vault.withdraw(vault.maxWithdraw(ALICE), ALICE, ALICE);
+        vm.stopPrank();
+
+        vm.startPrank(BOB);
+        vault.withdraw(vault.maxWithdraw(BOB), BOB, BOB);
+        vm.stopPrank();
+
+        assertEq(dai.balanceOf(ALICE), expectedAliceYield + aliceStart);
+        assertEq(dai.balanceOf(BOB), expectedBobYield + bobStart);
+        assertEq(aDai.balanceOf(address(vault)), expectedFees);
+    }
+
+    // TODO Tests to add:
+    // - check same block no timestamp skip doesn't let people withdraw more
 
     // TEST UTILS and OVERRIDES
 
