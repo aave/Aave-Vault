@@ -28,7 +28,7 @@ contract ATokenVaultPropertiesTest is ERC4626Test, ATokenVaultBaseTest {
 
         dai = new MockDAI();
 
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, DEFAULT_FEE, IPoolAddressesProvider(address(poolAddrProvider)));
+        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(poolAddrProvider)));
 
         _underlying_ = address(dai);
         _vault_ = address(vault);

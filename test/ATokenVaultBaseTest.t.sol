@@ -23,7 +23,8 @@ contract ATokenVaultBaseTest is Test {
 
     string constant SHARE_NAME = "Wrapped aDAI";
     string constant SHARE_SYMBOL = "waDAI";
-    uint256 constant DEFAULT_FEE = 0.2e18; // 20%
+
+    uint256 fee = 0.2e18; // 20%
 
     ATokenVault vault;
     address daiAddress; // must be set in setUp() of each test file

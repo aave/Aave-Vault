@@ -25,13 +25,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         daiAddress = address(dai);
 
-        vault = new ATokenVault(
-            dai,
-            SHARE_NAME,
-            SHARE_SYMBOL,
-            DEFAULT_FEE,
-            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER)
-        );
+        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
     }
 
     function testForkWorks() public {
@@ -162,8 +156,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         // TODO refactor
         uint256 expectedAssetsTotal = (HUNDRED * (SCALE + yieldEarned)) / SCALE;
-        uint256 expectedAssetsUser = (expectedAssetsTotal * (SCALE - DEFAULT_FEE)) / SCALE;
-        uint256 expectedAssetsFees = (expectedAssetsTotal * DEFAULT_FEE) / SCALE;
+        uint256 expectedAssetsUser = (expectedAssetsTotal * (SCALE - fee)) / SCALE;
+        uint256 expectedAssetsFees = (expectedAssetsTotal * fee) / SCALE;
 
         console.log(expectedAssetsTotal);
         console.log(expectedAssetsUser);
@@ -201,13 +195,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     //////////////////////////////////////////////////////////////*/
 
     function _deployAndCheckProps() public {
-        vault = new ATokenVault(
-            dai,
-            SHARE_NAME,
-            SHARE_SYMBOL,
-            DEFAULT_FEE,
-            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER)
-        );
+        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
         assertEq(address(vault.asset()), POLYGON_DAI);
         assertEq(address(vault.aToken()), POLYGON_ADAI);
         assertEq(address(vault.aavePool()), POLYGON_AAVE_POOL);

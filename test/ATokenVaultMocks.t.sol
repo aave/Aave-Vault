@@ -29,12 +29,12 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
 
         daiAddress = address(dai);
 
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, DEFAULT_FEE, IPoolAddressesProvider(address(poolAddrProvider)));
+        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(poolAddrProvider)));
     }
 
     function testWithdrawNoFee(uint256 yieldIncrease) public {
         // Redeploy vault with 0% fee
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, DEFAULT_FEE, IPoolAddressesProvider(address(poolAddrProvider)));
+        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, 0, IPoolAddressesProvider(address(poolAddrProvider)));
 
         // Alice deposits 1 DAI
         deal(address(dai), ALICE, ONE);
@@ -65,5 +65,46 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(ALICE), 0);
         assertEq(aDai.balanceOf(address(vault)), 0);
         assertEq(vault.balanceOf(ALICE), 0);
+    }
+
+    function testYieldSplitBasicFOCUS(uint256 yieldEarned) public {
+        // TODO refactor
+
+        bound(yieldEarned, 0, 1_000_000 * SCALE);
+        // Alice deposits 100 DAI
+        deal(address(dai), ALICE, HUNDRED);
+
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), HUNDRED);
+        vault.mint(HUNDRED, ALICE);
+        vm.stopPrank();
+
+        // Simulate yield earned
+        _increaseVaultYield(yieldEarned);
+
+        // TODO refactor
+        uint256 expectedAssetsTotal = (HUNDRED * (SCALE + yieldEarned)) / SCALE;
+        uint256 expectedAssetsUser = (expectedAssetsTotal * (SCALE - fee)) / SCALE;
+        uint256 expectedAssetsFees = (expectedAssetsTotal * fee) / SCALE;
+
+        console.log(expectedAssetsTotal);
+        console.log(expectedAssetsUser);
+        console.log(expectedAssetsFees);
+
+        assertEq(aDai.balanceOf(address(vault)), expectedAssetsTotal);
+        assertEq(vault.accumulatedFees(), 0);
+
+        // Alice withdraws ALL assets available
+        vm.startPrank(ALICE);
+        vault.withdraw(vault.maxWithdraw(ALICE), ALICE, ALICE);
+        vm.stopPrank();
+
+        assertEq(dai.balanceOf(ALICE), expectedAssetsUser);
+        assertEq(vault.accumulatedFees(), expectedAssetsFees);
+        // assertEq(dai.balanceOf(address(vault)), 0);
+        // assertEq(aDai.balanceOf(ALICE), 0);
+        assertEq(aDai.balanceOf(address(vault)), expectedAssetsFees);
+        assertEq(vault.balanceOf(ALICE), 0);
+        assertEq(vault.maxWithdraw(ALICE), 0);
     }
 }
