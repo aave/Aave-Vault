@@ -185,6 +185,7 @@ contract ATokenVault is ERC4626, Ownable {
         }
     }
 
+    // TODO remove if unused?
     function feeSplit(uint256 amount) internal view returns (uint256 feeAmount, uint256 netAmount) {
         feeAmount = amount.mulDivUp(fee, SCALE);
         netAmount = amount - feeAmount;

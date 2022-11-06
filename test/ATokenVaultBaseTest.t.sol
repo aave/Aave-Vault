@@ -46,4 +46,14 @@ contract ATokenVaultBaseTest is Test {
         feeAmount = (increaseAmount * fee) / SCALE;
         netAmount = increaseAmount - feeAmount;
     }
+
+    function _logVaultBalances(address user, string memory label) internal {
+        console.log("\n", label);
+        console.log("ERC20 Assets\t\t\t", ERC20(vaultAssetAddress).balanceOf(address(vault)));
+        console.log("totalAssets()\t\t\t", vault.totalAssets());
+        console.log("User Withdrawable\t\t", vault.maxWithdraw(user));
+        console.log("accumulatedFees\t\t", vault.accumulatedFees());
+        console.log("lastUpdated\t\t\t", vault.lastUpdated());
+        console.log("current time\t\t\t", block.timestamp);
+    }
 }

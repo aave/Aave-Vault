@@ -80,18 +80,20 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         // Alice deposits 100 DAI
         deal(address(dai), ALICE, startAmount);
 
+        _logVaultBalances(ALICE, "START");
+
         vm.startPrank(ALICE);
         dai.approve(address(vault), startAmount);
         vault.mint(startAmount, ALICE);
         vm.stopPrank();
 
-        console.log(block.timestamp);
+        _logVaultBalances(ALICE, "DEPOSITED");
 
         // Simulate yield earned
         uint256 increaseAmount = _increaseVaultYield(yieldEarned);
         skip(1);
 
-        console.log(block.timestamp);
+        _logVaultBalances(ALICE, "YIELD EARNED");
 
         // TODO refactor
         uint256 expectedAssetsTotal = startAmount + increaseAmount;
@@ -115,6 +117,8 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         vm.startPrank(ALICE);
         vault.withdraw(vault.maxWithdraw(ALICE), ALICE, ALICE);
         vm.stopPrank();
+
+        _logVaultBalances(ALICE, "WITHDRAWN");
 
         console.log(block.timestamp);
 
