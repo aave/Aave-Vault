@@ -2,7 +2,7 @@
 pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
-import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
+import {ATokenVaultBaseTest, IATokenVault} from "./ATokenVaultBaseTest.t.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
@@ -11,7 +11,6 @@ import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol
 
 contract ATokenVaultForkTest is ATokenVaultBaseTest {
     // Forked tests using Polygon for Aave v3
-
     uint256 polygonFork;
 
     ERC20 dai;
@@ -36,9 +35,30 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
                                 NEGATIVES
     //////////////////////////////////////////////////////////////*/
 
+    function testDeployRevertsFeeTooHighFOCUS() public {
+        vm.expectRevert(IATokenVault.FeeTooHigh.selector);
+        vault = new ATokenVault(
+            dai,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            SCALE + 1,
+            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER)
+        );
+    }
+
     function testDeployRevertsWithUnlistedAsset() public {}
 
-    function testDeployRevertsWithBadPoolAddrProvider() public {}
+    function testDeployRevertsWithBadPoolAddressProvider() public {}
+
+    function testNonOwnerCannotWithdrawFees() public {}
+
+    function testNonOwnerCannotSetFee() public {}
+
+    function testOwnerCannotSetFeeHigherThanScale() public {}
+
+    function testOwnerCannotWithdrawMoreFeesThenEarned() public {}
+
+    function testNonOwnerCannotCallUpdateAavePool() public {}
 
     /*//////////////////////////////////////////////////////////////
                                 POSITIVES
@@ -47,6 +67,20 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     function testDeploySucceedsWithValidParams() public {
         _deployAndCheckProps();
     }
+
+    function testDeployEmitsFeeEvent() public {}
+
+    function testOwnerCanWithdrawFees() public {}
+
+    function testWithdrawFeesEmitsEvent() public {}
+
+    function testOwnerCanSetFee() public {}
+
+    function testSetFeeEmitsEvent() public {}
+
+    function testOwnerCanCallUpdateAavePool() public {}
+
+    function testUpdateAavePoolEmitsEvent() public {}
 
     function testDepositSuppliesAave() public {
         _deployAndCheckProps();
@@ -139,46 +173,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
                                 SCENARIOS
     //////////////////////////////////////////////////////////////*/
 
-    function testYieldSplitBasic(uint256 yieldEarned) public {
-        // TODO refactor
-
-        bound(yieldEarned, 0, 1_000_000 * SCALE);
-        // Alice deposits 100 DAI
-        deal(address(dai), ALICE, HUNDRED);
-
-        vm.startPrank(ALICE);
-        dai.approve(address(vault), HUNDRED);
-        vault.mint(HUNDRED, ALICE);
-        vm.stopPrank();
-
-        // Simulate yield earned
-        _increaseVaultYield(yieldEarned);
-
-        // TODO refactor
-        uint256 expectedAssetsTotal = (HUNDRED * (SCALE + yieldEarned)) / SCALE;
-        uint256 expectedAssetsUser = (expectedAssetsTotal * (SCALE - fee)) / SCALE;
-        uint256 expectedAssetsFees = (expectedAssetsTotal * fee) / SCALE;
-
-        console.log(expectedAssetsTotal);
-        console.log(expectedAssetsUser);
-        console.log(expectedAssetsFees);
-
-        assertEq(aDai.balanceOf(address(vault)), expectedAssetsTotal);
-        assertEq(vault.accumulatedFees(), 0);
-
-        // Alice withdraws ALL assets available
-        vm.startPrank(ALICE);
-        vault.withdraw(vault.maxWithdraw(ALICE), ALICE, ALICE);
-        vm.stopPrank();
-
-        assertEq(dai.balanceOf(ALICE), expectedAssetsUser);
-        assertEq(vault.accumulatedFees(), expectedAssetsFees);
-        // assertEq(dai.balanceOf(address(vault)), 0);
-        // assertEq(aDai.balanceOf(ALICE), 0);
-        assertEq(aDai.balanceOf(address(vault)), expectedAssetsFees);
-        assertEq(vault.balanceOf(ALICE), 0);
-        assertEq(vault.maxWithdraw(ALICE), 0);
-    }
+    function testYieldSplitBasic(uint256 yieldEarned) public {}
 
     function testFuzzMultiDepositTwoUsers() public {}
 

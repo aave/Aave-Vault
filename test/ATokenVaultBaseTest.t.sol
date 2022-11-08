@@ -3,10 +3,13 @@ pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
 
-import {ATokenVault} from "../src/ATokenVault.sol";
+import {ATokenVault, FixedPointMathLib} from "../src/ATokenVault.sol";
+import {IATokenVault} from "../src/IATokenVault.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 contract ATokenVaultBaseTest is Test {
+    using FixedPointMathLib for uint256;
+
     // Forked tests using Polygon for Aave v3
     address constant POLYGON_DAI = 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063;
     address constant POLYGON_ADAI = 0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE;
@@ -33,7 +36,8 @@ contract ATokenVaultBaseTest is Test {
 
     function _increaseVaultYield(uint256 newYieldPercentage) internal virtual returns (uint256 increaseAmount) {
         uint256 currentTokenBalance = ERC20(vaultAssetAddress).balanceOf(address(vault));
-        increaseAmount = (((SCALE + newYieldPercentage) * currentTokenBalance) / SCALE) - currentTokenBalance;
+        increaseAmount = currentTokenBalance.mulDivUp(SCALE + newYieldPercentage, SCALE) - currentTokenBalance;
+        // increaseAmount = (((SCALE + newYieldPercentage) * currentTokenBalance) / SCALE) - currentTokenBalance;
         deal(vaultAssetAddress, address(vault), increaseAmount);
     }
 
@@ -45,6 +49,16 @@ contract ATokenVaultBaseTest is Test {
     function _expectedFeeSplitOfIncrease(uint256 increaseAmount) internal returns (uint256 feeAmount, uint256 netAmount) {
         feeAmount = (increaseAmount * fee) / SCALE;
         netAmount = increaseAmount - feeAmount;
+    }
+
+    // NOTE: Round up for user yield, round down for fee yield
+    // Based on shares over current total shares, read from vault
+    function _expectedUserYieldAmount(uint256 userShares, uint256 newYieldForUsers)
+        internal
+        returns (uint256 expectedUserYield)
+    {
+        // Rounding up expected for users, rounding down for fees on yield
+        return newYieldForUsers.mulDivUp(userShares, vault.totalSupply());
     }
 
     function _logVaultBalances(address user, string memory label) internal {

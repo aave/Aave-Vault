@@ -7,11 +7,12 @@ import {ERC4626, SafeTransferLib, FixedPointMathLib} from "solmate/mixins/ERC462
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Ownable} from "openzeppelin/access/Ownable.sol";
 
+import {IATokenVault} from "./IATokenVault.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 
-contract ATokenVault is ERC4626, Ownable {
+contract ATokenVault is IATokenVault, ERC4626, Ownable {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
 
@@ -27,12 +28,6 @@ contract ATokenVault is ERC4626, Ownable {
     uint256 public fee; // as a fraction of 1e18
     uint256 public accumulatedFees; // total fees accrued and withdrawable
 
-    event FeeUpdated(uint256 oldFee, uint256 newFee);
-    event FeeTaken(uint256 shares);
-    event FeesWithdrawn(uint256 amount, address to);
-    event AavePoolUpdated(address newAavePool);
-    event YieldAccrued(uint256 totalNewYield, uint256 newFeesFromYield);
-
     constructor(
         ERC20 underlying,
         string memory shareName,
@@ -40,7 +35,7 @@ contract ATokenVault is ERC4626, Ownable {
         uint256 initialFee,
         IPoolAddressesProvider poolAddressesProvider
     ) ERC4626(underlying, shareName, shareSymbol) {
-        require(initialFee < SCALE, "VAULT: FEE TOO HIGH");
+        if (initialFee > SCALE) revert FeeTooHigh();
 
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
 
@@ -147,7 +142,7 @@ contract ATokenVault is ERC4626, Ownable {
     //////////////////////////////////////////////////////////////*/
 
     function setFee(uint256 _newFee) public onlyOwner {
-        require(_newFee < SCALE, "VAULT: FEE TOO HIGH");
+        if (_newFee > SCALE) revert FeeTooHigh();
 
         uint256 oldFee = fee;
         fee = _newFee;
@@ -164,7 +159,7 @@ contract ATokenVault is ERC4626, Ownable {
 
     // Fees are accrued and claimable in aToken form
     function withdrawFees(uint256 amount, address to) public onlyOwner {
-        require(amount <= accumulatedFees, "VAULT: INSUFFICIENT FEES");
+        if (amount > accumulatedFees) revert InsufficientFees();
 
         accumulatedFees -= amount;
 
