@@ -29,6 +29,9 @@ contract ATokenVault is ERC4626, Ownable {
 
     event FeeUpdated(uint256 oldFee, uint256 newFee);
     event FeeTaken(uint256 shares);
+    event FeesWithdrawn(uint256 amount, address to);
+    event AavePoolUpdated(address newAavePool);
+    event YieldAccrued(uint256 totalNewYield, uint256 newFeesFromYield);
 
     constructor(
         ERC20 underlying,
@@ -153,7 +156,10 @@ contract ATokenVault is ERC4626, Ownable {
     }
 
     function updateAavePool() public onlyOwner {
-        aavePool = IPool(POOL_ADDRESSES_PROVIDER.getPool());
+        address newPool = POOL_ADDRESSES_PROVIDER.getPool();
+        aavePool = IPool(newPool);
+
+        emit AavePoolUpdated(newPool);
     }
 
     // Fees are accrued and claimable in aToken form
@@ -163,6 +169,8 @@ contract ATokenVault is ERC4626, Ownable {
         accumulatedFees -= amount;
 
         aToken.transfer(to, amount);
+
+        emit FeesWithdrawn(amount, to);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -185,12 +193,6 @@ contract ATokenVault is ERC4626, Ownable {
         }
     }
 
-    // TODO remove if unused?
-    function feeSplit(uint256 amount) internal view returns (uint256 feeAmount, uint256 netAmount) {
-        feeAmount = amount.mulDivUp(fee, SCALE);
-        netAmount = amount - feeAmount;
-    }
-
     /*//////////////////////////////////////////////////////////////
                           INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -200,11 +202,14 @@ contract ATokenVault is ERC4626, Ownable {
         if (block.timestamp != lastUpdated) {
             uint256 newVaultBalance = aToken.balanceOf(address(this));
             uint256 newYield = newVaultBalance - lastVaultBalance;
+            uint256 newFeesEarned = newYield.mulDivDown(fee, SCALE);
 
-            accumulatedFees += newYield.mulDivUp(fee, SCALE);
+            accumulatedFees += newFeesEarned;
 
             lastVaultBalance = newVaultBalance;
             lastUpdated = block.timestamp;
+
+            emit YieldAccrued(newYield, newFeesEarned);
         }
     }
 }
