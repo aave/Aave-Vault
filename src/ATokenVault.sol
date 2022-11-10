@@ -161,9 +161,12 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
 
     // Fees are accrued and claimable in aToken form
     function withdrawFees(uint256 amount, address to) public onlyOwner {
-        if (amount > accumulatedFees) revert InsufficientFees();
+        uint256 currentFees = getCurrentFees();
+        if (amount > currentFees) revert InsufficientFees(); // will underflow below anyway, error msg for clarity
 
-        accumulatedFees -= amount;
+        accumulatedFees = currentFees - amount;
+        lastVaultBalance = aToken.balanceOf(address(this)) - amount;
+        lastUpdated = block.timestamp;
 
         aToken.transfer(to, amount);
 
@@ -187,6 +190,20 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
             uint256 newYieldNetFees = newYield.mulDivUp(SCALE - fee, SCALE);
 
             return lastVaultBalance + newYieldNetFees - accumulatedFees;
+        }
+    }
+
+    function getCurrentFees() public view returns (uint256) {
+        if (block.timestamp == lastUpdated) {
+            // Accumulated fees already up to date
+            return accumulatedFees;
+        } else {
+            // Calculate new fees since last accrueYield
+            uint256 newVaultBalance = aToken.balanceOf(address(this));
+            uint256 newYield = newVaultBalance - lastVaultBalance;
+            uint256 newFees = newYield.mulDivDown(fee, SCALE);
+
+            return accumulatedFees + newFees;
         }
     }
 
