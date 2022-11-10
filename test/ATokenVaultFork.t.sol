@@ -78,7 +78,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         vm.startPrank(ALICE);
         vm.expectRevert(ERR_NOT_OWNER);
-        vault.withdrawFees(feesAccrued, ALICE);
+        vault.withdrawFees(ALICE, feesAccrued);
         vm.stopPrank();
     }
 
@@ -123,7 +123,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         vm.startPrank(OWNER);
         vm.expectRevert(IATokenVault.InsufficientFees.selector);
-        vault.withdrawFees(feesAccrued + ONE, OWNER); // Try to withdraw more than accrued
+        vault.withdrawFees(OWNER, feesAccrued + ONE); // Try to withdraw more than accrued
         vm.stopPrank();
     }
 
@@ -160,23 +160,57 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         uint256 feesAccrued = vault.getCurrentFees();
 
-        console.log("ADai bal vault", aDai.balanceOf(address(vault)));
-        console.log("Fees accrued", feesAccrued);
-
         assertGt(feesAccrued, 0); // must have accrued some fees
 
         vm.startPrank(OWNER);
-        vault.withdrawFees(feesAccrued, OWNER);
+        vault.withdrawFees(OWNER, feesAccrued);
         vm.stopPrank();
 
         assertEq(aDai.balanceOf(OWNER), feesAccrued);
+        assertEq(vault.getCurrentFees(), 0);
     }
 
-    function testWithdrawFeesEmitsEvent() public {}
+    function testWithdrawFeesEmitsEvent() public {
+        uint256 feesAmount = 50 * ONE;
+        _deployAndCheckProps();
+        _accrueFeesInVault(feesAmount);
 
-    function testOwnerCanSetFee() public {}
+        uint256 feesAccrued = vault.getCurrentFees();
 
-    function testSetFeeEmitsEvent() public {}
+        assertGt(feesAccrued, 0);
+
+        vm.startPrank(OWNER);
+        vm.expectEmit(true, false, false, true, address(vault));
+        emit FeesWithdrawn(OWNER, feesAccrued);
+        vault.withdrawFees(OWNER, feesAccrued);
+        vm.stopPrank();
+    }
+
+    function testOwnerCanSetFee() public {
+        _deployAndCheckProps();
+
+        uint256 newFee = 0.1e18; //10%
+        assertFalse(newFee == vault.fee()); // new fee must be different
+
+        vm.startPrank(OWNER);
+        vault.setFee(newFee);
+        vm.stopPrank();
+
+        assertEq(vault.fee(), newFee);
+    }
+
+    function testSetFeeEmitsEvent() public {
+        _deployAndCheckProps();
+
+        uint256 newFee = 0.1e18; //10%
+        assertFalse(newFee == vault.fee()); // new fee must be different
+
+        vm.startPrank(OWNER);
+        vm.expectEmit(false, false, false, true, address(vault));
+        emit FeeUpdated(vault.fee(), newFee);
+        vault.setFee(newFee);
+        vm.stopPrank();
+    }
 
     function testOwnerCanCallUpdateAavePool() public {}
 

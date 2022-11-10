@@ -160,7 +160,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
     }
 
     // Fees are accrued and claimable in aToken form
-    function withdrawFees(uint256 amount, address to) public onlyOwner {
+    function withdrawFees(address to, uint256 amount) public onlyOwner {
         uint256 currentFees = getCurrentFees();
         if (amount > currentFees) revert InsufficientFees(); // will underflow below anyway, error msg for clarity
 
@@ -170,7 +170,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
 
         aToken.transfer(to, amount);
 
-        emit FeesWithdrawn(amount, to);
+        emit FeesWithdrawn(to, amount);
     }
 
     /*//////////////////////////////////////////////////////////////
