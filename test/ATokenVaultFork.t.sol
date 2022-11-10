@@ -231,6 +231,19 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
     }
 
+    function testTotalAssetsReturnsZeroWhenEmpty() public {
+        _deployAndCheckProps();
+        assertEq(vault.totalAssets(), 0);
+    }
+
+    function testTotalAssetsReturnsNetOfFeesFigure() public {
+        // TODO
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            DEPOSIT AND MINT
+    //////////////////////////////////////////////////////////////*/
+
     function testDepositSuppliesAave() public {
         _deployAndCheckProps();
 
@@ -277,6 +290,10 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(vault.balanceOf(ALICE), ONE);
     }
 
+    /*//////////////////////////////////////////////////////////////
+                            WITHDRAW AND REDEEM
+    //////////////////////////////////////////////////////////////*/
+
     function testWithdrawNoFee() public {
         // Redeploy vault with 0% fee
         vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, 0, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
@@ -322,17 +339,17 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
                                 SCENARIOS
     //////////////////////////////////////////////////////////////*/
 
-    function testYieldSplitBasic(uint256 yieldEarned) public {}
+    // function testYieldSplitBasic(uint256 yieldEarned) public {}
 
-    function testFuzzMultiDepositTwoUsers() public {}
+    // function testFuzzMultiDepositTwoUsers() public {}
 
-    function testFuzzMultiMintTwoUsers() public {}
+    // function testFuzzMultiMintTwoUsers() public {}
 
-    function testFuzzMultiWithdrawTwoUsers() public {}
+    // function testFuzzMultiWithdrawTwoUsers() public {}
 
-    function testFuzzMultiRedeemTwoUsers() public {}
+    // function testFuzzMultiRedeemTwoUsers() public {}
 
-    function testFuzzDepositAndWithdraw() public {}
+    // function testFuzzDepositAndWithdraw() public {}
 
     /*//////////////////////////////////////////////////////////////
                                 TEST UTILS

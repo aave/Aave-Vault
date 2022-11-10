@@ -179,18 +179,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
 
     function totalAssets() public view override returns (uint256) {
         // Report only the total assets net of fees, for vault share logic
-
-        if (block.timestamp == lastUpdated) {
-            // Accumulated fees already up to date
-            return aToken.balanceOf(address(this)) - accumulatedFees;
-        } else {
-            // Calculate new fees since last accrueYield
-            uint256 newVaultBalance = aToken.balanceOf(address(this));
-            uint256 newYield = newVaultBalance - lastVaultBalance;
-            uint256 newYieldNetFees = newYield.mulDivUp(SCALE - fee, SCALE);
-
-            return lastVaultBalance + newYieldNetFees - accumulatedFees;
-        }
+        return aToken.balanceOf(address(this)) - getCurrentFees();
     }
 
     function getCurrentFees() public view returns (uint256) {
