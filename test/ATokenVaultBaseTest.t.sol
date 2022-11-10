@@ -68,7 +68,7 @@ contract ATokenVaultBaseTest is Test, IATokenVault {
         console.log("totalAssets()\t\t\t", vault.totalAssets());
         console.log("lastVaulBalance()\t\t", vault.lastVaultBalance());
         console.log("User Withdrawable\t\t", vault.maxWithdraw(user));
-        console.log("accumulatedFees\t\t", vault.accumulatedFees());
+        console.log("current fees\t\t", vault.getCurrentFees());
         console.log("lastUpdated\t\t\t", vault.lastUpdated());
         console.log("current time\t\t\t", block.timestamp);
     }

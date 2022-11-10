@@ -91,7 +91,6 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         expectedAssetsUser += startAmount; // above returns only yield split, add back startAmount
 
         assertEq(aDai.balanceOf(address(vault)), expectedAssetsTotal);
-        assertEq(vault.accumulatedFees(), 0);
 
         // Alice withdraws ALL assets available
         vm.startPrank(ALICE);
@@ -99,7 +98,7 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         vm.stopPrank();
 
         assertEq(dai.balanceOf(ALICE), expectedAssetsUser);
-        assertEq(vault.accumulatedFees(), expectedAssetsFees);
+        assertEq(vault.getCurrentFees(), expectedAssetsFees);
         assertEq(aDai.balanceOf(address(vault)), expectedAssetsFees);
         assertEq(vault.balanceOf(ALICE), 0);
         assertEq(vault.maxWithdraw(ALICE), 0);
@@ -169,7 +168,7 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         console.log("ALICE predicted", expectedAliceYield + aliceStart);
         console.log("BOB predicted", expectedBobYield + bobStart);
 
-        // assertEq(vault.accumulatedFees(), expectedFees);
+        // assertEq(vault.getCurrentFees(), expectedFees);
         // assertEq(vault.maxWithdraw(ALICE), expectedAliceYield + aliceStart);
         // assertEq(vault.maxWithdraw(BOB), expectedBobYield + bobStart);
 
@@ -188,7 +187,7 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
 
         console.log("bob withdrawn balance", dai.balanceOf(BOB));
 
-        assertEq(vault.accumulatedFees(), expectedFees);
+        assertEq(vault.getCurrentFees(), expectedFees);
         assertEq(aDai.balanceOf(address(vault)), expectedFees);
         assertEq(dai.balanceOf(ALICE), expectedAliceYield + aliceStart);
         assertEq(dai.balanceOf(BOB), expectedBobYield + bobStart);

@@ -73,7 +73,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _deployAndCheckProps();
         _accrueFeesInVault(feesAmount);
 
-        uint256 feesAccrued = vault.accumulatedFees();
+        uint256 feesAccrued = vault.getCurrentFees();
         assertGt(feesAccrued, 0); // must have accrued some fees
 
         vm.startPrank(ALICE);
@@ -153,7 +153,24 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
     }
 
-    function testOwnerCanWithdrawFees() public {}
+    function testOwnerCanWithdrawFees() public {
+        uint256 feesAmount = 50 * ONE;
+        _deployAndCheckProps();
+        _accrueFeesInVault(feesAmount);
+
+        uint256 feesAccrued = vault.getCurrentFees();
+
+        console.log("ADai bal vault", aDai.balanceOf(address(vault)));
+        console.log("Fees accrued", feesAccrued);
+
+        assertGt(feesAccrued, 0); // must have accrued some fees
+
+        vm.startPrank(OWNER);
+        vault.withdrawFees(feesAccrued, OWNER);
+        vm.stopPrank();
+
+        assertEq(aDai.balanceOf(OWNER), feesAccrued);
+    }
 
     function testWithdrawFeesEmitsEvent() public {}
 

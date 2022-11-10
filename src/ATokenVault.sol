@@ -26,7 +26,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
     uint256 public lastUpdated; // timestamp of last accrueYield action
     uint256 public lastVaultBalance; // total aToken incl. fees
     uint256 public fee; // as a fraction of 1e18
-    uint256 public accumulatedFees; // total fees accrued and withdrawable
+    uint256 internal accumulatedFees; // fees accrued since last updated
 
     constructor(
         ERC20 underlying,
