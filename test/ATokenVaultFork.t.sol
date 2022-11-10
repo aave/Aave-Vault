@@ -127,7 +127,16 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
     }
 
-    function testNonOwnerCannotCallUpdateAavePool() public {}
+    function testNonOwnerCannotCallUpdateAavePool() public {
+        _deployAndCheckProps();
+
+        vm.startPrank(ALICE);
+        vm.expectRevert(ERR_NOT_OWNER);
+        vault.updateAavePool();
+        vm.stopPrank();
+    }
+
+    // TODO add more negative tests
 
     /*//////////////////////////////////////////////////////////////
                                 POSITIVES
@@ -137,7 +146,12 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _deployAndCheckProps();
     }
 
-    function testDeployEmitsFeeEvent() public {}
+    function testDeployEmitsFeeEvent() public {
+        // no indexed fields, just data check (4th param)
+        vm.expectEmit(false, false, false, true);
+        emit FeeUpdated(0, fee);
+        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+    }
 
     function testOwnerCanWithdrawFees() public {}
 

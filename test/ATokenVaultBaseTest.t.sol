@@ -7,7 +7,8 @@ import {ATokenVault, FixedPointMathLib} from "../src/ATokenVault.sol";
 import {IATokenVault} from "../src/IATokenVault.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
-contract ATokenVaultBaseTest is Test {
+// Inheritting from IATokenVault to access events for tests
+contract ATokenVaultBaseTest is Test, IATokenVault {
     using FixedPointMathLib for uint256;
 
     // Forked tests using Polygon for Aave v3
