@@ -69,9 +69,9 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     }
 
     function testNonOwnerCannotWithdrawFees() public {
+        uint256 feesAmount = 50 * ONE;
         _deployAndCheckProps();
-
-        _accrueFeesInVault(50 * ONE);
+        _accrueFeesInVault(feesAmount);
 
         uint256 feesAccrued = vault.accumulatedFees();
         assertGt(feesAccrued, 0); // must have accrued some fees
@@ -82,11 +82,50 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
     }
 
-    function testNonOwnerCannotSetFee() public {}
+    function testNonOwnerCannotSetFee() public {
+        _deployAndCheckProps();
 
-    function testOwnerCannotSetFeeHigherThanScale() public {}
+        vm.startPrank(ALICE);
+        vm.expectRevert(ERR_NOT_OWNER);
+        vault.setFee(0);
+        vm.stopPrank();
+    }
 
-    function testOwnerCannotWithdrawMoreFeesThenEarned() public {}
+    function testOwnerCannotSetFeeHigherThanScale() public {
+        _deployAndCheckProps();
+
+        vm.startPrank(OWNER);
+        vm.expectRevert(IATokenVault.FeeTooHigh.selector);
+        vault.setFee(SCALE + 1);
+        vm.stopPrank();
+    }
+
+    function testOwnerCannotWithdrawMoreFeesThenEarned() public {
+        uint256 feesAmount = 50 * ONE;
+        _deployAndCheckProps();
+
+        // First accrue ~50 DAI in fees
+        _accrueFeesInVault(feesAmount);
+
+        // Then deposit ~50 more DAI of user funds (should not be able to withdraw as owner)
+        deal(address(dai), ALICE, feesAmount);
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), feesAmount);
+        vault.deposit(feesAmount, ALICE);
+        skip(1);
+        vm.stopPrank();
+
+        uint256 feesAccrued = vault.getCurrentFees();
+        uint256 vaultADaiBalance = aDai.balanceOf(address(vault));
+
+        assertGe(feesAccrued, feesAmount); //Actual fees earned >= feesAmount
+        assertGt(vaultADaiBalance, feesAccrued); //Actual vault balance > feesAmount
+
+        vm.startPrank(OWNER);
+        vm.expectRevert(IATokenVault.InsufficientFees.selector);
+        vault.withdrawFees(feesAccrued + ONE, OWNER); // Try to withdraw more than accrued
+        vm.stopPrank();
+    }
 
     function testNonOwnerCannotCallUpdateAavePool() public {}
 
@@ -247,6 +286,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
 
         // Fees will be more than specified in param because of interest earned over time in Aave
-        assertGt(vault.accumulatedFees(), feeAmountToAccrue);
+        assertGt(vault.getCurrentFees(), feeAmountToAccrue);
     }
 }
