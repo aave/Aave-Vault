@@ -8,6 +8,7 @@ import {ATokenVault} from "../src/ATokenVault.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
+import {IPool} from "aave/interfaces/IPool.sol";
 
 contract ATokenVaultForkTest is ATokenVaultBaseTest {
     // Forked tests using Polygon for Aave v3
@@ -24,7 +25,9 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         vaultAssetAddress = address(aDai);
 
+        vm.startPrank(OWNER);
         vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+        vm.stopPrank();
     }
 
     function testForkWorks() public {
@@ -60,9 +63,24 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         );
     }
 
-    function testDeployRevertsWithBadPoolAddressProvider() public {}
+    function testDeployRevertsWithBadPoolAddressProvider() public {
+        vm.expectRevert();
+        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(0)));
+    }
 
-    function testNonOwnerCannotWithdrawFees() public {}
+    function testNonOwnerCannotWithdrawFees() public {
+        _deployAndCheckProps();
+
+        _accrueFeesInVault(50 * ONE);
+
+        uint256 feesAccrued = vault.accumulatedFees();
+        assertGt(feesAccrued, 0); // must have accrued some fees
+
+        vm.startPrank(ALICE);
+        vm.expectRevert(ERR_NOT_OWNER);
+        vault.withdrawFees(feesAccrued, ALICE);
+        vm.stopPrank();
+    }
 
     function testNonOwnerCannotSetFee() public {}
 
@@ -202,9 +220,33 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     //////////////////////////////////////////////////////////////*/
 
     function _deployAndCheckProps() public {
+        vm.startPrank(OWNER);
         vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+        vm.stopPrank();
         assertEq(address(vault.asset()), POLYGON_DAI);
         assertEq(address(vault.aToken()), POLYGON_ADAI);
         assertEq(address(vault.aavePool()), POLYGON_AAVE_POOL);
+        assertEq(vault.owner(), OWNER);
+    }
+
+    function _accrueFeesInVault(uint256 feeAmountToAccrue) public {
+        require(feeAmountToAccrue > 0, "TEST: FEES ACCRUED MUST BE > 0");
+        uint256 daiAmount = feeAmountToAccrue * 5; // Assuming 20% fee
+
+        deal(address(dai), ALICE, daiAmount + ONE);
+
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), ONE);
+        vault.deposit(ONE, ALICE);
+        dai.approve(POLYGON_AAVE_POOL, daiAmount);
+        IPool(POLYGON_AAVE_POOL).supply(address(dai), daiAmount, ALICE, 0);
+        aDai.transfer(address(vault), daiAmount);
+        skip(1);
+
+        vault.withdraw(vault.maxWithdraw(ALICE), ALICE, ALICE);
+        vm.stopPrank();
+
+        // Fees will be more than specified in param because of interest earned over time in Aave
+        assertGt(vault.accumulatedFees(), feeAmountToAccrue);
     }
 }

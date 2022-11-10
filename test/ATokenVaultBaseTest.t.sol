@@ -21,6 +21,7 @@ contract ATokenVaultBaseTest is Test {
     uint256 constant TEN = 10e18;
     uint256 constant HUNDRED = 100e18;
 
+    address constant OWNER = address(111);
     address constant ALICE = address(123);
     address constant BOB = address(456);
 
@@ -32,18 +33,17 @@ contract ATokenVaultBaseTest is Test {
     ATokenVault vault;
     address vaultAssetAddress; // aDAI, must be set in every setUp
 
+    // Error messages
+    bytes constant ERR_NOT_OWNER = bytes("Ownable: caller is not the owner");
+
     function setUp() public virtual {}
 
     function _increaseVaultYield(uint256 newYieldPercentage) internal virtual returns (uint256 increaseAmount) {
         uint256 currentTokenBalance = ERC20(vaultAssetAddress).balanceOf(address(vault));
+        console.log("currentTokenBalance", currentTokenBalance);
         increaseAmount = currentTokenBalance.mulDivUp(SCALE + newYieldPercentage, SCALE) - currentTokenBalance;
-        // increaseAmount = (((SCALE + newYieldPercentage) * currentTokenBalance) / SCALE) - currentTokenBalance;
         deal(vaultAssetAddress, address(vault), increaseAmount);
-    }
-
-    function _increaseVaultYieldWithTokens(uint256 newTokenAmount) internal {
-        require(vaultAssetAddress != address(0), "BaseTest: vaultAssetAddress not set");
-        deal(vaultAssetAddress, address(vault), newTokenAmount);
+        console.log("blbbl");
     }
 
     function _expectedFeeSplitOfIncrease(uint256 increaseAmount) internal returns (uint256 feeAmount, uint256 netAmount) {
