@@ -212,9 +212,24 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
     }
 
-    function testOwnerCanCallUpdateAavePool() public {}
+    function testOwnerCanCallUpdateAavePool() public {
+        _deployAndCheckProps();
 
-    function testUpdateAavePoolEmitsEvent() public {}
+        vm.startPrank(OWNER);
+        vault.updateAavePool();
+        vm.stopPrank();
+    }
+
+    function testUpdateAavePoolEmitsEvent() public {
+        _deployAndCheckProps();
+        address expectedPoolAddress = IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER).getPool();
+
+        vm.startPrank(OWNER);
+        vm.expectEmit(false, false, false, true, address(vault));
+        emit AavePoolUpdated(expectedPoolAddress);
+        vault.updateAavePool();
+        vm.stopPrank();
+    }
 
     function testDepositSuppliesAave() public {
         _deployAndCheckProps();
