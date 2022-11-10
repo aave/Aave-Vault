@@ -10,4 +10,5 @@ interface IATokenVault {
 
     error FeeTooHigh();
     error InsufficientFees();
+    error AssetNotSupported();
 }

@@ -35,7 +35,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
                                 NEGATIVES
     //////////////////////////////////////////////////////////////*/
 
-    function testDeployRevertsFeeTooHighFOCUS() public {
+    function testDeployRevertsFeeTooHigh() public {
         vm.expectRevert(IATokenVault.FeeTooHigh.selector);
         vault = new ATokenVault(
             dai,
@@ -46,7 +46,19 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         );
     }
 
-    function testDeployRevertsWithUnlistedAsset() public {}
+    function testDeployRevertsWithUnlistedAsset() public {
+        // UNI token is not listed on Aave v3
+        address uniToken = 0xb33EaAd8d922B1083446DC23f610c2567fB5180f;
+
+        vm.expectRevert(IATokenVault.AssetNotSupported.selector);
+        vault = new ATokenVault(
+            ERC20(uniToken),
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            fee,
+            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER)
+        );
+    }
 
     function testDeployRevertsWithBadPoolAddressProvider() public {}
 

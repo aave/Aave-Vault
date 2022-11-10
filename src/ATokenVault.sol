@@ -40,7 +40,9 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
 
         aavePool = IPool(poolAddressesProvider.getPool());
-        aToken = IAToken(aavePool.getReserveData(address(underlying)).aTokenAddress);
+        address aTokenAddress = aavePool.getReserveData(address(underlying)).aTokenAddress;
+        if (aTokenAddress == address(0)) revert AssetNotSupported();
+        aToken = IAToken(aTokenAddress);
 
         fee = initialFee;
 
