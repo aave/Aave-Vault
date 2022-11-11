@@ -22,4 +22,4 @@ jobs:
       - name: Run tests
         env: 
           POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
-        run: forge test
+        run: forge test -vv

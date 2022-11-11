@@ -3,10 +3,14 @@ pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
 
-import {ATokenVault} from "../src/ATokenVault.sol";
+import {ATokenVault, FixedPointMathLib} from "../src/ATokenVault.sol";
+import {IATokenVault} from "../src/IATokenVault.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
-contract ATokenVaultBaseTest is Test {
+// Inheritting from IATokenVault to access events for tests
+contract ATokenVaultBaseTest is Test, IATokenVault {
+    using FixedPointMathLib for uint256;
+
     // Forked tests using Polygon for Aave v3
     address constant POLYGON_DAI = 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063;
     address constant POLYGON_ADAI = 0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE;
@@ -16,27 +20,58 @@ contract ATokenVaultBaseTest is Test {
     uint256 constant SCALE = 1e18;
     uint256 constant ONE = 1e18;
     uint256 constant TEN = 10e18;
+    uint256 constant HUNDRED = 100e18;
+    uint256 constant ONE_PERCENT = 0.01e18;
+    uint256 constant ONE_BPS = 0.0001e18;
 
+    address constant OWNER = address(111);
     address constant ALICE = address(123);
     address constant BOB = address(456);
 
     string constant SHARE_NAME = "Wrapped aDAI";
     string constant SHARE_SYMBOL = "waDAI";
-    uint256 constant DEFAULT_FEE = 0.2e18; // 20%
+
+    uint256 fee = 0.2e18; // 20%
 
     ATokenVault vault;
-    address daiAddress; // must be set in setUp() of each test file
+    address vaultAssetAddress; // aDAI, must be set in every setUp
+
+    // Error messages
+    bytes constant ERR_NOT_OWNER = bytes("Ownable: caller is not the owner");
 
     function setUp() public virtual {}
 
-    function _increaseVaultYield(uint256 newYieldPercentage) internal {
-        uint256 currentTokenBalance = ERC20(daiAddress).balanceOf(address(vault));
-        uint256 newTokenAmount = ((SCALE + newYieldPercentage) * currentTokenBalance) / SCALE;
-        deal(daiAddress, address(vault), newTokenAmount);
+    function _increaseVaultYield(uint256 newYieldPercentage) internal virtual returns (uint256 increaseAmount) {
+        uint256 currentTokenBalance = ERC20(vaultAssetAddress).balanceOf(address(vault));
+        console.log("currentTokenBalance", currentTokenBalance);
+        increaseAmount = currentTokenBalance.mulDivUp(SCALE + newYieldPercentage, SCALE) - currentTokenBalance;
+        deal(vaultAssetAddress, address(vault), increaseAmount);
+        console.log("blbbl");
     }
 
-    function _increaseVaultYieldWithTokens(uint256 newTokenAmount) internal {
-        require(daiAddress != address(0), "BaseTest: daiAddress not set");
-        deal(daiAddress, address(vault), newTokenAmount);
+    function _expectedFeeSplitOfIncrease(uint256 increaseAmount) internal returns (uint256 feeAmount, uint256 netAmount) {
+        feeAmount = (increaseAmount * fee) / SCALE;
+        netAmount = increaseAmount - feeAmount;
+    }
+
+    // NOTE: Round up for user yield, round down for fee yield
+    // Based on shares over current total shares, read from vault
+    function _expectedUserYieldAmount(uint256 userShares, uint256 newYieldForUsers)
+        internal
+        returns (uint256 expectedUserYield)
+    {
+        // Rounding up expected for users, rounding down for fees on yield
+        return newYieldForUsers.mulDivUp(userShares, vault.totalSupply());
+    }
+
+    function _logVaultBalances(address user, string memory label) internal {
+        console.log("\n", label);
+        console.log("ERC20 Assets\t\t\t", ERC20(vaultAssetAddress).balanceOf(address(vault)));
+        console.log("totalAssets()\t\t\t", vault.totalAssets());
+        console.log("lastVaulBalance()\t\t", vault.lastVaultBalance());
+        console.log("User Withdrawable\t\t", vault.maxWithdraw(user));
+        console.log("current fees\t\t", vault.getCurrentFees());
+        console.log("lastUpdated\t\t\t", vault.lastUpdated());
+        console.log("current time\t\t\t", block.timestamp);
     }
 }

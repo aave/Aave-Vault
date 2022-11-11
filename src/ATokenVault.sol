@@ -7,11 +7,14 @@ import {ERC4626, SafeTransferLib, FixedPointMathLib} from "solmate/mixins/ERC462
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Ownable} from "openzeppelin/access/Ownable.sol";
 
+import {IATokenVault} from "./IATokenVault.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 
-contract ATokenVault is ERC4626, Ownable {
+// TODO add ability to claim AAVE rewards
+
+contract ATokenVault is IATokenVault, ERC4626, Ownable {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
 
@@ -25,10 +28,7 @@ contract ATokenVault is ERC4626, Ownable {
     uint256 public lastUpdated; // timestamp of last accrueYield action
     uint256 public lastVaultBalance; // total aToken incl. fees
     uint256 public fee; // as a fraction of 1e18
-    uint256 public accumulatedFees; // total fees accrued and withdrawable
-
-    event FeeUpdated(uint256 oldFee, uint256 newFee);
-    event FeeTaken(uint256 shares);
+    uint256 internal accumulatedFees; // fees accrued since last updated
 
     constructor(
         ERC20 underlying,
@@ -37,14 +37,18 @@ contract ATokenVault is ERC4626, Ownable {
         uint256 initialFee,
         IPoolAddressesProvider poolAddressesProvider
     ) ERC4626(underlying, shareName, shareSymbol) {
-        require(initialFee < SCALE, "VAULT: FEE TOO HIGH");
+        if (initialFee > SCALE) revert FeeTooHigh();
 
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
 
         aavePool = IPool(poolAddressesProvider.getPool());
-        aToken = IAToken(aavePool.getReserveData(address(underlying)).aTokenAddress);
+        address aTokenAddress = aavePool.getReserveData(address(underlying)).aTokenAddress;
+        if (aTokenAddress == address(0)) revert AssetNotSupported();
+        aToken = IAToken(aTokenAddress);
 
         fee = initialFee;
+
+        lastUpdated = block.timestamp;
 
         emit FeeUpdated(0, initialFee);
     }
@@ -144,7 +148,7 @@ contract ATokenVault is ERC4626, Ownable {
     //////////////////////////////////////////////////////////////*/
 
     function setFee(uint256 _newFee) public onlyOwner {
-        require(_newFee < SCALE, "VAULT: FEE TOO HIGH");
+        if (_newFee > SCALE) revert FeeTooHigh();
 
         uint256 oldFee = fee;
         fee = _newFee;
@@ -153,16 +157,24 @@ contract ATokenVault is ERC4626, Ownable {
     }
 
     function updateAavePool() public onlyOwner {
-        aavePool = IPool(POOL_ADDRESSES_PROVIDER.getPool());
+        address newPool = POOL_ADDRESSES_PROVIDER.getPool();
+        aavePool = IPool(newPool);
+
+        emit AavePoolUpdated(newPool);
     }
 
     // Fees are accrued and claimable in aToken form
-    function withdrawFees(uint256 amount, address to) public onlyOwner {
-        require(amount <= accumulatedFees, "VAULT: INSUFFICIENT FEES");
+    function withdrawFees(address to, uint256 amount) public onlyOwner {
+        uint256 currentFees = getCurrentFees();
+        if (amount > currentFees) revert InsufficientFees(); // will underflow below anyway, error msg for clarity
 
-        accumulatedFees -= amount;
+        accumulatedFees = currentFees - amount;
+        lastVaultBalance = aToken.balanceOf(address(this)) - amount;
+        lastUpdated = block.timestamp;
 
         aToken.transfer(to, amount);
+
+        emit FeesWithdrawn(to, amount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -171,23 +183,21 @@ contract ATokenVault is ERC4626, Ownable {
 
     function totalAssets() public view override returns (uint256) {
         // Report only the total assets net of fees, for vault share logic
+        return aToken.balanceOf(address(this)) - getCurrentFees();
+    }
 
+    function getCurrentFees() public view returns (uint256) {
         if (block.timestamp == lastUpdated) {
             // Accumulated fees already up to date
-            return aToken.balanceOf(address(this)) - accumulatedFees;
+            return accumulatedFees;
         } else {
             // Calculate new fees since last accrueYield
             uint256 newVaultBalance = aToken.balanceOf(address(this));
             uint256 newYield = newVaultBalance - lastVaultBalance;
-            uint256 newYieldNetFees = newYield.mulDivUp(SCALE - fee, SCALE);
+            uint256 newFees = newYield.mulDivDown(fee, SCALE);
 
-            return newVaultBalance + newYieldNetFees - accumulatedFees;
+            return accumulatedFees + newFees;
         }
-    }
-
-    function feeSplit(uint256 amount) internal view returns (uint256 feeAmount, uint256 netAmount) {
-        feeAmount = amount.mulDivUp(fee, SCALE);
-        netAmount = amount - feeAmount;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -199,11 +209,14 @@ contract ATokenVault is ERC4626, Ownable {
         if (block.timestamp != lastUpdated) {
             uint256 newVaultBalance = aToken.balanceOf(address(this));
             uint256 newYield = newVaultBalance - lastVaultBalance;
+            uint256 newFeesEarned = newYield.mulDivDown(fee, SCALE);
 
-            accumulatedFees += newYield.mulDivUp(fee, SCALE);
+            accumulatedFees += newFeesEarned;
 
             lastVaultBalance = newVaultBalance;
             lastUpdated = block.timestamp;
+
+            emit YieldAccrued(newYield, newFeesEarned);
         }
     }
 }
