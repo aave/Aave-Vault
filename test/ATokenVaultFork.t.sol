@@ -346,6 +346,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
                             DEPOSIT AND MINT
     //////////////////////////////////////////////////////////////*/
 
+    // TODO add negatives for these functions here
+
     function testDepositSuppliesAave() public {
         _deployAndCheckProps();
 
@@ -395,6 +397,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     /*//////////////////////////////////////////////////////////////
                             WITHDRAW AND REDEEM
     //////////////////////////////////////////////////////////////*/
+
+    // TODO add negatives for these functions here
 
     function testWithdrawBasic() public {
         uint256 amount = HUNDRED;

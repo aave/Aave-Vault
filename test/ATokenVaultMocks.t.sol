@@ -185,12 +185,10 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         _logVaultBalances(ALICE, "ALICE end");
         _logVaultBalances(BOB, "BOB end");
 
-        console.log("bob withdrawn balance", dai.balanceOf(BOB));
-
-        assertEq(vault.getCurrentFees(), expectedFees);
-        assertEq(aDai.balanceOf(address(vault)), expectedFees);
-        assertEq(dai.balanceOf(ALICE), expectedAliceYield + aliceStart);
-        assertEq(dai.balanceOf(BOB), expectedBobYield + bobStart);
+        assertEq(vault.getCurrentFees(), expectedFees, "Fees not as expected");
+        assertEq(aDai.balanceOf(address(vault)), expectedFees, "aDAI balance not same as expected fees");
+        assertApproxEqRel(dai.balanceOf(ALICE), expectedAliceYield + aliceStart, ONE_PERCENT, "Alice DAI not as expected");
+        assertApproxEqRel(dai.balanceOf(BOB), expectedBobYield + bobStart, ONE_BPS, "Bob DAI not as expected");
     }
 
     // TODO Tests to add:
