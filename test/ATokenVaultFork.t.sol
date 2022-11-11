@@ -253,7 +253,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         uint256 vaultAssetBalance = aDai.balanceOf(address(vault));
 
-        assertApproxEqRel(vault.totalAssets(), vaultAssetBalance - feesAmount, ONE_PERCENT);
+        assertApproxEqRel(vault.totalAssets(), vaultAssetBalance - feesAmount, ONE_BPS);
     }
 
     function testTotalAssetsDepositThenWithdrawWithFeesRemaining() public {}
@@ -412,6 +412,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
 
         // Fees will be more than specified in param because of interest earned over time in Aave
-        assertApproxEqRel(vault.getCurrentFees(), feeAmountToAccrue, ONE_PERCENT);
+        assertApproxEqRel(vault.getCurrentFees(), feeAmountToAccrue, ONE_BPS);
     }
 }
