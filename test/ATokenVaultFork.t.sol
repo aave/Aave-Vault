@@ -256,9 +256,47 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertApproxEqRel(vault.totalAssets(), vaultAssetBalance - feesAmount, ONE_BPS);
     }
 
-    function testTotalAssetsDepositThenWithdrawWithFeesRemaining() public {}
+    function testTotalAssetsDepositThenWithdrawWithFeesRemaining() public {
+        uint256 amount = HUNDRED;
+        uint256 feesAmount = 50 * ONE;
+        _deployAndCheckProps();
 
-    function testTotalAssetsDepositThenWithdrawWithNoFeesRemaining() public {}
+        _accrueFeesInVault(feesAmount);
+        _depositFromUser(ALICE, amount);
+
+        uint256 vaultAssetBalance = aDai.balanceOf(address(vault));
+
+        assertApproxEqRel(vault.totalAssets(), vaultAssetBalance - feesAmount, ONE_BPS);
+
+        _withdrawFromUser(ALICE, 0);
+
+        assertEq(vault.totalAssets(), 0); // No user funds left in vault, only fees
+        assertEq(vault.getCurrentFees(), aDai.balanceOf(address(vault)));
+        assertGt(vault.getCurrentFees(), 0); // Fees remain
+    }
+
+    function testTotalAssetsDepositThenWithdrawWithNoFeesRemaining() public {
+        uint256 amount = HUNDRED;
+        uint256 feesAmount = 50 * ONE;
+        _deployAndCheckProps();
+
+        _accrueFeesInVault(feesAmount);
+        _depositFromUser(ALICE, amount);
+
+        uint256 vaultAssetBalance = aDai.balanceOf(address(vault));
+
+        assertApproxEqRel(vault.totalAssets(), vaultAssetBalance - feesAmount, ONE_BPS);
+
+        _withdrawFromUser(ALICE, amount);
+
+        assertEq(vault.totalAssets(), 0); // No user funds left in vault, only fees
+        assertEq(vault.getCurrentFees(), aDai.balanceOf(address(vault)));
+        assertGt(vault.getCurrentFees(), 0); // Some fees remain
+
+        _withdrawFees(0); // withdraw all fees
+
+        assertEq(vault.totalAssets(), 0); // No user funds left in vault, no fees
+    }
 
     /*//////////////////////////////////////////////////////////////
                             DEPOSIT AND MINT
@@ -391,6 +429,21 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.startPrank(user);
         dai.approve(address(vault), amount);
         vault.deposit(amount, user);
+        vm.stopPrank();
+    }
+
+    function _withdrawFromUser(address user, uint256 amount) public {
+        // If amount is 0, withdraw max for user
+        if (amount == 0) amount = vault.maxWithdraw(user);
+        vm.startPrank(user);
+        vault.withdraw(amount, user, user);
+        vm.stopPrank();
+    }
+
+    function _withdrawFees(uint256 amount) public {
+        if (amount == 0) amount = vault.getCurrentFees();
+        vm.startPrank(OWNER);
+        vault.withdrawFees(OWNER, amount);
         vm.stopPrank();
     }
 
