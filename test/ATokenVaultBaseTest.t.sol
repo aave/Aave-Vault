@@ -21,6 +21,7 @@ contract ATokenVaultBaseTest is Test, IATokenVault {
     uint256 constant ONE = 1e18;
     uint256 constant TEN = 10e18;
     uint256 constant HUNDRED = 100e18;
+    uint256 constant ONE_PERCENT = 0.01e18;
 
     address constant OWNER = address(111);
     address constant ALICE = address(123);

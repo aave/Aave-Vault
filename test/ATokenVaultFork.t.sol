@@ -236,9 +236,29 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(vault.totalAssets(), 0);
     }
 
-    function testTotalAssetsReturnsNetOfFeesFigure() public {
-        // TODO
+    function testTotalAssetsPositiveNoFeesAccrued() public {
+        uint256 amount = HUNDRED;
+        _deployAndCheckProps();
+        _depositFromUser(ALICE, amount);
+        assertEq(vault.totalAssets(), amount);
     }
+
+    function testTotalAssetsPositiveNetSomeFeesAccrued() public {
+        uint256 amount = HUNDRED;
+        uint256 feesAmount = 50 * ONE;
+        _deployAndCheckProps();
+
+        _accrueFeesInVault(feesAmount);
+        _depositFromUser(ALICE, amount);
+
+        uint256 vaultAssetBalance = aDai.balanceOf(address(vault));
+
+        assertApproxEqRel(vault.totalAssets(), vaultAssetBalance - feesAmount, ONE_PERCENT);
+    }
+
+    function testTotalAssetsDepositThenWithdrawWithFeesRemaining() public {}
+
+    function testTotalAssetsDepositThenWithdrawWithNoFeesRemaining() public {}
 
     /*//////////////////////////////////////////////////////////////
                             DEPOSIT AND MINT
@@ -365,6 +385,15 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(vault.owner(), OWNER);
     }
 
+    function _depositFromUser(address user, uint256 amount) public {
+        deal(address(dai), user, amount);
+
+        vm.startPrank(user);
+        dai.approve(address(vault), amount);
+        vault.deposit(amount, user);
+        vm.stopPrank();
+    }
+
     function _accrueFeesInVault(uint256 feeAmountToAccrue) public {
         require(feeAmountToAccrue > 0, "TEST: FEES ACCRUED MUST BE > 0");
         uint256 daiAmount = feeAmountToAccrue * 5; // Assuming 20% fee
@@ -383,6 +412,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
 
         // Fees will be more than specified in param because of interest earned over time in Aave
-        assertGt(vault.getCurrentFees(), feeAmountToAccrue);
+        assertApproxEqRel(vault.getCurrentFees(), feeAmountToAccrue, ONE_PERCENT);
     }
 }
