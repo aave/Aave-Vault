@@ -12,6 +12,8 @@ import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol
 import {IPool} from "aave/interfaces/IPool.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 
+// TODO add ability to claim AAVE rewards
+
 contract ATokenVault is IATokenVault, ERC4626, Ownable {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
@@ -45,6 +47,8 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         aToken = IAToken(aTokenAddress);
 
         fee = initialFee;
+
+        lastUpdated = block.timestamp;
 
         emit FeeUpdated(0, initialFee);
     }

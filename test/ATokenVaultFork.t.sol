@@ -13,6 +13,7 @@ import {IPool} from "aave/interfaces/IPool.sol";
 contract ATokenVaultForkTest is ATokenVaultBaseTest {
     // Forked tests using Polygon for Aave v3
     uint256 polygonFork;
+    uint256 POLYGON_FORK_BLOCK = 35486670;
 
     ERC20 dai;
     IAToken aDai;
@@ -20,6 +21,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     function setUp() public override {
         polygonFork = vm.createFork(vm.envString("POLYGON_RPC_URL"));
         vm.selectFork(polygonFork);
+        vm.rollFork(POLYGON_FORK_BLOCK);
+
         dai = ERC20(POLYGON_DAI);
         aDai = IAToken(POLYGON_ADAI);
 
@@ -30,8 +33,16 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
     }
 
+    /*//////////////////////////////////////////////////////////////
+                        POLYGON FORK TESTS
+    //////////////////////////////////////////////////////////////*/
+
     function testForkWorks() public {
         assertEq(vm.activeFork(), polygonFork);
+    }
+
+    function testForkAtExpectedBlock() public {
+        assertEq(block.number, POLYGON_FORK_BLOCK);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -270,9 +281,13 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         _withdrawFromUser(ALICE, 0);
 
-        assertEq(vault.totalAssets(), 0); // No user funds left in vault, only fees
-        assertEq(vault.getCurrentFees(), aDai.balanceOf(address(vault)));
-        assertGt(vault.getCurrentFees(), 0); // Fees remain
+        // console.log("aDAI bal", aDai.balanceOf(address(vault)));
+        // console.log("fees", vault.getCurrentFees());
+        // console.log("totalAssets", vault.totalAssets());
+
+        assertEq(vault.totalAssets(), 0, "Total assets not zero"); // No user funds left in vault, only fees
+        assertEq(vault.getCurrentFees(), aDai.balanceOf(address(vault)), "Fees not same as aDAI balance");
+        assertGt(vault.getCurrentFees(), 0, "Fees not zero"); // Fees remain
     }
 
     function testTotalAssetsDepositThenWithdrawWithNoFeesRemaining() public {
@@ -289,13 +304,46 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         _withdrawFromUser(ALICE, amount);
 
-        assertEq(vault.totalAssets(), 0); // No user funds left in vault, only fees
-        assertEq(vault.getCurrentFees(), aDai.balanceOf(address(vault)));
-        assertGt(vault.getCurrentFees(), 0); // Some fees remain
+        assertEq(vault.totalAssets(), 0, "Total assets not zero"); // No user funds left in vault, only fees
+        assertEq(vault.getCurrentFees(), aDai.balanceOf(address(vault)), "Fees not equal to aDAI balance");
+        assertGt(vault.getCurrentFees(), 0, "Fees not zero"); // Some fees remain
 
         _withdrawFees(0); // withdraw all fees
 
-        assertEq(vault.totalAssets(), 0); // No user funds left in vault, no fees
+        assertEq(vault.totalAssets(), 0, "Total assets not zero"); // No user funds left in vault, no fees
+    }
+
+    function testAccrueYieldUpdatesOnTimestampDiff() public {
+        uint256 amount = HUNDRED;
+        _deployAndCheckProps();
+
+        uint256 lastUpdated = vault.lastUpdated();
+        uint256 lastVaultBalance = vault.lastVaultBalance();
+
+        skip(1);
+        _depositFromUser(ALICE, amount);
+        // only lastUpdated does NOT change if same timestamp
+        // lastVaultBalance is updated separately regardless of timestamp
+
+        assertEq(vault.lastUpdated(), lastUpdated + 1);
+        assertEq(vault.lastVaultBalance(), lastVaultBalance + amount);
+    }
+
+    function testAccrueYieldDoesNotUpdateOnSameTimestamp() public {
+        uint256 amount = HUNDRED;
+        _deployAndCheckProps();
+
+        uint256 prevTimestamp = block.timestamp;
+        uint256 lastUpdated = vault.lastUpdated();
+        uint256 lastVaultBalance = vault.lastVaultBalance();
+
+        _depositFromUser(ALICE, amount);
+        // only lastUpdated does NOT change if same timestamp
+        // lastVaultBalance is updated separately regardless of timestamp
+
+        assertEq(block.timestamp, prevTimestamp);
+        assertEq(vault.lastUpdated(), lastUpdated); // this should not have changed as timestamp is same
+        assertEq(vault.lastVaultBalance(), lastVaultBalance + amount); // This should change on deposit() anyway
     }
 
     /*//////////////////////////////////////////////////////////////
