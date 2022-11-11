@@ -352,46 +352,42 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
                             WITHDRAW AND REDEEM
     //////////////////////////////////////////////////////////////*/
 
-    function testWithdrawNoFee() public {
-        // Redeploy vault with 0% fee
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, 0, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+    function testWithdrawBasic() public {
+        uint256 amount = HUNDRED;
+        _deployAndCheckProps();
 
-        // Alice deposits 1 DAI
-        deal(address(dai), ALICE, ONE);
-        assertEq(dai.balanceOf(ALICE), ONE);
-        assertEq(dai.balanceOf(address(vault)), 0);
-        assertEq(aDai.balanceOf(ALICE), 0);
-        assertEq(aDai.balanceOf(address(vault)), 0);
-        assertEq(vault.balanceOf(ALICE), 0);
-
-        vm.startPrank(ALICE);
-        dai.approve(address(vault), ONE);
-        vault.mint(ONE, ALICE);
-        vm.stopPrank();
+        _depositFromUser(ALICE, amount);
 
         assertEq(dai.balanceOf(ALICE), 0);
-        assertEq(dai.balanceOf(address(vault)), 0);
         assertEq(aDai.balanceOf(ALICE), 0);
-        assertEq(aDai.balanceOf(address(vault)), ONE);
-        assertEq(vault.balanceOf(ALICE), ONE);
+        assertEq(aDai.balanceOf(address(vault)), amount);
 
-        // Alice withdraws 1 DAI
-        vm.startPrank(ALICE);
-        vault.withdraw(ONE, ALICE, ALICE);
-        vm.stopPrank();
+        _withdrawFromUser(ALICE, amount);
 
-        assertEq(dai.balanceOf(ALICE), ONE);
-        assertEq(dai.balanceOf(address(vault)), 0);
+        assertEq(dai.balanceOf(ALICE), amount);
         assertEq(aDai.balanceOf(ALICE), 0);
         assertEq(aDai.balanceOf(address(vault)), 0);
-        assertEq(vault.balanceOf(ALICE), 0);
     }
 
-    function testWithdrawWithFee() public {}
+    function testRedeemBasic() public {
+        uint256 amount = HUNDRED;
+        _deployAndCheckProps();
 
-    function testRedeemNoFee() public {}
+        _depositFromUser(ALICE, amount);
 
-    function testRedeemWithFee() public {}
+        assertEq(dai.balanceOf(ALICE), 0);
+        assertEq(aDai.balanceOf(ALICE), 0);
+        assertEq(aDai.balanceOf(address(vault)), amount);
+
+        // Redeem instead of withdraw
+        vm.startPrank(ALICE);
+        vault.redeem(vault.balanceOf(ALICE), ALICE, ALICE);
+        vm.stopPrank();
+
+        assertEq(dai.balanceOf(ALICE), amount);
+        assertEq(aDai.balanceOf(ALICE), 0);
+        assertEq(aDai.balanceOf(address(vault)), 0);
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 SCENARIOS
