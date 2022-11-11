@@ -281,10 +281,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         _withdrawFromUser(ALICE, 0);
 
-        // console.log("aDAI bal", aDai.balanceOf(address(vault)));
-        // console.log("fees", vault.getCurrentFees());
-        // console.log("totalAssets", vault.totalAssets());
-
         assertEq(vault.totalAssets(), 0, "Total assets not zero"); // No user funds left in vault, only fees
         assertEq(vault.getCurrentFees(), aDai.balanceOf(address(vault)), "Fees not same as aDAI balance");
         assertGt(vault.getCurrentFees(), 0, "Fees not zero"); // Fees remain
