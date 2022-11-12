@@ -58,6 +58,34 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
     //////////////////////////////////////////////////////////////*/
 
     function deposit(uint256 assets, address receiver) public override returns (uint256 shares) {
+        shares = _deposit(assets, receiver);
+    }
+
+    function depositWithSig(
+        uint256 assets,
+        address receiver,
+        EIP712Signature memory sig
+    ) public returns (uint256 shares) {
+        // TODO refactor common code to _deposit
+        _accrueYield();
+
+        require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
+
+        // Need to transfer before minting or ERC777s could reenter.
+        asset.safeTransferFrom(msg.sender, address(this), assets);
+
+        // Approve and Deposit the received underlying into Aave v3
+        asset.approve(address(aavePool), assets);
+        aavePool.supply(address(asset), assets, address(this), 0);
+
+        lastVaultBalance = aToken.balanceOf(address(this));
+
+        _mint(receiver, shares);
+
+        emit Deposit(msg.sender, receiver, assets, shares);
+    }
+
+    function _deposit(uint256 assets, address receiver) internal returns (uint256 shares) {
         _accrueYield();
 
         require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
