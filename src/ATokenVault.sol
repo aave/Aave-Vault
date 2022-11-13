@@ -137,6 +137,28 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         address receiver,
         address owner
     ) public override returns (uint256 shares) {
+        shares = previewWithdraw(assets);
+        _withdraw(assets, shares, receiver, owner);
+    }
+
+    function withdrawWithSig(
+        uint256 assets,
+        address receiver,
+        address owner,
+        EIP712Signature memory sig
+    ) public returns (uint256 shares) {
+        shares = previewWithdraw(assets);
+        // Permit the vault address to pull and burn shares from owner
+        permit(owner, address(this), assets, sig.deadline, sig.v, sig.r, sig.s);
+        _withdraw(assets, shares, receiver, owner);
+    }
+
+    function _withdraw(
+        uint256 assets,
+        uint256 shares,
+        address receiver,
+        address owner
+    ) public {
         _accrueYield();
 
         shares = previewWithdraw(assets);
