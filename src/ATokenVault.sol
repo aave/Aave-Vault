@@ -61,28 +61,14 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         shares = _deposit(assets, receiver);
     }
 
+    // TODO make callable by anyone, not just owner (replace msg.sender with arg)
     function depositWithSig(
         uint256 assets,
         address receiver,
         EIP712Signature memory sig
     ) public returns (uint256 shares) {
-        // TODO refactor common code to _deposit
-        _accrueYield();
-
-        require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
-
-        // Need to transfer before minting or ERC777s could reenter.
-        asset.safeTransferFrom(msg.sender, address(this), assets);
-
-        // Approve and Deposit the received underlying into Aave v3
-        asset.approve(address(aavePool), assets);
-        aavePool.supply(address(asset), assets, address(this), 0);
-
-        lastVaultBalance = aToken.balanceOf(address(this));
-
-        _mint(receiver, shares);
-
-        emit Deposit(msg.sender, receiver, assets, shares);
+        asset.permit(msg.sender, address(this), assets, sig.deadline, sig.v, sig.r, sig.s);
+        _deposit(assets, receiver);
     }
 
     function _deposit(uint256 assets, address receiver) internal returns (uint256 shares) {

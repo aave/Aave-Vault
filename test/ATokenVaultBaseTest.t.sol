@@ -11,6 +11,9 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 contract ATokenVaultBaseTest is Test, IATokenVault {
     using FixedPointMathLib for uint256;
 
+    bytes32 constant PERMIT_TYPEHASH =
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+
     // Forked tests using Polygon for Aave v3
     address constant POLYGON_DAI = 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063;
     address constant POLYGON_ADAI = 0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE;
@@ -24,9 +27,13 @@ contract ATokenVaultBaseTest is Test, IATokenVault {
     uint256 constant ONE_PERCENT = 0.01e18;
     uint256 constant ONE_BPS = 0.0001e18;
 
-    address constant OWNER = address(111);
-    address constant ALICE = address(123);
-    address constant BOB = address(456);
+    uint256 constant OWNER_PRIV_KEY = 11111;
+    uint256 constant ALICE_PRIV_KEY = 12345;
+    uint256 constant BOB_PRIV_KEY = 54321;
+
+    address OWNER = vm.addr(OWNER_PRIV_KEY);
+    address ALICE = vm.addr(ALICE_PRIV_KEY);
+    address BOB = vm.addr(BOB_PRIV_KEY);
 
     string constant SHARE_NAME = "Wrapped aDAI";
     string constant SHARE_SYMBOL = "waDAI";
