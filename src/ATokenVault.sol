@@ -95,12 +95,31 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
     }
 
     function mint(uint256 shares, address receiver) public override returns (uint256 assets) {
+        assets = previewMint(shares);
+        _mint(assets, shares, receiver, msg.sender);
+    }
+
+    function mintWithSig(
+        uint256 shares,
+        address receiver,
+        address depositor,
+        EIP712Signature memory sig
+    ) public returns (uint256 assets) {
+        assets = previewMint(shares);
+        asset.permit(depositor, address(this), assets, sig.deadline, sig.v, sig.r, sig.s);
+        _mint(assets, shares, receiver, depositor);
+    }
+
+    function _mint(
+        uint256 assets,
+        uint256 shares,
+        address receiver,
+        address depositor
+    ) public {
         _accrueYield();
 
-        assets = previewMint(shares);
-
         // Need to transfer before minting or ERC777s could reenter.
-        asset.safeTransferFrom(msg.sender, address(this), assets);
+        asset.safeTransferFrom(depositor, address(this), assets);
 
         // Approve and Deposit the received underlying into Aave v3
         asset.approve(address(aavePool), assets);
@@ -110,7 +129,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
 
         _mint(receiver, shares);
 
-        emit Deposit(msg.sender, receiver, assets, shares);
+        emit Deposit(depositor, receiver, assets, shares);
     }
 
     function withdraw(
