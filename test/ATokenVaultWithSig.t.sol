@@ -51,14 +51,20 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             deadline: block.timestamp
         });
 
-        console.log("balance before", aDai.balanceOf(address(vault)));
+        assertEq(dai.balanceOf(ALICE), amount);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(dai.balanceOf(address(vault)), 0);
+        assertEq(aDai.balanceOf(address(vault)), 0);
 
-        vm.startPrank(ALICE);
-        // Not a single approve() in sight
-        vault.depositWithSig(amount, ALICE, sig);
+        // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
+        vm.startPrank(BOB);
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
 
-        console.log("balance after", aDai.balanceOf(address(vault)));
+        assertEq(dai.balanceOf(ALICE), 0);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(dai.balanceOf(address(vault)), 0);
+        assertEq(aDai.balanceOf(address(vault)), amount);
     }
 
     /*//////////////////////////////////////////////////////////////

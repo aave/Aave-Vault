@@ -58,26 +58,30 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
     //////////////////////////////////////////////////////////////*/
 
     function deposit(uint256 assets, address receiver) public override returns (uint256 shares) {
-        shares = _deposit(assets, receiver);
+        shares = _deposit(assets, receiver, msg.sender);
     }
 
-    // TODO make callable by anyone, not just owner (replace msg.sender with arg)
     function depositWithSig(
         uint256 assets,
         address receiver,
+        address depositor,
         EIP712Signature memory sig
     ) public returns (uint256 shares) {
-        asset.permit(msg.sender, address(this), assets, sig.deadline, sig.v, sig.r, sig.s);
-        _deposit(assets, receiver);
+        asset.permit(depositor, address(this), assets, sig.deadline, sig.v, sig.r, sig.s);
+        shares = _deposit(assets, receiver, depositor);
     }
 
-    function _deposit(uint256 assets, address receiver) internal returns (uint256 shares) {
+    function _deposit(
+        uint256 assets,
+        address receiver,
+        address depositor
+    ) internal returns (uint256 shares) {
         _accrueYield();
 
         require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
 
         // Need to transfer before minting or ERC777s could reenter.
-        asset.safeTransferFrom(msg.sender, address(this), assets);
+        asset.safeTransferFrom(depositor, address(this), assets);
 
         // Approve and Deposit the received underlying into Aave v3
         asset.approve(address(aavePool), assets);
@@ -87,7 +91,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
 
         _mint(receiver, shares);
 
-        emit Deposit(msg.sender, receiver, assets, shares);
+        emit Deposit(depositor, receiver, assets, shares);
     }
 
     function mint(uint256 shares, address receiver) public override returns (uint256 assets) {
