@@ -189,6 +189,153 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
                                 MINT
     //////////////////////////////////////////////////////////////*/
 
+    function testMintWithSig() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        EIP712Signature memory sig = _createPermitSig({
+            owner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: address(vault),
+            value: amount,
+            nonce: dai.nonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        assertEq(dai.balanceOf(ALICE), amount);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(dai.balanceOf(address(vault)), 0);
+        assertEq(aDai.balanceOf(address(vault)), 0);
+
+        // Bob calls mint on Alice's behalf
+        vm.startPrank(BOB);
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+
+        assertEq(dai.balanceOf(ALICE), 0);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(dai.balanceOf(address(vault)), 0);
+        assertEq(aDai.balanceOf(address(vault)), amount);
+    }
+
+    function testMintWithSigFailsIfWrongOwner() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        EIP712Signature memory sig = _createPermitSig({
+            owner: BOB,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: address(vault),
+            value: amount,
+            nonce: dai.nonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        vm.startPrank(BOB);
+        vm.expectRevert(ERR_INVALID_SIGNER);
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testMintWithSigFailsIfWrongPrivKey() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        EIP712Signature memory sig = _createPermitSig({
+            owner: ALICE,
+            ownerPrivKey: BOB_PRIV_KEY,
+            spender: address(vault),
+            value: amount,
+            nonce: dai.nonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        vm.startPrank(BOB);
+        vm.expectRevert(ERR_INVALID_SIGNER);
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testMintWithSigFailsIfWrongSpender() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        EIP712Signature memory sig = _createPermitSig({
+            owner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: BOB,
+            value: amount,
+            nonce: dai.nonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        vm.startPrank(BOB);
+        vm.expectRevert(ERR_INVALID_SIGNER);
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testMintWithSigFailsIfWrongValue() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        EIP712Signature memory sig = _createPermitSig({
+            owner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: address(vault),
+            value: amount - 1,
+            nonce: dai.nonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        vm.startPrank(BOB);
+        vm.expectRevert(ERR_INVALID_SIGNER);
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testMintWithSigFailsIfWrongNonce() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        EIP712Signature memory sig = _createPermitSig({
+            owner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: address(vault),
+            value: amount,
+            nonce: dai.nonces(ALICE) + 1,
+            deadline: block.timestamp
+        });
+
+        vm.startPrank(BOB);
+        vm.expectRevert(ERR_INVALID_SIGNER);
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testMintWithSigFailsIfPastDeadline() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        uint256 deadline = block.timestamp + 1000;
+        skip(1001);
+        assertGt(block.timestamp, deadline);
+
+        EIP712Signature memory sig = _createPermitSig({
+            owner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: address(vault),
+            value: amount,
+            nonce: dai.nonces(ALICE),
+            deadline: deadline
+        });
+
+        vm.startPrank(BOB);
+        vm.expectRevert(ERR_PERMIT_DEADLINE_EXPIRED);
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 WITHDRAW
     //////////////////////////////////////////////////////////////*/
