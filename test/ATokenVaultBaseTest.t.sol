@@ -45,6 +45,8 @@ contract ATokenVaultBaseTest is Test, IATokenVault {
 
     // Error messages
     bytes constant ERR_NOT_OWNER = bytes("Ownable: caller is not the owner");
+    bytes constant ERR_INVALID_SIGNER = bytes("INVALID_SIGNER");
+    bytes constant ERR_PERMIT_DEADLINE_EXPIRED = bytes("PERMIT_DEADLINE_EXPIRED");
 
     function setUp() public virtual {}
 

@@ -67,6 +67,124 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(address(vault)), amount);
     }
 
+    function testDepositWithSigFailsIfWrongOwner() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        EIP712Signature memory sig = _createPermitSig({
+            owner: BOB,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: address(vault),
+            value: amount,
+            nonce: dai.nonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        vm.startPrank(BOB);
+        vm.expectRevert(ERR_INVALID_SIGNER);
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testDepositWithSigFailsIfWrongPrivKey() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        EIP712Signature memory sig = _createPermitSig({
+            owner: ALICE,
+            ownerPrivKey: BOB_PRIV_KEY,
+            spender: address(vault),
+            value: amount,
+            nonce: dai.nonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        vm.startPrank(BOB);
+        vm.expectRevert(ERR_INVALID_SIGNER);
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testDepositWithSigFailsIfWrongSpender() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        EIP712Signature memory sig = _createPermitSig({
+            owner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: BOB,
+            value: amount,
+            nonce: dai.nonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        vm.startPrank(BOB);
+        vm.expectRevert(ERR_INVALID_SIGNER);
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testDepositWithSigFailsIfWrongValue() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        EIP712Signature memory sig = _createPermitSig({
+            owner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: address(vault),
+            value: amount - 1,
+            nonce: dai.nonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        vm.startPrank(BOB);
+        vm.expectRevert(ERR_INVALID_SIGNER);
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testDepositWithSigFailsIfWrongNonce() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        EIP712Signature memory sig = _createPermitSig({
+            owner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: address(vault),
+            value: amount,
+            nonce: dai.nonces(ALICE) + 1,
+            deadline: block.timestamp
+        });
+
+        vm.startPrank(BOB);
+        vm.expectRevert(ERR_INVALID_SIGNER);
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testDepositWithSigFailsIfPastDeadline() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        uint256 deadline = block.timestamp + 1000;
+        skip(1001);
+        assertGt(block.timestamp, deadline);
+
+        EIP712Signature memory sig = _createPermitSig({
+            owner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: address(vault),
+            value: amount,
+            nonce: dai.nonces(ALICE),
+            deadline: deadline
+        });
+
+        vm.startPrank(BOB);
+        vm.expectRevert(ERR_PERMIT_DEADLINE_EXPIRED);
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 MINT
     //////////////////////////////////////////////////////////////*/
