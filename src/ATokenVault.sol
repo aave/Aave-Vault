@@ -115,7 +115,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         uint256 shares,
         address receiver,
         address depositor
-    ) public {
+    ) internal {
         _accrueYield();
 
         // Need to transfer before minting or ERC777s could reenter.
@@ -149,7 +149,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
     ) public returns (uint256 shares) {
         shares = previewWithdraw(assets);
         // Permit the vault address to pull and burn shares from owner
-        permit(owner, address(this), assets, sig.deadline, sig.v, sig.r, sig.s);
+        permit(owner, address(this), shares, sig.deadline, sig.v, sig.r, sig.s);
         _withdraw(assets, shares, receiver, owner);
     }
 
@@ -158,7 +158,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         uint256 shares,
         address receiver,
         address owner
-    ) public {
+    ) internal {
         _accrueYield();
 
         shares = previewWithdraw(assets);
@@ -182,6 +182,25 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         address receiver,
         address owner
     ) public override returns (uint256 assets) {
+        return _redeem(shares, receiver, owner);
+    }
+
+    function redeemWithSig(
+        uint256 shares,
+        address receiver,
+        address owner,
+        EIP712Signature memory sig
+    ) public returns (uint256 assets) {
+        // Permit the vault address to pull and burn shares from owner
+        permit(owner, address(this), shares, sig.deadline, sig.v, sig.r, sig.s);
+        return _redeem(shares, receiver, owner);
+    }
+
+    function _redeem(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) internal returns (uint256 assets) {
         _accrueYield();
 
         if (msg.sender != owner) {
@@ -199,8 +218,6 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         aavePool.withdraw(address(asset), assets, receiver);
         lastVaultBalance = aToken.balanceOf(address(this));
     }
-
-    // TODO add WithSig versions of deposit/mint/withdraw/redeem
 
     /*//////////////////////////////////////////////////////////////
                           ONLY OWNER FUNCTIONS
