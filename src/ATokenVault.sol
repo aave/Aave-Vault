@@ -91,7 +91,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
 
         _mint(receiver, shares);
 
-        emit Deposit(depositor, receiver, assets, shares);
+        emit Deposit(msg.sender, receiver, assets, shares);
     }
 
     function mint(uint256 shares, address receiver) public override returns (uint256 assets) {
@@ -129,7 +129,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
 
         _mint(receiver, shares);
 
-        emit Deposit(depositor, receiver, assets, shares);
+        emit Deposit(msg.sender, receiver, assets, shares);
     }
 
     function withdraw(
@@ -138,7 +138,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         address owner
     ) public override returns (uint256 shares) {
         shares = previewWithdraw(assets);
-        _withdraw(assets, shares, receiver, owner);
+        _withdraw(assets, shares, receiver, owner, false);
     }
 
     function withdrawWithSig(
@@ -149,23 +149,24 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
     ) public returns (uint256 shares) {
         shares = previewWithdraw(assets);
         // Permit the vault address to pull and burn shares from owner
-        permit(owner, address(this), shares, sig.deadline, sig.v, sig.r, sig.s);
-        _withdraw(assets, shares, receiver, owner);
+        permit(owner, msg.sender, shares, sig.deadline, sig.v, sig.r, sig.s);
+        _withdraw(assets, shares, receiver, owner, true);
     }
 
     function _withdraw(
         uint256 assets,
         uint256 shares,
         address receiver,
-        address owner
+        address owner,
+        bool withSig // flag, checks vault allowance of own share token if true
     ) internal {
         _accrueYield();
 
-        shares = previewWithdraw(assets);
+        address allowanceTarget = withSig ? address(this) : msg.sender;
 
-        if (msg.sender != owner) {
-            uint256 allowed = allowance[owner][msg.sender];
-            if (allowed != type(uint256).max) allowance[owner][msg.sender] = allowed - shares;
+        if (allowanceTarget != owner) {
+            uint256 allowed = allowance[owner][allowanceTarget];
+            if (allowed != type(uint256).max) allowance[owner][allowanceTarget] = allowed - shares;
         }
 
         _burn(owner, shares);

