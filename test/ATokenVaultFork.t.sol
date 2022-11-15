@@ -8,7 +8,7 @@ import {ATokenVault} from "../src/ATokenVault.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
-import {IAaveIncentivesController} from "aave/interfaces/IAaveIncentivesController.sol";
+import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
 
 contract ATokenVaultForkTest is ATokenVaultBaseTest {
@@ -36,7 +36,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
             SHARE_SYMBOL,
             fee,
             IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
-            IAaveIncentivesController(POLYGON_REWARDS_CONTROLLER)
+            IRewardsController(POLYGON_REWARDS_CONTROLLER)
         );
         vm.stopPrank();
     }
@@ -65,7 +65,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
             SHARE_SYMBOL,
             SCALE + 1,
             IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
-            IAaveIncentivesController(POLYGON_REWARDS_CONTROLLER)
+            IRewardsController(POLYGON_REWARDS_CONTROLLER)
         );
     }
 
@@ -80,7 +80,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
             SHARE_SYMBOL,
             fee,
             IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
-            IAaveIncentivesController(POLYGON_REWARDS_CONTROLLER)
+            IRewardsController(POLYGON_REWARDS_CONTROLLER)
         );
     }
 
@@ -92,7 +92,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
             SHARE_SYMBOL,
             fee,
             IPoolAddressesProvider(address(0)),
-            IAaveIncentivesController(POLYGON_REWARDS_CONTROLLER)
+            IRewardsController(POLYGON_REWARDS_CONTROLLER)
         );
     }
 
@@ -184,7 +184,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
             SHARE_SYMBOL,
             fee,
             IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
-            IAaveIncentivesController(POLYGON_REWARDS_CONTROLLER)
+            IRewardsController(POLYGON_REWARDS_CONTROLLER)
         );
     }
 
@@ -489,7 +489,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
             SHARE_SYMBOL,
             fee,
             IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
-            IAaveIncentivesController(POLYGON_REWARDS_CONTROLLER)
+            IRewardsController(POLYGON_REWARDS_CONTROLLER)
         );
         vm.stopPrank();
         assertEq(address(vault.asset()), POLYGON_DAI);

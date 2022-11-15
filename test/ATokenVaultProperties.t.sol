@@ -9,7 +9,7 @@ import {ATokenVault} from "../src/ATokenVault.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
-import {IAaveIncentivesController} from "aave/interfaces/IAaveIncentivesController.sol";
+import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 
 import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvider.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
@@ -38,7 +38,7 @@ contract ATokenVaultPropertiesTest is ERC4626Test, ATokenVaultBaseTest {
             SHARE_SYMBOL,
             fee,
             IPoolAddressesProvider(address(poolAddrProvider)),
-            IAaveIncentivesController(fakeIncentivesController)
+            IRewardsController(fakeIncentivesController)
         );
 
         _underlying_ = address(dai);
