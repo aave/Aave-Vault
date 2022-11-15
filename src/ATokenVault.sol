@@ -9,6 +9,7 @@ import {Ownable} from "openzeppelin/access/Ownable.sol";
 
 import {IATokenVault} from "./IATokenVault.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
+import {IAaveIncentivesController} from "aave/interfaces/IAaveIncentivesController.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 
@@ -19,6 +20,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
     using FixedPointMathLib for uint256;
 
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
+    IAaveIncentivesController public immutable INCENTIVES_CONTROLLER;
 
     uint256 internal constant SCALE = 1e18;
 
@@ -35,11 +37,13 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         string memory shareName,
         string memory shareSymbol,
         uint256 initialFee,
-        IPoolAddressesProvider poolAddressesProvider
+        IPoolAddressesProvider poolAddressesProvider,
+        IAaveIncentivesController incentivesController
     ) ERC4626(underlying, shareName, shareSymbol) {
         if (initialFee > SCALE) revert FeeTooHigh();
 
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
+        INCENTIVES_CONTROLLER = incentivesController;
 
         aavePool = IPool(poolAddressesProvider.getPool());
         address aTokenAddress = aavePool.getReserveData(address(underlying)).aTokenAddress;

@@ -9,6 +9,7 @@ import {ATokenVault} from "../src/ATokenVault.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
+import {IAaveIncentivesController} from "aave/interfaces/IAaveIncentivesController.sol";
 
 import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvider.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
@@ -21,6 +22,9 @@ contract ATokenVaultPropertiesTest is ERC4626Test, ATokenVaultBaseTest {
     MockAToken aDai;
     MockDAI dai;
 
+    // Currently to be tested in fork tests - not needed in mock tests
+    address fakeIncentivesController = address(101010101);
+
     function setUp() public override(ERC4626Test, ATokenVaultBaseTest) {
         aDai = new MockAToken();
         pool = new MockAavePool(aDai);
@@ -28,7 +32,14 @@ contract ATokenVaultPropertiesTest is ERC4626Test, ATokenVaultBaseTest {
 
         dai = new MockDAI();
 
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(poolAddrProvider)));
+        vault = new ATokenVault(
+            dai,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            fee,
+            IPoolAddressesProvider(address(poolAddrProvider)),
+            IAaveIncentivesController(fakeIncentivesController)
+        );
 
         _underlying_ = address(dai);
         _vault_ = address(vault);
