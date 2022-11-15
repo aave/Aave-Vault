@@ -13,8 +13,6 @@ import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsCont
 import {IPool} from "aave/interfaces/IPool.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 
-// TODO add ability to claim AAVE rewards
-
 contract ATokenVault is IATokenVault, ERC4626, Ownable {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
