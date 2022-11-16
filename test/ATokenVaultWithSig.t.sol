@@ -26,13 +26,17 @@ struct VaultSigParams {
     bytes32 functionTypehash;
 }
 
+bytes32 constant DEPOSIT_WITH_SIG_TYPEHASH = keccak256(
+    "DepositWithSig(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)"
+);
+bytes32 constant MINT_WITH_SIG_TYPEHASH = keccak256(
+    "MintWithSig(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)"
+);
+
 contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
     // TODO remove asset separator after permit removed
     bytes32 VAULT_DOMAIN_SEPARATOR;
     bytes32 ASSET_DOMAIN_SEPARATOR;
-
-    bytes32 DEPOSIT_WITH_SIG_TYPEHASH =
-        keccak256("DepositWithSig(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)");
 
     MockAavePoolAddressesProvider poolAddrProvider;
     MockAavePool pool;
@@ -311,14 +315,20 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        DataTypes.EIP712Signature memory sig = _createPermitSig({
-            owner: ALICE,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
-            spender: address(vault),
-            value: amount,
-            nonce: dai.nonces(ALICE),
-            deadline: block.timestamp
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
+
+        // Alice approves DAI and signs mintWithSig msg
+        vm.prank(ALICE);
+        dai.approve(address(vault), amount);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(dai.balanceOf(ALICE), amount);
         assertEq(dai.balanceOf(BOB), 0);
@@ -340,17 +350,23 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        DataTypes.EIP712Signature memory sig = _createPermitSig({
-            owner: BOB,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: BOB,
             ownerPrivKey: ALICE_PRIV_KEY,
-            spender: address(vault),
-            value: amount,
-            nonce: dai.nonces(ALICE),
-            deadline: block.timestamp
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
+        // Alice approves DAI and signs mintWithSig msg
+        vm.prank(ALICE);
+        dai.approve(address(vault), amount);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
         vm.startPrank(BOB);
-        vm.expectRevert(ERR_INVALID_SIGNER);
+        vm.expectRevert(Errors.SignatureInvalid.selector);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -359,36 +375,48 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        DataTypes.EIP712Signature memory sig = _createPermitSig({
-            owner: ALICE,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
             ownerPrivKey: BOB_PRIV_KEY,
-            spender: address(vault),
-            value: amount,
-            nonce: dai.nonces(ALICE),
-            deadline: block.timestamp
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
+        // Alice approves DAI and signs mintWithSig msg
+        vm.prank(ALICE);
+        dai.approve(address(vault), amount);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
         vm.startPrank(BOB);
-        vm.expectRevert(ERR_INVALID_SIGNER);
+        vm.expectRevert(Errors.SignatureInvalid.selector);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
-    function testMintWithSigFailsIfWrongSpender() public {
+    function testMintWithSigFailsIfWrongReceiver() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        DataTypes.EIP712Signature memory sig = _createPermitSig({
-            owner: ALICE,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
-            spender: BOB,
-            value: amount,
-            nonce: dai.nonces(ALICE),
-            deadline: block.timestamp
+            amount: amount,
+            receiver: BOB,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
+        // Alice approves DAI and signs mintWithSig msg
+        vm.prank(ALICE);
+        dai.approve(address(vault), amount);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
         vm.startPrank(BOB);
-        vm.expectRevert(ERR_INVALID_SIGNER);
+        vm.expectRevert(Errors.SignatureInvalid.selector);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -397,17 +425,23 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        DataTypes.EIP712Signature memory sig = _createPermitSig({
-            owner: ALICE,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
-            spender: address(vault),
-            value: amount - 1,
-            nonce: dai.nonces(ALICE),
-            deadline: block.timestamp
+            amount: amount + 1,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
+        // Alice approves DAI and signs mintWithSig msg
+        vm.prank(ALICE);
+        dai.approve(address(vault), amount);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
         vm.startPrank(BOB);
-        vm.expectRevert(ERR_INVALID_SIGNER);
+        vm.expectRevert(Errors.SignatureInvalid.selector);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -416,17 +450,23 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        DataTypes.EIP712Signature memory sig = _createPermitSig({
-            owner: ALICE,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
-            spender: address(vault),
-            value: amount,
-            nonce: dai.nonces(ALICE) + 1,
-            deadline: block.timestamp
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE) + 1,
+            deadline: block.timestamp,
+            functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
+        // Alice approves DAI and signs mintWithSig msg
+        vm.prank(ALICE);
+        dai.approve(address(vault), amount);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
         vm.startPrank(BOB);
-        vm.expectRevert(ERR_INVALID_SIGNER);
+        vm.expectRevert(Errors.SignatureInvalid.selector);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -439,17 +479,50 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         skip(1001);
         assertGt(block.timestamp, deadline);
 
-        DataTypes.EIP712Signature memory sig = _createPermitSig({
-            owner: ALICE,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
-            spender: address(vault),
-            value: amount,
-            nonce: dai.nonces(ALICE),
-            deadline: deadline
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: deadline,
+            functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
+        // Alice approves DAI and signs mintWithSig msg
+        vm.prank(ALICE);
+        dai.approve(address(vault), amount);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
         vm.startPrank(BOB);
-        vm.expectRevert(ERR_PERMIT_DEADLINE_EXPIRED);
+        vm.expectRevert(Errors.SignatureExpired.selector);
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testMintWithSigFailsIfWrongFunctionTypehash() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: keccak256(
+                "Mint(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)"
+            ) // using Mint not MintWithSig
+        });
+
+        // Alice approves DAI and signs mintWithSig msg
+        vm.prank(ALICE);
+        dai.approve(address(vault), amount);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
+        vm.startPrank(BOB);
+        vm.expectRevert(Errors.SignatureInvalid.selector);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
