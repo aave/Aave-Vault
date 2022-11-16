@@ -19,7 +19,7 @@ import {Events} from "../src/libraries/Events.sol";
 struct VaultSigParams {
     address assetOwner; // where the shares/assets are flowing from
     uint256 ownerPrivKey; // private key of above address
-    uint256 assets;
+    uint256 amount; // amount of assets/shares
     address receiver;
     uint256 nonce;
     uint256 deadline;
@@ -66,7 +66,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         VaultSigParams memory params = VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
-            assets: amount,
+            amount: amount,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE),
             deadline: block.timestamp,
@@ -101,7 +101,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         VaultSigParams memory params = VaultSigParams({
             assetOwner: BOB,
             ownerPrivKey: ALICE_PRIV_KEY,
-            assets: amount,
+            amount: amount,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE),
             deadline: block.timestamp,
@@ -126,7 +126,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         VaultSigParams memory params = VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: BOB_PRIV_KEY,
-            assets: amount,
+            amount: amount,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE),
             deadline: block.timestamp,
@@ -151,7 +151,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         VaultSigParams memory params = VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
-            assets: amount,
+            amount: amount,
             receiver: BOB,
             nonce: vault.sigNonces(ALICE),
             deadline: block.timestamp,
@@ -176,7 +176,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         VaultSigParams memory params = VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
-            assets: amount + 1,
+            amount: amount + 1,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE),
             deadline: block.timestamp,
@@ -201,7 +201,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         VaultSigParams memory params = VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
-            assets: amount,
+            amount: amount,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE) + 1,
             deadline: block.timestamp,
@@ -230,7 +230,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         VaultSigParams memory params = VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
-            assets: amount,
+            amount: amount,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE) + 1,
             deadline: deadline,
@@ -255,7 +255,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         VaultSigParams memory params = VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
-            assets: amount,
+            amount: amount,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE),
             deadline: block.timestamp,
@@ -283,7 +283,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         VaultSigParams memory params = VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
-            assets: amount,
+            amount: amount,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE),
             deadline: block.timestamp,
@@ -542,7 +542,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
                     keccak256(
                         abi.encode(
                             params.functionTypehash,
-                            params.assets,
+                            params.amount,
                             params.receiver,
                             params.assetOwner,
                             params.nonce,

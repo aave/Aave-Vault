@@ -113,28 +113,38 @@ contract ATokenVault is ERC4626, Ownable {
     }
 
     function mint(uint256 shares, address receiver) public override returns (uint256 assets) {
-        assets = previewMint(shares);
-        _mint(assets, shares, receiver, msg.sender);
+        assets = _mint(shares, receiver, msg.sender);
     }
 
     function mintWithSig(
         uint256 shares,
         address receiver,
         address depositor,
-        DataTypes.EIP712Signature memory sig
+        DataTypes.EIP712Signature calldata sig
     ) public returns (uint256 assets) {
-        assets = previewMint(shares);
-        asset.permit(depositor, address(this), assets, sig.deadline, sig.v, sig.r, sig.s);
-        _mint(assets, shares, receiver, depositor);
+        unchecked {
+            MetaTxHelpers._validateRecoveredAddress(
+                MetaTxHelpers._calculateDigest(
+                    keccak256(
+                        abi.encode(MINT_WITH_SIG_TYPEHASH, shares, receiver, depositor, sigNonces[depositor]++, sig.deadline)
+                    ),
+                    DOMAIN_SEPARATOR()
+                ),
+                depositor,
+                sig
+            );
+        }
+        assets = _mint(shares, receiver, depositor);
     }
 
     function _mint(
-        uint256 assets,
         uint256 shares,
         address receiver,
         address depositor
-    ) internal {
+    ) internal returns (uint256 assets) {
         _accrueYield();
+
+        assets = previewMint(shares);
 
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(depositor, address(this), assets);
