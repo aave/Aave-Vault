@@ -71,17 +71,6 @@ contract ATokenVault is ERC4626, Ownable {
         shares = _deposit(assets, receiver, msg.sender);
     }
 
-    // TODO remove
-    // function depositWithSigOLD(
-    //     uint256 assets,
-    //     address receiver,
-    //     address depositor,
-    //     EIP712Signature memory sig
-    // ) public returns (uint256 shares) {
-    //     asset.permit(depositor, address(this), assets, sig.deadline, sig.v, sig.r, sig.s);
-    //     shares = _deposit(assets, receiver, depositor);
-    // }
-
     function depositWithSig(
         uint256 assets,
         address receiver,
