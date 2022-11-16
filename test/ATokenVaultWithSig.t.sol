@@ -15,7 +15,6 @@ import {MockDAI} from "./mocks/MockDAI.sol";
 import {DataTypes} from "../src/libraries/DataTypes.sol";
 import {Errors} from "../src/libraries/Errors.sol";
 import {Events} from "../src/libraries/Events.sol";
-import "../src/libraries/Constants.sol";
 
 struct DepositSigParams {
     address depositor;
@@ -27,8 +26,12 @@ struct DepositSigParams {
 }
 
 contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
+    // TODO remove asset separator after permit removed
     bytes32 VAULT_DOMAIN_SEPARATOR;
     bytes32 ASSET_DOMAIN_SEPARATOR;
+
+    bytes32 DEPOSIT_WITH_SIG_TYPEHASH =
+        keccak256("DepositWithSig(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)");
 
     MockAavePoolAddressesProvider poolAddrProvider;
     MockAavePool pool;
@@ -48,6 +51,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         VAULT_DOMAIN_SEPARATOR = vault.DOMAIN_SEPARATOR();
         ASSET_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
+        // TODO remove asset separator after permit removed
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -232,6 +236,62 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(Errors.SignatureExpired.selector);
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testDepositWithSigFailsIfBadDomainSeparator() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        DepositSigParams memory params = DepositSigParams({
+            depositor: ALICE,
+            depositorPrivKey: ALICE_PRIV_KEY,
+            assets: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        // Change domain separator
+        VAULT_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
+
+        // Alice approves DAI and signs depositWithSig msg
+        vm.prank(ALICE);
+        dai.approve(address(vault), amount);
+        DataTypes.EIP712Signature memory sig = _createDepositSig(params);
+
+        vm.startPrank(BOB);
+        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testDepositWithSigFailsIfBadTypehash() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        DepositSigParams memory params = DepositSigParams({
+            depositor: ALICE,
+            depositorPrivKey: ALICE_PRIV_KEY,
+            assets: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        // Deposit instead of DepositWithSig
+        DEPOSIT_WITH_SIG_TYPEHASH = keccak256(
+            "Deposit(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)"
+        );
+
+        // Alice approves DAI and signs depositWithSig msg
+        vm.prank(ALICE);
+        dai.approve(address(vault), amount);
+        DataTypes.EIP712Signature memory sig = _createDepositSig(params);
+
+        vm.startPrank(BOB);
+        vm.expectRevert(Errors.SignatureInvalid.selector);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
