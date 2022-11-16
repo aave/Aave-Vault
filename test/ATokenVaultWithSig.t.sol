@@ -16,13 +16,14 @@ import {DataTypes} from "../src/libraries/DataTypes.sol";
 import {Errors} from "../src/libraries/Errors.sol";
 import {Events} from "../src/libraries/Events.sol";
 
-struct DepositSigParams {
-    address depositor;
-    uint256 depositorPrivKey;
+struct VaultSigParams {
+    address assetOwner; // where the shares/assets are flowing from
+    uint256 ownerPrivKey; // private key of above address
     uint256 assets;
     address receiver;
     uint256 nonce;
     uint256 deadline;
+    bytes32 functionTypehash;
 }
 
 contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
@@ -62,19 +63,20 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        DepositSigParams memory params = DepositSigParams({
-            depositor: ALICE,
-            depositorPrivKey: ALICE_PRIV_KEY,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
             assets: amount,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE),
-            deadline: block.timestamp
+            deadline: block.timestamp,
+            functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
         // Alice approves DAI and signs depositWithSig msg
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
-        DataTypes.EIP712Signature memory sig = _createDepositSig(params);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(dai.balanceOf(ALICE), amount);
         assertEq(dai.balanceOf(BOB), 0);
@@ -96,19 +98,20 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        DepositSigParams memory params = DepositSigParams({
-            depositor: BOB,
-            depositorPrivKey: ALICE_PRIV_KEY,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: BOB,
+            ownerPrivKey: ALICE_PRIV_KEY,
             assets: amount,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE),
-            deadline: block.timestamp
+            deadline: block.timestamp,
+            functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
         // Alice approves DAI and signs depositWithSig msg
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
-        DataTypes.EIP712Signature memory sig = _createDepositSig(params);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(Errors.SignatureInvalid.selector);
@@ -120,19 +123,20 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        DepositSigParams memory params = DepositSigParams({
-            depositor: ALICE,
-            depositorPrivKey: BOB_PRIV_KEY,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: BOB_PRIV_KEY,
             assets: amount,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE),
-            deadline: block.timestamp
+            deadline: block.timestamp,
+            functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
         // Alice approves DAI and signs depositWithSig msg
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
-        DataTypes.EIP712Signature memory sig = _createDepositSig(params);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(Errors.SignatureInvalid.selector);
@@ -144,19 +148,20 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        DepositSigParams memory params = DepositSigParams({
-            depositor: ALICE,
-            depositorPrivKey: ALICE_PRIV_KEY,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
             assets: amount,
             receiver: BOB,
             nonce: vault.sigNonces(ALICE),
-            deadline: block.timestamp
+            deadline: block.timestamp,
+            functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
         // Alice approves DAI and signs depositWithSig msg
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
-        DataTypes.EIP712Signature memory sig = _createDepositSig(params);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(Errors.SignatureInvalid.selector);
@@ -168,19 +173,20 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        DepositSigParams memory params = DepositSigParams({
-            depositor: ALICE,
-            depositorPrivKey: ALICE_PRIV_KEY,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
             assets: amount + 1,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE),
-            deadline: block.timestamp
+            deadline: block.timestamp,
+            functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
         // Alice approves DAI and signs depositWithSig msg
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
-        DataTypes.EIP712Signature memory sig = _createDepositSig(params);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(Errors.SignatureInvalid.selector);
@@ -192,19 +198,20 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        DepositSigParams memory params = DepositSigParams({
-            depositor: ALICE,
-            depositorPrivKey: ALICE_PRIV_KEY,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
             assets: amount,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE) + 1,
-            deadline: block.timestamp
+            deadline: block.timestamp,
+            functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
         // Alice approves DAI and signs depositWithSig msg
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
-        DataTypes.EIP712Signature memory sig = _createDepositSig(params);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(Errors.SignatureInvalid.selector);
@@ -220,19 +227,20 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         skip(1001);
         assertGt(block.timestamp, deadline);
 
-        DepositSigParams memory params = DepositSigParams({
-            depositor: ALICE,
-            depositorPrivKey: ALICE_PRIV_KEY,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
             assets: amount,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE) + 1,
-            deadline: deadline
+            deadline: deadline,
+            functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
         // Alice approves DAI and signs depositWithSig msg
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
-        DataTypes.EIP712Signature memory sig = _createDepositSig(params);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(Errors.SignatureExpired.selector);
@@ -244,13 +252,14 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        DepositSigParams memory params = DepositSigParams({
-            depositor: ALICE,
-            depositorPrivKey: ALICE_PRIV_KEY,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
             assets: amount,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE),
-            deadline: block.timestamp
+            deadline: block.timestamp,
+            functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
         // Change domain separator
@@ -259,7 +268,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Alice approves DAI and signs depositWithSig msg
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
-        DataTypes.EIP712Signature memory sig = _createDepositSig(params);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(Errors.SignatureInvalid.selector);
@@ -271,24 +280,22 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        DepositSigParams memory params = DepositSigParams({
-            depositor: ALICE,
-            depositorPrivKey: ALICE_PRIV_KEY,
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
             assets: amount,
             receiver: ALICE,
             nonce: vault.sigNonces(ALICE),
-            deadline: block.timestamp
+            deadline: block.timestamp,
+            functionTypehash: keccak256(
+                "Deposit(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)"
+            ) // Deposit instead of DepositWithSig
         });
-
-        // Deposit instead of DepositWithSig
-        DEPOSIT_WITH_SIG_TYPEHASH = keccak256(
-            "Deposit(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-        );
 
         // Alice approves DAI and signs depositWithSig msg
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
-        DataTypes.EIP712Signature memory sig = _createDepositSig(params);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(Errors.SignatureInvalid.selector);
@@ -525,19 +532,19 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         sig = DataTypes.EIP712Signature({v: v, r: r, s: s, deadline: deadline});
     }
 
-    function _createDepositSig(DepositSigParams memory params) internal returns (DataTypes.EIP712Signature memory sig) {
+    function _createVaultSig(VaultSigParams memory params) internal returns (DataTypes.EIP712Signature memory sig) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            params.depositorPrivKey,
+            params.ownerPrivKey,
             keccak256(
                 abi.encodePacked(
                     "\x19\x01",
                     VAULT_DOMAIN_SEPARATOR,
                     keccak256(
                         abi.encode(
-                            DEPOSIT_WITH_SIG_TYPEHASH,
+                            params.functionTypehash,
                             params.assets,
                             params.receiver,
-                            params.depositor,
+                            params.assetOwner,
                             params.nonce,
                             params.deadline
                         )
@@ -548,25 +555,4 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         sig = DataTypes.EIP712Signature({v: v, r: r, s: s, deadline: params.deadline});
     }
-
-    // function _validateRecoveredAddress(
-    //     bytes32 digest,
-    //     address expectedAddress,
-    //     DataTypes.EIP712Signature calldata sig
-    // ) internal view {
-    //     if (sig.deadline < block.timestamp) revert Errors.SignatureExpired();
-    //     address recoveredAddress = expectedAddress;
-    //     // If the expected address is a contract, check the signature there.
-    //     if (recoveredAddress.code.length != 0) {
-    //         bytes memory concatenatedSig = abi.encodePacked(sig.r, sig.s, sig.v);
-    //         if (IEIP1271Implementer(expectedAddress).isValidSignature(digest, concatenatedSig) != EIP1271_MAGIC_VALUE) {
-    //             revert Errors.SignatureInvalid();
-    //         }
-    //     } else {
-    //         recoveredAddress = ecrecover(digest, sig.v, sig.r, sig.s);
-    //         if (recoveredAddress == address(0) || recoveredAddress != expectedAddress) {
-    //             revert Errors.SignatureInvalid();
-    //         }
-    //     }
-    // }
 }
