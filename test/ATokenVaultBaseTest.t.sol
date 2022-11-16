@@ -4,7 +4,6 @@ pragma solidity 0.8.10;
 import "forge-std/Test.sol";
 
 import {ATokenVault, FixedPointMathLib} from "../src/ATokenVault.sol";
-import {IATokenVault} from "../src/IATokenVault.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import {DataTypes} from "../src/libraries/DataTypes.sol";
