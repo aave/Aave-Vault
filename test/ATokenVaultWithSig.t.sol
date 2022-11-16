@@ -12,6 +12,10 @@ import {MockAToken} from "./mocks/MockAToken.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockDAI} from "./mocks/MockDAI.sol";
 
+import {DataTypes} from "../src/libraries/DataTypes.sol";
+import {Errors} from "../src/libraries/Errors.sol";
+import {Events} from "../src/libraries/Events.sol";
+
 contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
     bytes32 ASSET_DOMAIN_SEPARATOR;
 
@@ -43,7 +47,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             spender: address(vault),
@@ -76,7 +80,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             spender: address(vault),
@@ -105,7 +109,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: BOB,
             ownerPrivKey: ALICE_PRIV_KEY,
             spender: address(vault),
@@ -124,7 +128,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: ALICE,
             ownerPrivKey: BOB_PRIV_KEY,
             spender: address(vault),
@@ -143,7 +147,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             spender: BOB,
@@ -162,7 +166,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             spender: address(vault),
@@ -181,7 +185,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             spender: address(vault),
@@ -204,7 +208,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         skip(1001);
         assertGt(block.timestamp, deadline);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             spender: address(vault),
@@ -227,7 +231,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             spender: address(vault),
@@ -256,7 +260,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: BOB,
             ownerPrivKey: ALICE_PRIV_KEY,
             spender: address(vault),
@@ -275,7 +279,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: ALICE,
             ownerPrivKey: BOB_PRIV_KEY,
             spender: address(vault),
@@ -294,7 +298,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             spender: BOB,
@@ -313,7 +317,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             spender: address(vault),
@@ -332,7 +336,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             spender: address(vault),
@@ -355,7 +359,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         skip(1001);
         assertGt(block.timestamp, deadline);
 
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             spender: address(vault),
@@ -384,7 +388,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         vm.stopPrank();
 
         ASSET_DOMAIN_SEPARATOR = vault.DOMAIN_SEPARATOR();
-        EIP712Signature memory sig = _createPermitSig({
+        DataTypes.EIP712Signature memory sig = _createPermitSig({
             owner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             spender: BOB,
@@ -433,7 +437,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 value,
         uint256 nonce,
         uint256 deadline
-    ) internal returns (EIP712Signature memory sig) {
+    ) internal returns (DataTypes.EIP712Signature memory sig) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             ownerPrivKey,
             keccak256(
@@ -445,6 +449,27 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             )
         );
 
-        sig = EIP712Signature({v: v, r: r, s: s, deadline: deadline});
+        sig = DataTypes.EIP712Signature({v: v, r: r, s: s, deadline: deadline});
     }
+
+    // function _validateRecoveredAddress(
+    //     bytes32 digest,
+    //     address expectedAddress,
+    //     DataTypes.EIP712Signature calldata sig
+    // ) internal view {
+    //     if (sig.deadline < block.timestamp) revert Errors.SignatureExpired();
+    //     address recoveredAddress = expectedAddress;
+    //     // If the expected address is a contract, check the signature there.
+    //     if (recoveredAddress.code.length != 0) {
+    //         bytes memory concatenatedSig = abi.encodePacked(sig.r, sig.s, sig.v);
+    //         if (IEIP1271Implementer(expectedAddress).isValidSignature(digest, concatenatedSig) != EIP1271_MAGIC_VALUE) {
+    //             revert Errors.SignatureInvalid();
+    //         }
+    //     } else {
+    //         recoveredAddress = ecrecover(digest, sig.v, sig.r, sig.s);
+    //         if (recoveredAddress == address(0) || recoveredAddress != expectedAddress) {
+    //             revert Errors.SignatureInvalid();
+    //         }
+    //     }
+    // }
 }

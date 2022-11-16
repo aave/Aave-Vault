@@ -7,8 +7,12 @@ import {ATokenVault, FixedPointMathLib} from "../src/ATokenVault.sol";
 import {IATokenVault} from "../src/IATokenVault.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
+import {DataTypes} from "../src/libraries/DataTypes.sol";
+import {Errors} from "../src/libraries/Errors.sol";
+import {Events} from "../src/libraries/Events.sol";
+
 // Inheritting from IATokenVault to access events for tests
-contract ATokenVaultBaseTest is Test, IATokenVault {
+contract ATokenVaultBaseTest is Test {
     using FixedPointMathLib for uint256;
 
     bytes32 constant PERMIT_TYPEHASH =

@@ -7,20 +7,30 @@ import {ERC4626, SafeTransferLib, FixedPointMathLib} from "solmate/mixins/ERC462
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Ownable} from "openzeppelin/access/Ownable.sol";
 
-import {IATokenVault} from "./IATokenVault.sol";
+// import {IATokenVault} from "./IATokenVault.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 
+// Libraries
+import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
+import {DataTypes} from "./libraries/DataTypes.sol";
+import {Errors} from "./libraries/Errors.sol";
+import {Events} from "./libraries/Events.sol";
+
+import "./libraries/Constants.sol";
+
 // TODO add ability to claim AAVE rewards
 
-contract ATokenVault is IATokenVault, ERC4626, Ownable {
+contract ATokenVault is ERC4626, Ownable {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
 
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
 
     uint256 internal constant SCALE = 1e18;
+
+    mapping(address => uint256) public sigNonces;
 
     IPool public aavePool;
     IAToken public aToken;
@@ -37,20 +47,20 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         uint256 initialFee,
         IPoolAddressesProvider poolAddressesProvider
     ) ERC4626(underlying, shareName, shareSymbol) {
-        if (initialFee > SCALE) revert FeeTooHigh();
+        if (initialFee > SCALE) revert Errors.FeeTooHigh();
 
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
 
         aavePool = IPool(poolAddressesProvider.getPool());
         address aTokenAddress = aavePool.getReserveData(address(underlying)).aTokenAddress;
-        if (aTokenAddress == address(0)) revert AssetNotSupported();
+        if (aTokenAddress == address(0)) revert Errors.AssetNotSupported();
         aToken = IAToken(aTokenAddress);
 
         fee = initialFee;
 
         lastUpdated = block.timestamp;
 
-        emit FeeUpdated(0, initialFee);
+        emit Events.FeeUpdated(0, initialFee);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -61,13 +71,35 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         shares = _deposit(assets, receiver, msg.sender);
     }
 
+    // TODO remove
+    // function depositWithSigOLD(
+    //     uint256 assets,
+    //     address receiver,
+    //     address depositor,
+    //     EIP712Signature memory sig
+    // ) public returns (uint256 shares) {
+    //     asset.permit(depositor, address(this), assets, sig.deadline, sig.v, sig.r, sig.s);
+    //     shares = _deposit(assets, receiver, depositor);
+    // }
+
     function depositWithSig(
         uint256 assets,
         address receiver,
         address depositor,
-        EIP712Signature memory sig
+        DataTypes.EIP712Signature calldata sig
     ) public returns (uint256 shares) {
-        asset.permit(depositor, address(this), assets, sig.deadline, sig.v, sig.r, sig.s);
+        unchecked {
+            MetaTxHelpers._validateRecoveredAddress(
+                MetaTxHelpers._calculateDigest(
+                    keccak256(
+                        abi.encode(DEPOSIT_WITH_SIG_TYPEHASH, assets, receiver, depositor, sigNonces[depositor]++, sig.deadline)
+                    ),
+                    DOMAIN_SEPARATOR()
+                ),
+                depositor,
+                sig
+            );
+        }
         shares = _deposit(assets, receiver, depositor);
     }
 
@@ -78,6 +110,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
     ) internal returns (uint256 shares) {
         _accrueYield();
 
+        // TODO replace with custom error
         require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
 
         // Need to transfer before minting or ERC777s could reenter.
@@ -103,7 +136,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         uint256 shares,
         address receiver,
         address depositor,
-        EIP712Signature memory sig
+        DataTypes.EIP712Signature memory sig
     ) public returns (uint256 assets) {
         assets = previewMint(shares);
         asset.permit(depositor, address(this), assets, sig.deadline, sig.v, sig.r, sig.s);
@@ -145,7 +178,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         uint256 assets,
         address receiver,
         address owner,
-        EIP712Signature memory sig
+        DataTypes.EIP712Signature memory sig
     ) public returns (uint256 shares) {
         shares = previewWithdraw(assets);
         // Permit the vault address to pull and burn shares from owner
@@ -190,7 +223,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
         uint256 shares,
         address receiver,
         address owner,
-        EIP712Signature memory sig
+        DataTypes.EIP712Signature memory sig
     ) public returns (uint256 assets) {
         // Permit the vault address to pull and burn shares from owner
         permit(owner, address(this), shares, sig.deadline, sig.v, sig.r, sig.s);
@@ -225,25 +258,25 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
     //////////////////////////////////////////////////////////////*/
 
     function setFee(uint256 _newFee) public onlyOwner {
-        if (_newFee > SCALE) revert FeeTooHigh();
+        if (_newFee > SCALE) revert Errors.FeeTooHigh();
 
         uint256 oldFee = fee;
         fee = _newFee;
 
-        emit FeeUpdated(oldFee, _newFee);
+        emit Events.FeeUpdated(oldFee, _newFee);
     }
 
     function updateAavePool() public onlyOwner {
         address newPool = POOL_ADDRESSES_PROVIDER.getPool();
         aavePool = IPool(newPool);
 
-        emit AavePoolUpdated(newPool);
+        emit Events.AavePoolUpdated(newPool);
     }
 
     // Fees are accrued and claimable in aToken form
     function withdrawFees(address to, uint256 amount) public onlyOwner {
         uint256 currentFees = getCurrentFees();
-        if (amount > currentFees) revert InsufficientFees(); // will underflow below anyway, error msg for clarity
+        if (amount > currentFees) revert Errors.InsufficientFees(); // will underflow below anyway, error msg for clarity
 
         accumulatedFees = currentFees - amount;
         lastVaultBalance = aToken.balanceOf(address(this)) - amount;
@@ -251,7 +284,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
 
         aToken.transfer(to, amount);
 
-        emit FeesWithdrawn(to, amount);
+        emit Events.FeesWithdrawn(to, amount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -293,7 +326,7 @@ contract ATokenVault is IATokenVault, ERC4626, Ownable {
             lastVaultBalance = newVaultBalance;
             lastUpdated = block.timestamp;
 
-            emit YieldAccrued(newYield, newFeesEarned);
+            emit Events.YieldAccrued(newYield, newFeesEarned);
         }
     }
 }
