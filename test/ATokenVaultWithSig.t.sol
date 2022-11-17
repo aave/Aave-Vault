@@ -6,6 +6,7 @@ import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
+import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 
 import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvider.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
@@ -56,7 +57,14 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vaultAssetAddress = address(aDai);
 
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(poolAddrProvider)));
+        vault = new ATokenVault(
+            dai,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            fee,
+            IPoolAddressesProvider(address(poolAddrProvider)),
+            IRewardsController(POLYGON_REWARDS_CONTROLLER)
+        );
 
         VAULT_DOMAIN_SEPARATOR = vault.DOMAIN_SEPARATOR();
     }

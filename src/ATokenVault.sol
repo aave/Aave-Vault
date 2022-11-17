@@ -313,14 +313,14 @@ contract ATokenVault is ERC4626, Ownable {
     }
 
     function claimAllAaveRewards(address to) public onlyOwner {
-        if (to == address(0)) revert CannotSendRewardsToZeroAddress();
+        if (to == address(0)) revert Errors.CannotSendRewardsToZeroAddress();
 
         address[] memory assets = new address[](1);
         assets[0] = address(aToken);
 
         (address[] memory rewardsList, uint256[] memory claimedAmounts) = REWARDS_CONTROLLER.claimAllRewards(assets, to);
 
-        emit AaveRewardsClaimed(to, rewardsList, claimedAmounts);
+        emit Events.AaveRewardsClaimed(to, rewardsList, claimedAmounts);
     }
 
     /*//////////////////////////////////////////////////////////////

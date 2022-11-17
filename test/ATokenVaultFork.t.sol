@@ -190,7 +190,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     function testDeployEmitsFeeEvent() public {
         // no indexed fields, just data check (4th param)
         vm.expectEmit(false, false, false, true);
-        emit FeeUpdated(0, fee);
+        emit Events.FeeUpdated(0, fee);
         vault = new ATokenVault(
             dai,
             SHARE_NAME,

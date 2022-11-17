@@ -7,6 +7,7 @@ library Errors {
     error FeeTooHigh();
     error InsufficientFees();
     error AssetNotSupported();
+    error CannotSendRewardsToZeroAddress();
 
     // MetaTx Lib Errrors
     error SignatureExpired();
