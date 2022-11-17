@@ -32,6 +32,9 @@ bytes32 constant DEPOSIT_WITH_SIG_TYPEHASH = keccak256(
 bytes32 constant MINT_WITH_SIG_TYPEHASH = keccak256(
     "MintWithSig(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)"
 );
+bytes32 constant WITHDRAW_WITH_SIG_TYPEHASH = keccak256(
+    "WithdrawWithSig(uint256 assets,address receiver,address owner,uint256 nonce,uint256 deadline)"
+);
 
 contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
     // TODO remove asset separator after permit removed
@@ -531,49 +534,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
                                 WITHDRAW
     //////////////////////////////////////////////////////////////*/
 
-    function testWithdrawWithSig() public {
-        uint256 amount = HUNDRED;
-        deal(address(dai), ALICE, amount);
-
-        vm.startPrank(ALICE);
-        dai.approve(address(vault), amount);
-        vault.deposit({assets: amount, receiver: ALICE});
-        vm.stopPrank();
-
-        ASSET_DOMAIN_SEPARATOR = vault.DOMAIN_SEPARATOR();
-        DataTypes.EIP712Signature memory sig = _createPermitSig({
-            owner: ALICE,
-            ownerPrivKey: ALICE_PRIV_KEY,
-            spender: BOB,
-            value: amount,
-            nonce: vault.nonces(ALICE),
-            deadline: block.timestamp
-        });
-
-        vm.startPrank(BOB);
-        console.log(vault.balanceOf(BOB));
-        vault.permit(ALICE, BOB, amount, sig.deadline, sig.v, sig.r, sig.s);
-        vault.transferFrom({from: ALICE, to: BOB, amount: amount});
-        console.log(vault.balanceOf(BOB));
-        vm.stopPrank();
-
-        // assertEq(vault.balanceOf(ALICE), amount);
-        // assertEq(dai.balanceOf(ALICE), 0);
-        // assertEq(dai.balanceOf(BOB), 0);
-        // assertEq(dai.balanceOf(address(vault)), 0);
-        // assertEq(aDai.balanceOf(address(vault)), amount);
-
-        // // Bob calls withdraw on Alice's behalf
-        // vm.startPrank(BOB);
-        // vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
-        // vm.stopPrank();
-
-        // assertEq(vault.balanceOf(ALICE), 0);
-        // assertEq(dai.balanceOf(ALICE), amount);
-        // assertEq(dai.balanceOf(BOB), 0);
-        // assertEq(dai.balanceOf(address(vault)), 0);
-        // assertEq(aDai.balanceOf(address(vault)), 0);
-    }
+    function testWithdrawWithSig() public {}
 
     /*//////////////////////////////////////////////////////////////
                                 REDEEM
@@ -582,28 +543,6 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
     /*//////////////////////////////////////////////////////////////
                                 TEST UTILS
     //////////////////////////////////////////////////////////////*/
-
-    function _createPermitSig(
-        address owner,
-        uint256 ownerPrivKey,
-        address spender,
-        uint256 value,
-        uint256 nonce,
-        uint256 deadline
-    ) internal returns (DataTypes.EIP712Signature memory sig) {
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            ownerPrivKey,
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    ASSET_DOMAIN_SEPARATOR,
-                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonce, deadline))
-                )
-            )
-        );
-
-        sig = DataTypes.EIP712Signature({v: v, r: r, s: s, deadline: deadline});
-    }
 
     function _createVaultSig(VaultSigParams memory params) internal returns (DataTypes.EIP712Signature memory sig) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(

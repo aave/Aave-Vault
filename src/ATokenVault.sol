@@ -165,35 +165,47 @@ contract ATokenVault is ERC4626, Ownable {
         address receiver,
         address owner
     ) public override returns (uint256 shares) {
-        shares = previewWithdraw(assets);
-        _withdraw(assets, shares, receiver, owner, false);
+        shares = _withdraw(assets, receiver, owner, false);
     }
 
     function withdrawWithSig(
         uint256 assets,
         address receiver,
         address owner,
-        DataTypes.EIP712Signature memory sig
+        DataTypes.EIP712Signature calldata sig
     ) public returns (uint256 shares) {
-        shares = previewWithdraw(assets);
-        // Permit the vault address to pull and burn shares from owner
-        permit(owner, msg.sender, shares, sig.deadline, sig.v, sig.r, sig.s);
-        _withdraw(assets, shares, receiver, owner, true);
+        unchecked {
+            MetaTxHelpers._validateRecoveredAddress(
+                MetaTxHelpers._calculateDigest(
+                    keccak256(
+                        abi.encode(WITHDRAW_WITH_SIG_TYPEHASH, assets, receiver, owner, sigNonces[owner]++, sig.deadline)
+                    ),
+                    DOMAIN_SEPARATOR()
+                ),
+                owner,
+                sig
+            );
+        }
+        shares = _withdraw(assets, receiver, owner, true);
     }
 
     function _withdraw(
         uint256 assets,
-        uint256 shares,
         address receiver,
         address owner,
         bool withSig // flag, checks vault allowance of own share token if true
-    ) internal {
+    ) internal returns (uint256 shares) {
         _accrueYield();
 
-        address allowanceTarget = withSig ? address(this) : msg.sender;
+        shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
+
+        // Check caller has allowance if not with sig
+        // Check receiver has allowance if with sig
+        address allowanceTarget = withSig ? receiver : msg.sender;
 
         if (allowanceTarget != owner) {
-            uint256 allowed = allowance[owner][allowanceTarget];
+            uint256 allowed = allowance[owner][allowanceTarget]; // Saves gas for limited approvals.
+
             if (allowed != type(uint256).max) allowance[owner][allowanceTarget] = allowed - shares;
         }
 
