@@ -193,7 +193,7 @@ contract ATokenVault is ERC4626, Ownable {
         uint256 assets,
         address receiver,
         address owner,
-        bool withSig // flag, checks vault allowance of own share token if true
+        bool withSig
     ) internal returns (uint256 shares) {
         _accrueYield();
 
@@ -223,30 +223,44 @@ contract ATokenVault is ERC4626, Ownable {
         address receiver,
         address owner
     ) public override returns (uint256 assets) {
-        return _redeem(shares, receiver, owner);
+        assets = _redeem(shares, receiver, owner, false);
     }
 
     function redeemWithSig(
         uint256 shares,
         address receiver,
         address owner,
-        DataTypes.EIP712Signature memory sig
+        DataTypes.EIP712Signature calldata sig
     ) public returns (uint256 assets) {
-        // Permit the vault address to pull and burn shares from owner
-        permit(owner, address(this), shares, sig.deadline, sig.v, sig.r, sig.s);
-        return _redeem(shares, receiver, owner);
+        unchecked {
+            MetaTxHelpers._validateRecoveredAddress(
+                MetaTxHelpers._calculateDigest(
+                    keccak256(abi.encode(REDEEM_WITH_SIG_TYPEHASH, shares, receiver, owner, sigNonces[owner]++, sig.deadline)),
+                    DOMAIN_SEPARATOR()
+                ),
+                owner,
+                sig
+            );
+        }
+        assets = _redeem(shares, receiver, owner, true);
     }
 
     function _redeem(
         uint256 shares,
         address receiver,
-        address owner
+        address owner,
+        bool withSig
     ) internal returns (uint256 assets) {
         _accrueYield();
 
-        if (msg.sender != owner) {
-            uint256 allowed = allowance[owner][msg.sender];
-            if (allowed != type(uint256).max) allowance[owner][msg.sender] = allowed - shares;
+        // Check caller has allowance if not with sig
+        // Check receiver has allowance if with sig
+        address allowanceTarget = withSig ? receiver : msg.sender;
+
+        if (allowanceTarget != owner) {
+            uint256 allowed = allowance[owner][allowanceTarget];
+
+            if (allowed != type(uint256).max) allowance[owner][allowanceTarget] = allowed - shares;
         }
 
         require((assets = previewRedeem(shares)) != 0, "ZERO_ASSETS");
