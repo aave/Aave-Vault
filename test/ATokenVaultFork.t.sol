@@ -2,7 +2,7 @@
 pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
-import {ATokenVaultBaseTest, IATokenVault} from "./ATokenVaultBaseTest.t.sol";
+import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
@@ -10,6 +10,10 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
+
+import {DataTypes} from "../src/libraries/DataTypes.sol";
+import {Errors} from "../src/libraries/Errors.sol";
+import {Events} from "../src/libraries/Events.sol";
 
 contract ATokenVaultForkTest is ATokenVaultBaseTest {
     // Forked tests using Polygon for Aave v3
@@ -58,7 +62,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     //////////////////////////////////////////////////////////////*/
 
     function testDeployRevertsFeeTooHigh() public {
-        vm.expectRevert(IATokenVault.FeeTooHigh.selector);
+        vm.expectRevert(Errors.FeeTooHigh.selector);
         vault = new ATokenVault(
             dai,
             SHARE_NAME,
@@ -73,7 +77,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         // UNI token is not listed on Aave v3
         address uniToken = 0xb33EaAd8d922B1083446DC23f610c2567fB5180f;
 
-        vm.expectRevert(IATokenVault.AssetNotSupported.selector);
+        vm.expectRevert(Errors.AssetNotSupported.selector);
         vault = new ATokenVault(
             ERC20(uniToken),
             SHARE_NAME,
@@ -123,7 +127,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _deployAndCheckProps();
 
         vm.startPrank(OWNER);
-        vm.expectRevert(IATokenVault.FeeTooHigh.selector);
+        vm.expectRevert(Errors.FeeTooHigh.selector);
         vault.setFee(SCALE + 1);
         vm.stopPrank();
     }
@@ -150,7 +154,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertGt(vaultADaiBalance, feesAccrued); //Actual vault balance > feesAmount
 
         vm.startPrank(OWNER);
-        vm.expectRevert(IATokenVault.InsufficientFees.selector);
+        vm.expectRevert(Errors.InsufficientFees.selector);
         vault.withdrawFees(OWNER, feesAccrued + ONE); // Try to withdraw more than accrued
         vm.stopPrank();
     }
@@ -225,7 +229,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         vm.startPrank(OWNER);
         vm.expectEmit(true, false, false, true, address(vault));
-        emit FeesWithdrawn(OWNER, feesAccrued);
+        emit Events.FeesWithdrawn(OWNER, feesAccrued);
         vault.withdrawFees(OWNER, feesAccrued);
         vm.stopPrank();
     }
@@ -251,7 +255,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         vm.startPrank(OWNER);
         vm.expectEmit(false, false, false, true, address(vault));
-        emit FeeUpdated(vault.fee(), newFee);
+        emit Events.FeeUpdated(vault.fee(), newFee);
         vault.setFee(newFee);
         vm.stopPrank();
     }
@@ -270,7 +274,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         vm.startPrank(OWNER);
         vm.expectEmit(false, false, false, true, address(vault));
-        emit AavePoolUpdated(expectedPoolAddress);
+        emit Events.AavePoolUpdated(expectedPoolAddress);
         vault.updateAavePool();
         vm.stopPrank();
     }
