@@ -37,9 +37,7 @@ bytes32 constant WITHDRAW_WITH_SIG_TYPEHASH = keccak256(
 );
 
 contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
-    // TODO remove asset separator after permit removed
     bytes32 VAULT_DOMAIN_SEPARATOR;
-    bytes32 ASSET_DOMAIN_SEPARATOR;
 
     MockAavePoolAddressesProvider poolAddrProvider;
     MockAavePool pool;
@@ -58,8 +56,6 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(poolAddrProvider)));
 
         VAULT_DOMAIN_SEPARATOR = vault.DOMAIN_SEPARATOR();
-        ASSET_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
-        // TODO remove asset separator after permit removed
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -534,7 +530,208 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
                                 WITHDRAW
     //////////////////////////////////////////////////////////////*/
 
-    function testWithdrawWithSig() public {}
+    function testWithdrawWithSig() public {
+        uint256 amount = HUNDRED;
+        _depositFromUser(ALICE, amount);
+
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
+        });
+
+        // No approval needed because Alice is reciever
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
+        assertEq(vault.balanceOf(ALICE), amount);
+        assertEq(dai.balanceOf(ALICE), 0);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(vault.balanceOf(BOB), 0);
+        assertEq(aDai.balanceOf(address(vault)), amount);
+
+        vm.startPrank(BOB);
+        vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
+        vm.stopPrank();
+
+        assertEq(vault.balanceOf(ALICE), 0);
+        assertEq(dai.balanceOf(ALICE), amount);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(vault.balanceOf(BOB), 0);
+        assertEq(aDai.balanceOf(address(vault)), 0);
+    }
+
+    function testWithdrawWithSigToAnotherAccount() public {
+        uint256 amount = HUNDRED;
+        _depositFromUser(ALICE, amount);
+
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            amount: amount,
+            receiver: BOB,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
+        });
+
+        vm.prank(ALICE);
+        vault.approve(BOB, amount);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
+        assertEq(vault.balanceOf(ALICE), amount);
+        assertEq(dai.balanceOf(ALICE), 0);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(vault.balanceOf(BOB), 0);
+        assertEq(aDai.balanceOf(address(vault)), amount);
+
+        vm.startPrank(OWNER);
+        vault.withdrawWithSig({assets: amount, receiver: BOB, owner: ALICE, sig: sig});
+        vm.stopPrank();
+
+        assertEq(vault.balanceOf(ALICE), 0);
+        assertEq(dai.balanceOf(ALICE), 0);
+        assertEq(dai.balanceOf(BOB), amount);
+        assertEq(vault.balanceOf(BOB), 0);
+        assertEq(aDai.balanceOf(address(vault)), 0);
+    }
+
+    function testWithdrawWithSigFailsIfWrongOwner() public {
+        uint256 amount = HUNDRED;
+        _depositFromUser(ALICE, amount);
+
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: BOB,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
+        });
+
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
+        vm.startPrank(BOB);
+        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testWithdrawWithSigFailsIfWrongReceiver() public {
+        uint256 amount = HUNDRED;
+        _depositFromUser(ALICE, amount);
+
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            amount: amount,
+            receiver: BOB,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
+        });
+
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
+        vm.startPrank(BOB);
+        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testWithdrawWithSigFailsIfWrongAmount() public {
+        uint256 amount = HUNDRED;
+        _depositFromUser(ALICE, amount);
+
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            amount: amount + 1,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
+        });
+
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
+        vm.startPrank(BOB);
+        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testWithdrawWithSigFailsIfWrongNonce() public {
+        uint256 amount = HUNDRED;
+        _depositFromUser(ALICE, amount);
+
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE) + 1,
+            deadline: block.timestamp,
+            functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
+        });
+
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
+        vm.startPrank(BOB);
+        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testWithdrawWithSigFailsIfWrongDeadline() public {
+        uint256 amount = HUNDRED;
+        _depositFromUser(ALICE, amount);
+
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp - 1,
+            functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
+        });
+
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
+        vm.startPrank(BOB);
+        vm.expectRevert(Errors.SignatureExpired.selector);
+        vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
+        vm.stopPrank();
+    }
+
+    function testWithdrawWithSigFailsIfWrongFunctionTypehash() public {
+        uint256 amount = HUNDRED;
+        _depositFromUser(ALICE, amount);
+
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: keccak256(
+                "Withdraw(uint256 assets,address receiver,address owner,uint256 nonce,uint256 deadline)"
+            ) // Withdraw not WithdrawWithSig
+        });
+
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
+        vm.startPrank(BOB);
+        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
+        vm.stopPrank();
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 REDEEM
@@ -566,5 +763,14 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         );
 
         sig = DataTypes.EIP712Signature({v: v, r: r, s: s, deadline: params.deadline});
+    }
+
+    function _depositFromUser(address user, uint256 amount) public {
+        deal(address(dai), user, amount);
+
+        vm.startPrank(user);
+        dai.approve(address(vault), amount);
+        vault.deposit(amount, user);
+        vm.stopPrank();
     }
 }
