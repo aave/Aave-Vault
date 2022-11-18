@@ -168,15 +168,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
     }
 
-    function testNonOwnerCannotClaimAaveRewards() public {
-        _deployAndCheckProps();
-
-        vm.startPrank(ALICE);
-        vm.expectRevert(ERR_NOT_OWNER);
-        vault.claimAllAaveRewards(ALICE);
-        vm.stopPrank();
-    }
-
     // TODO add more negative tests
 
     /*//////////////////////////////////////////////////////////////
@@ -277,36 +268,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         emit Events.AavePoolUpdated(expectedPoolAddress);
         vault.updateAavePool();
         vm.stopPrank();
-    }
-
-    function testOwnerCanClaimAaveRewards() public {
-        _deployAndCheckProps();
-
-        address aWMATIC = 0x6d80113e533a2C0fe82EaBD35f1875DcEA89Ea97;
-        address aDAI = 0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE;
-        address aUSDC = 0x625E7708f30cA75bfd92586e17077590C60eb4cD;
-        address WMATIC = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
-        address incentivesController = 0x929EC64c34a17401F460460D4B9390518E5B473e;
-
-        // TODO set up with Aave rewards market and check recieved after claim
-
-        uint256 blockNum = 28000000;
-        vm.rollFork(blockNum);
-
-        console.log("current timestamp", block.timestamp);
-
-        // uint256 end = IRewardsController(POLYGON_REWARDS_CONTROLLER).getDistributionEnd(aWMATIC, WMATIC);
-        console.log("aWMATIC", IRewardsController(POLYGON_REWARDS_CONTROLLER).getDistributionEnd(aWMATIC, WMATIC));
-        console.log("aDAI", IRewardsController(POLYGON_REWARDS_CONTROLLER).getDistributionEnd(aDAI, WMATIC));
-        console.log("aUSDC", IRewardsController(POLYGON_REWARDS_CONTROLLER).getDistributionEnd(aUSDC, WMATIC));
-
-        // vm.startPrank(OWNER);
-        // vault.claimAllAaveRewards(OWNER);
-        // vm.stopPrank();
-    }
-
-    function testClaimAllAaveRewardsEmitsEvent() public {
-        // TODO
     }
 
     function testTotalAssetsReturnsZeroWhenEmpty() public {
