@@ -80,6 +80,13 @@ contract ATokenVaultRewardsClaimTest is ATokenVaultBaseTest {
         vm.stopPrank();
     }
 
+    function testOwnerCannotClaimAaveRewardsToZeroAddress() public {
+        vm.startPrank(OWNER);
+        vm.expectRevert(Errors.CannotSendRewardsToZeroAddress.selector);
+        vault.claimAllAaveRewards(address(0));
+        vm.stopPrank();
+    }
+
     // Simulate 1 month of wAVAX rewards on 100 000 USDC deposited in Aave v3
     // From Oct 13th 2022 to Nov 12th 2022
     function testOwnerCanClaimAaveRewards() public {
