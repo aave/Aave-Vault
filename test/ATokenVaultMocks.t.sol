@@ -7,6 +7,7 @@ import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 import {ATokenVault} from "../src/ATokenVault.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
+import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 
 import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvider.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
@@ -19,6 +20,9 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
     MockAToken aDai;
     MockDAI dai;
 
+    // Currently to be tested in fork tests - not needed in mock tests
+    address fakeIncentivesController = address(101010101);
+
     function setUp() public override {
         aDai = new MockAToken();
         pool = new MockAavePool(aDai);
@@ -28,12 +32,26 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
 
         vaultAssetAddress = address(aDai);
 
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(poolAddrProvider)));
+        vault = new ATokenVault(
+            dai,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            fee,
+            IPoolAddressesProvider(address(poolAddrProvider)),
+            IRewardsController(fakeIncentivesController)
+        );
     }
 
     function testWithdrawNoFee() public {
         // Redeploy vault with 0% fee
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, 0, IPoolAddressesProvider(address(poolAddrProvider)));
+        vault = new ATokenVault(
+            dai,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            0,
+            IPoolAddressesProvider(address(poolAddrProvider)),
+            IRewardsController(fakeIncentivesController)
+        );
 
         // Alice deposits 1 DAI
         deal(address(dai), ALICE, ONE);

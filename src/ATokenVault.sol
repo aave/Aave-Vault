@@ -5,6 +5,7 @@ import {ERC4626, SafeTransferLib, FixedPointMathLib} from "solmate/mixins/ERC462
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Ownable} from "openzeppelin/access/Ownable.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
+import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 
@@ -23,6 +24,7 @@ contract ATokenVault is ERC4626, Ownable {
     using FixedPointMathLib for uint256;
 
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
+    IRewardsController public immutable REWARDS_CONTROLLER;
 
     uint256 internal constant SCALE = 1e18;
 
@@ -41,11 +43,13 @@ contract ATokenVault is ERC4626, Ownable {
         string memory shareName,
         string memory shareSymbol,
         uint256 initialFee,
-        IPoolAddressesProvider poolAddressesProvider
+        IPoolAddressesProvider poolAddressesProvider,
+        IRewardsController rewardsController
     ) ERC4626(underlying, shareName, shareSymbol) {
         if (initialFee > SCALE) revert Errors.FeeTooHigh();
 
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
+        REWARDS_CONTROLLER = rewardsController;
 
         aavePool = IPool(poolAddressesProvider.getPool());
         address aTokenAddress = aavePool.getReserveData(address(underlying)).aTokenAddress;
@@ -306,6 +310,17 @@ contract ATokenVault is ERC4626, Ownable {
         aToken.transfer(to, amount);
 
         emit Events.FeesWithdrawn(to, amount);
+    }
+
+    function claimAllAaveRewards(address to) public onlyOwner {
+        if (to == address(0)) revert Errors.CannotSendRewardsToZeroAddress();
+
+        address[] memory assets = new address[](1);
+        assets[0] = address(aToken);
+
+        (address[] memory rewardsList, uint256[] memory claimedAmounts) = REWARDS_CONTROLLER.claimAllRewards(assets, to);
+
+        emit Events.AaveRewardsClaimed(to, rewardsList, claimedAmounts);
     }
 
     /*//////////////////////////////////////////////////////////////

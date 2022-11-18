@@ -8,6 +8,7 @@ import {ATokenVault} from "../src/ATokenVault.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
+import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
 
 import {DataTypes} from "../src/libraries/DataTypes.sol";
@@ -33,7 +34,14 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vaultAssetAddress = address(aDai);
 
         vm.startPrank(OWNER);
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+        vault = new ATokenVault(
+            dai,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            fee,
+            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
+            IRewardsController(POLYGON_REWARDS_CONTROLLER)
+        );
         vm.stopPrank();
     }
 
@@ -60,7 +68,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
             SHARE_NAME,
             SHARE_SYMBOL,
             SCALE + 1,
-            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER)
+            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
+            IRewardsController(POLYGON_REWARDS_CONTROLLER)
         );
     }
 
@@ -74,13 +83,21 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
             SHARE_NAME,
             SHARE_SYMBOL,
             fee,
-            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER)
+            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
+            IRewardsController(POLYGON_REWARDS_CONTROLLER)
         );
     }
 
     function testDeployRevertsWithBadPoolAddressProvider() public {
         vm.expectRevert();
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(0)));
+        vault = new ATokenVault(
+            dai,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            fee,
+            IPoolAddressesProvider(address(0)),
+            IRewardsController(POLYGON_REWARDS_CONTROLLER)
+        );
     }
 
     function testNonOwnerCannotWithdrawFees() public {
@@ -165,7 +182,14 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         // no indexed fields, just data check (4th param)
         vm.expectEmit(false, false, false, true);
         emit Events.FeeUpdated(0, fee);
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+        vault = new ATokenVault(
+            dai,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            fee,
+            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
+            IRewardsController(POLYGON_REWARDS_CONTROLLER)
+        );
     }
 
     function testOwnerCanWithdrawFees() public {
@@ -445,6 +469,9 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
                                 SCENARIOS
     //////////////////////////////////////////////////////////////*/
 
+    // TODO add test for aToken yield measured just holding and withdrawing
+    // vs yield achieved in the vault
+
     // function testYieldSplitBasic(uint256 yieldEarned) public {}
 
     // function testFuzzMultiDepositTwoUsers() public {}
@@ -463,7 +490,14 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
     function _deployAndCheckProps() public {
         vm.startPrank(OWNER);
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+        vault = new ATokenVault(
+            dai,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            fee,
+            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
+            IRewardsController(POLYGON_REWARDS_CONTROLLER)
+        );
         vm.stopPrank();
         assertEq(address(vault.asset()), POLYGON_DAI);
         assertEq(address(vault.aToken()), POLYGON_ADAI);
