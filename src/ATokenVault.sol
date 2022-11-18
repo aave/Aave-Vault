@@ -17,8 +17,6 @@ import {Events} from "./libraries/Events.sol";
 
 import "./libraries/Constants.sol";
 
-// TODO add ability to claim AAVE rewards
-
 contract ATokenVault is ERC4626, Ownable {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
