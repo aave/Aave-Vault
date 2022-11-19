@@ -399,6 +399,29 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(vault.balanceOf(ALICE), ONE);
     }
 
+    function testDepositAffectedByExchangeRate() public {
+        uint256 amount = HUNDRED;
+        _depositFromUser(ALICE, amount);
+
+        // still 1:1 exchange rate
+        assertEq(vault.convertToShares(amount), amount);
+        assertEq(vault.balanceOf(ALICE), amount);
+
+        // Increase share/asset exchange rate
+        _accrueYieldInVault(amount);
+
+        // Now 2:1 assets to shares exchange rate
+        assertEq(vault.convertToShares(amount), amount / 2);
+
+        vm.startPrank(ALICE);
+        deal(address(dai), ALICE, amount);
+        dai.approve(address(vault), amount);
+        vault.deposit(amount, ALICE);
+        vm.stopPrank();
+
+        assertEq(vault.balanceOf(ALICE), amount + (amount / 2));
+    }
+
     function testMintSuppliesAave() public {
         _deployAndCheckProps();
 
@@ -420,6 +443,29 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(ALICE), 0);
         assertEq(aDai.balanceOf(address(vault)), ONE);
         assertEq(vault.balanceOf(ALICE), ONE);
+    }
+
+    function testMintAffectedByExchangeRate() public {
+        uint256 amount = HUNDRED;
+        _depositFromUser(ALICE, amount);
+
+        // still 1:1 exchange rate
+        assertEq(vault.convertToShares(amount), amount);
+        assertEq(vault.balanceOf(ALICE), amount);
+
+        // Increase share/asset exchange rate
+        _accrueYieldInVault(amount);
+
+        // Now 2:1 assets to shares exchange rate
+        assertEq(vault.convertToShares(amount), amount / 2);
+
+        vm.startPrank(ALICE);
+        deal(address(dai), ALICE, amount);
+        dai.approve(address(vault), amount);
+        vault.mint(amount / 2, ALICE);
+        vm.stopPrank();
+
+        assertEq(vault.balanceOf(ALICE), amount + (amount / 2));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -444,6 +490,36 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(ALICE), 0);
         assertEq(aDai.balanceOf(address(vault)), 0);
     }
+
+    // function testWithdrawAfterYieldEarned() public {
+    //     uint256 amount = HUNDRED;
+    //     uint256 expectedAliceAmountEnd = amount + (amount - _getFeesOnAmount(amount));
+    //     uint256 expectedFees = _getFeesOnAmount(amount);
+
+    //     console.log(expectedFees);
+
+    //     _depositFromUser(ALICE, amount);
+
+    //     // still 1:1 exchange rate
+    //     assertEq(vault.convertToShares(amount), amount);
+    //     assertEq(vault.balanceOf(ALICE), amount);
+
+    //     // Increase share/asset exchange rate
+    //     _accrueYieldInVault(amount);
+
+    //     // Now 2:1 assets to shares exchange rate
+    //     assertEq(vault.convertToAssets(amount), amount * 2);
+
+    //     vm.startPrank(ALICE);
+    //     vault.withdraw(amount * 2, ALICE, ALICE);
+    //     vm.stopPrank();
+
+    //     console.log()
+
+    //     assertEq(aDai.balanceOf(address(vault)), vault.getCurrentFees(), "FEES NOT SAME AS VAULT BALANCE");
+    //     assertEq(vault.getCurrentFees(), expectedFees, "FEES NOT AS EXPECTED");
+    //     assertEq(dai.balanceOf(ALICE), expectedAliceAmountEnd, "END ALICE BALANCE NOT AS EXPECTED");
+    // }
 
     function testRedeemBasic() public {
         uint256 amount = HUNDRED;
@@ -529,6 +605,23 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
     }
 
+    function _accrueYieldInVault(uint256 yieldAmountToAccrue) public {
+        require(yieldAmountToAccrue > 0, "TEST: FEES ACCRUED MUST BE > 0");
+
+        deal(address(dai), OWNER, yieldAmountToAccrue);
+
+        vm.startPrank(OWNER);
+        dai.approve(POLYGON_AAVE_POOL, yieldAmountToAccrue);
+        IPool(POLYGON_AAVE_POOL).supply(address(dai), yieldAmountToAccrue, OWNER, 0);
+
+        // NOTE: reducing by 1 because final vault balance is over by 1 for some reason
+        yieldAmountToAccrue -= 1;
+        aDai.transfer(address(vault), yieldAmountToAccrue);
+        vm.stopPrank();
+
+        assertGt(aDai.balanceOf(address(vault)), yieldAmountToAccrue);
+    }
+
     function _accrueFeesInVault(uint256 feeAmountToAccrue) public {
         require(feeAmountToAccrue > 0, "TEST: FEES ACCRUED MUST BE > 0");
         uint256 daiAmount = feeAmountToAccrue * 5; // Assuming 20% fee
@@ -548,5 +641,9 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         // Fees will be more than specified in param because of interest earned over time in Aave
         assertApproxEqRel(vault.getCurrentFees(), feeAmountToAccrue, ONE_BPS);
+    }
+
+    function _getFeesOnAmount(uint256 amount) public view returns (uint256) {
+        return (amount * vault.fee()) / SCALE;
     }
 }
