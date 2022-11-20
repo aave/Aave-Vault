@@ -491,35 +491,37 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(address(vault)), 0);
     }
 
-    // function testWithdrawAfterYieldEarned() public {
-    //     uint256 amount = HUNDRED;
-    //     uint256 expectedAliceAmountEnd = amount + (amount - _getFeesOnAmount(amount));
-    //     uint256 expectedFees = _getFeesOnAmount(amount);
+    function testWithdrawAfterYieldEarned() public {
+        uint256 amount = HUNDRED;
+        uint256 expectedAliceAmountEnd = amount + (amount - _getFeesOnAmount(amount));
+        uint256 expectedFees = _getFeesOnAmount(amount);
 
-    //     console.log(expectedFees);
+        _depositFromUser(ALICE, amount);
 
-    //     _depositFromUser(ALICE, amount);
+        // still 1:1 exchange rate
+        assertEq(vault.convertToShares(amount), amount);
+        assertEq(vault.balanceOf(ALICE), amount);
 
-    //     // still 1:1 exchange rate
-    //     assertEq(vault.convertToShares(amount), amount);
-    //     assertEq(vault.balanceOf(ALICE), amount);
+        // Increase share/asset exchange rate
+        _accrueYieldInVault(amount);
 
-    //     // Increase share/asset exchange rate
-    //     _accrueYieldInVault(amount);
+        // Now 2:1 assets to shares exchange rate
+        assertEq(vault.convertToAssets(amount), amount * 2);
 
-    //     // Now 2:1 assets to shares exchange rate
-    //     assertEq(vault.convertToAssets(amount), amount * 2);
+        skip(1);
 
-    //     vm.startPrank(ALICE);
-    //     vault.withdraw(amount * 2, ALICE, ALICE);
-    //     vm.stopPrank();
+        uint256 aliceMaxWithdrawable = vault.maxWithdraw(ALICE);
 
-    //     console.log()
+        assertApproxEqRel(aliceMaxWithdrawable, expectedAliceAmountEnd, ONE_BPS);
 
-    //     assertEq(aDai.balanceOf(address(vault)), vault.getCurrentFees(), "FEES NOT SAME AS VAULT BALANCE");
-    //     assertEq(vault.getCurrentFees(), expectedFees, "FEES NOT AS EXPECTED");
-    //     assertEq(dai.balanceOf(ALICE), expectedAliceAmountEnd, "END ALICE BALANCE NOT AS EXPECTED");
-    // }
+        vm.startPrank(ALICE);
+        vault.withdraw(aliceMaxWithdrawable, ALICE, ALICE);
+        vm.stopPrank();
+
+        assertEq(aDai.balanceOf(address(vault)), vault.getCurrentFees(), "FEES NOT SAME AS VAULT BALANCE");
+        assertApproxEqRel(vault.getCurrentFees(), expectedFees, ONE_BPS, "FEES NOT AS EXPECTED");
+        assertApproxEqRel(dai.balanceOf(ALICE), expectedAliceAmountEnd, ONE_BPS, "END ALICE BALANCE NOT AS EXPECTED");
+    }
 
     function testRedeemBasic() public {
         uint256 amount = HUNDRED;
