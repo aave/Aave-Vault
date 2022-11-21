@@ -97,7 +97,6 @@ contract ATokenVault is ERC4626, Ownable {
     ) internal returns (uint256 shares) {
         _accrueYield();
 
-        // TODO replace with custom error
         require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
 
         // Need to transfer before minting or ERC777s could reenter.

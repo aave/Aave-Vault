@@ -168,8 +168,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
     }
 
-    // TODO add more negative tests
-
     /*//////////////////////////////////////////////////////////////
                                 POSITIVES
     //////////////////////////////////////////////////////////////*/
@@ -344,13 +342,14 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         uint256 lastUpdated = vault.lastUpdated();
         uint256 lastVaultBalance = vault.lastVaultBalance();
 
+        _depositFromUser(ALICE, amount);
         skip(1);
         _depositFromUser(ALICE, amount);
         // only lastUpdated does NOT change if same timestamp
         // lastVaultBalance is updated separately regardless of timestamp
 
         assertEq(vault.lastUpdated(), lastUpdated + 1);
-        assertEq(vault.lastVaultBalance(), lastVaultBalance + amount);
+        assertApproxEqRel(vault.lastVaultBalance(), lastVaultBalance + (2 * amount), ONE_BPS);
     }
 
     function testAccrueYieldDoesNotUpdateOnSameTimestamp() public {
@@ -362,19 +361,24 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         uint256 lastVaultBalance = vault.lastVaultBalance();
 
         _depositFromUser(ALICE, amount);
+        _depositFromUser(ALICE, amount);
         // only lastUpdated does NOT change if same timestamp
         // lastVaultBalance is updated separately regardless of timestamp
 
         assertEq(block.timestamp, prevTimestamp);
         assertEq(vault.lastUpdated(), lastUpdated); // this should not have changed as timestamp is same
-        assertEq(vault.lastVaultBalance(), lastVaultBalance + amount); // This should change on deposit() anyway
+        assertApproxEqAbs(vault.lastVaultBalance(), lastVaultBalance + (2 * amount), 1); // This should change on deposit() anyway
     }
 
     /*//////////////////////////////////////////////////////////////
                             DEPOSIT AND MINT
     //////////////////////////////////////////////////////////////*/
 
-    // TODO add negatives for these functions here
+    function testDepositFailsWithZeroAssets() public {
+        vm.prank(ALICE);
+        vm.expectRevert(ERR_ZERO_SHARES);
+        vault.deposit(0, ALICE);
+    }
 
     function testDepositSuppliesAave() public {
         _deployAndCheckProps();
@@ -397,6 +401,29 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(ALICE), 0);
         assertEq(aDai.balanceOf(address(vault)), ONE);
         assertEq(vault.balanceOf(ALICE), ONE);
+    }
+
+    function testDepositAffectedByExchangeRate() public {
+        uint256 amount = HUNDRED;
+        _depositFromUser(ALICE, amount);
+
+        // still 1:1 exchange rate
+        assertEq(vault.convertToShares(amount), amount);
+        assertEq(vault.balanceOf(ALICE), amount);
+
+        // Increase share/asset exchange rate
+        _accrueYieldInVault(amount);
+
+        // Now 2:1 assets to shares exchange rate
+        assertEq(vault.convertToShares(amount), amount / 2);
+
+        vm.startPrank(ALICE);
+        deal(address(dai), ALICE, amount);
+        dai.approve(address(vault), amount);
+        vault.deposit(amount, ALICE);
+        vm.stopPrank();
+
+        assertEq(vault.balanceOf(ALICE), amount + (amount / 2));
     }
 
     function testMintSuppliesAave() public {
@@ -422,11 +449,32 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(vault.balanceOf(ALICE), ONE);
     }
 
+    function testMintAffectedByExchangeRate() public {
+        uint256 amount = HUNDRED;
+        _depositFromUser(ALICE, amount);
+
+        // still 1:1 exchange rate
+        assertEq(vault.convertToShares(amount), amount);
+        assertEq(vault.balanceOf(ALICE), amount);
+
+        // Increase share/asset exchange rate
+        _accrueYieldInVault(amount);
+
+        // Now 2:1 assets to shares exchange rate
+        assertEq(vault.convertToShares(amount), amount / 2);
+
+        vm.startPrank(ALICE);
+        deal(address(dai), ALICE, amount);
+        dai.approve(address(vault), amount);
+        vault.mint(amount / 2, ALICE);
+        vm.stopPrank();
+
+        assertEq(vault.balanceOf(ALICE), amount + (amount / 2));
+    }
+
     /*//////////////////////////////////////////////////////////////
                             WITHDRAW AND REDEEM
     //////////////////////////////////////////////////////////////*/
-
-    // TODO add negatives for these functions here
 
     function testWithdrawBasic() public {
         uint256 amount = HUNDRED;
@@ -443,6 +491,44 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(dai.balanceOf(ALICE), amount);
         assertEq(aDai.balanceOf(ALICE), 0);
         assertEq(aDai.balanceOf(address(vault)), 0);
+    }
+
+    function testWithdrawAfterYieldEarned() public {
+        uint256 amount = HUNDRED;
+        uint256 expectedAliceAmountEnd = amount + (amount - _getFeesOnAmount(amount));
+        uint256 expectedFees = _getFeesOnAmount(amount);
+
+        _depositFromUser(ALICE, amount);
+
+        // still 1:1 exchange rate
+        assertEq(vault.convertToShares(amount), amount);
+        assertEq(vault.balanceOf(ALICE), amount);
+
+        // Increase share/asset exchange rate
+        _accrueYieldInVault(amount);
+
+        // Now 2:1 assets to shares exchange rate
+        assertEq(vault.convertToAssets(amount), amount * 2);
+
+        skip(1);
+
+        uint256 aliceMaxWithdrawable = vault.maxWithdraw(ALICE);
+
+        assertApproxEqRel(aliceMaxWithdrawable, expectedAliceAmountEnd, ONE_BPS);
+
+        vm.startPrank(ALICE);
+        vault.withdraw(aliceMaxWithdrawable, ALICE, ALICE);
+        vm.stopPrank();
+
+        assertEq(aDai.balanceOf(address(vault)), vault.getCurrentFees(), "FEES NOT SAME AS VAULT BALANCE");
+        assertApproxEqRel(vault.getCurrentFees(), expectedFees, ONE_BPS, "FEES NOT AS EXPECTED");
+        assertApproxEqRel(dai.balanceOf(ALICE), expectedAliceAmountEnd, ONE_BPS, "END ALICE BALANCE NOT AS EXPECTED");
+    }
+
+    function testRedeemFailsWithZeroShares() public {
+        vm.prank(ALICE);
+        vm.expectRevert(ERR_ZERO_ASSETS);
+        vault.redeem(0, ALICE, ALICE);
     }
 
     function testRedeemBasic() public {
@@ -465,24 +551,148 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(address(vault)), 0);
     }
 
+    function testRedeemAfterYieldEarned() public {
+        uint256 amount = HUNDRED;
+        uint256 expectedAliceAmountEnd = amount + (amount - _getFeesOnAmount(amount));
+        uint256 expectedFees = _getFeesOnAmount(amount);
+
+        _depositFromUser(ALICE, amount);
+
+        // still 1:1 exchange rate
+        assertEq(vault.convertToShares(amount), amount);
+        assertEq(vault.balanceOf(ALICE), amount);
+
+        // Increase share/asset exchange rate
+        _accrueYieldInVault(amount);
+
+        // Now 2:1 assets to shares exchange rate
+        assertEq(vault.convertToAssets(amount), amount * 2);
+
+        skip(1);
+
+        uint256 aliceMaxReedemable = vault.maxRedeem(ALICE);
+
+        assertApproxEqRel(vault.convertToAssets(aliceMaxReedemable), expectedAliceAmountEnd, ONE_BPS);
+
+        vm.startPrank(ALICE);
+        vault.redeem(aliceMaxReedemable, ALICE, ALICE);
+        vm.stopPrank();
+
+        assertEq(aDai.balanceOf(address(vault)), vault.getCurrentFees(), "FEES NOT SAME AS VAULT BALANCE");
+        assertApproxEqRel(vault.getCurrentFees(), expectedFees, ONE_BPS, "FEES NOT AS EXPECTED");
+        assertApproxEqRel(dai.balanceOf(ALICE), expectedAliceAmountEnd, ONE_BPS, "END ALICE BALANCE NOT AS EXPECTED");
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 SCENARIOS
     //////////////////////////////////////////////////////////////*/
 
-    // TODO add test for aToken yield measured just holding and withdrawing
-    // vs yield achieved in the vault
+    function testTwoUsersSameDurationAmountAndYield() public {
+        uint256 amount = HUNDRED;
+        uint256 timeDeposited = 500 days; // of DeFi summer
 
-    // function testYieldSplitBasic(uint256 yieldEarned) public {}
+        _depositFromUser(ALICE, amount);
+        _depositFromUser(BOB, amount);
 
-    // function testFuzzMultiDepositTwoUsers() public {}
+        uint256 blockTimeBefore = block.timestamp;
 
-    // function testFuzzMultiMintTwoUsers() public {}
+        skip(timeDeposited);
 
-    // function testFuzzMultiWithdrawTwoUsers() public {}
+        uint256 blockTimeAfter = block.timestamp;
 
-    // function testFuzzMultiRedeemTwoUsers() public {}
+        assertEq(blockTimeAfter, blockTimeBefore + timeDeposited);
+        assertEq(vault.maxWithdraw(ALICE), vault.maxWithdraw(BOB));
 
-    // function testFuzzDepositAndWithdraw() public {}
+        _withdrawFromUser(ALICE, 0); //withdraw max
+        _withdrawFromUser(BOB, 0); //withdraw max
+
+        assertApproxEqAbs(dai.balanceOf(ALICE), dai.balanceOf(BOB), 1);
+    }
+
+    function testTwoUsersSameDurationDiffAmountAndYield() public {
+        uint256 amountAlice = HUNDRED;
+        uint256 amountBob = 2 * HUNDRED; // Bob deposits double Alice amount
+        uint256 timeDeposited = 500 days;
+
+        _depositFromUser(ALICE, amountAlice);
+        _depositFromUser(BOB, amountBob);
+
+        uint256 blockTimeBefore = block.timestamp;
+
+        skip(timeDeposited);
+
+        uint256 blockTimeAfter = block.timestamp;
+
+        assertEq(blockTimeAfter, blockTimeBefore + timeDeposited);
+        assertGt(vault.maxWithdraw(BOB), vault.maxWithdraw(ALICE));
+
+        _withdrawFromUser(ALICE, 0); //withdraw max
+        _withdrawFromUser(BOB, 0); //withdraw max
+
+        uint256 yieldAlice = dai.balanceOf(ALICE) - amountAlice;
+        uint256 yieldBob = dai.balanceOf(BOB) - amountBob;
+
+        // Bob should get double the yield
+        assertApproxEqRel(yieldBob, 2 * yieldAlice, ONE_BPS);
+    }
+
+    function testTwoUsersSameAmountDiffDurationAndYield() public {
+        uint256 amount = HUNDRED;
+        uint256 timeDepositedAlice = 500 days;
+        uint256 timeDepositedBob = 1000 days; // Bob deposits for double time
+
+        _depositFromUser(ALICE, amount);
+        _depositFromUser(BOB, amount);
+
+        uint256 blockTimeBefore = block.timestamp;
+
+        skip(timeDepositedAlice);
+
+        uint256 blockTimeAfter = block.timestamp;
+        assertEq(blockTimeAfter, blockTimeBefore + timeDepositedAlice);
+        assertEq(vault.maxWithdraw(BOB), vault.maxWithdraw(ALICE)); // Equal yield so far
+
+        _withdrawFromUser(ALICE, 0); //withdraw max
+
+        skip(timeDepositedBob - timeDepositedAlice); // spend rest of Bobs time in vault
+
+        blockTimeAfter = block.timestamp;
+        assertEq(blockTimeAfter, blockTimeBefore + timeDepositedBob);
+
+        _withdrawFromUser(BOB, 0); //withdraw max
+
+        uint256 yieldAlice = dai.balanceOf(ALICE) - amount;
+        uint256 yieldBob = dai.balanceOf(BOB) - amount;
+
+        // Very rough, but assuming stable yields, Bob should get double. Test with 5% margin
+        assertApproxEqRel(yieldBob, 2 * yieldAlice, 5 * ONE_PERCENT);
+    }
+
+    function testTheeUsersDepositAndWithdrawDiffTimes() public {
+        uint256 amount = HUNDRED;
+        uint256 timeInterval = 100 days;
+
+        _depositFromUser(ALICE, amount);
+        skip(timeInterval);
+        _depositFromUser(BOB, amount);
+        skip(timeInterval);
+        _depositFromUser(CHAD, amount);
+        skip(timeInterval);
+        _withdrawFromUser(CHAD, 0); //withdraw max
+        skip(timeInterval);
+        _withdrawFromUser(BOB, 0); //withdraw max
+        skip(timeInterval);
+        _withdrawFromUser(ALICE, 0); //withdraw max
+
+        uint256 yieldAlice = dai.balanceOf(ALICE) - amount;
+        uint256 yieldBob = dai.balanceOf(BOB) - amount;
+        uint256 yieldChad = dai.balanceOf(CHAD) - amount;
+
+        // Rough checks of yield diffs, within 1% margin
+        assertApproxEqRel(yieldBob, 3 * yieldChad, ONE_PERCENT);
+        assertApproxEqRel(yieldAlice, 5 * yieldChad, ONE_PERCENT);
+        assertGt(yieldAlice, yieldBob);
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 TEST UTILS
@@ -529,6 +739,23 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
     }
 
+    function _accrueYieldInVault(uint256 yieldAmountToAccrue) public {
+        require(yieldAmountToAccrue > 0, "TEST: FEES ACCRUED MUST BE > 0");
+
+        deal(address(dai), OWNER, yieldAmountToAccrue);
+
+        vm.startPrank(OWNER);
+        dai.approve(POLYGON_AAVE_POOL, yieldAmountToAccrue);
+        IPool(POLYGON_AAVE_POOL).supply(address(dai), yieldAmountToAccrue, OWNER, 0);
+
+        // NOTE: reducing by 1 because final vault balance is over by 1 for some reason
+        yieldAmountToAccrue -= 1;
+        aDai.transfer(address(vault), yieldAmountToAccrue);
+        vm.stopPrank();
+
+        assertGt(aDai.balanceOf(address(vault)), yieldAmountToAccrue);
+    }
+
     function _accrueFeesInVault(uint256 feeAmountToAccrue) public {
         require(feeAmountToAccrue > 0, "TEST: FEES ACCRUED MUST BE > 0");
         uint256 daiAmount = feeAmountToAccrue * 5; // Assuming 20% fee
@@ -548,5 +775,9 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         // Fees will be more than specified in param because of interest earned over time in Aave
         assertApproxEqRel(vault.getCurrentFees(), feeAmountToAccrue, ONE_BPS);
+    }
+
+    function _getFeesOnAmount(uint256 amount) public view returns (uint256) {
+        return (amount * vault.fee()) / SCALE;
     }
 }
