@@ -34,10 +34,12 @@ contract ATokenVaultBaseTest is Test {
     uint256 constant OWNER_PRIV_KEY = 11111;
     uint256 constant ALICE_PRIV_KEY = 12345;
     uint256 constant BOB_PRIV_KEY = 54321;
+    uint256 constant CHAD_PRIV_KEY = 98765;
 
     address OWNER = vm.addr(OWNER_PRIV_KEY);
     address ALICE = vm.addr(ALICE_PRIV_KEY);
     address BOB = vm.addr(BOB_PRIV_KEY);
+    address CHAD = vm.addr(CHAD_PRIV_KEY);
 
     string constant SHARE_NAME = "Wrapped aDAI";
     string constant SHARE_SYMBOL = "waDAI";
@@ -56,29 +58,7 @@ contract ATokenVaultBaseTest is Test {
 
     function setUp() public virtual {}
 
-    function _increaseVaultYield(uint256 newYieldPercentage) internal virtual returns (uint256 increaseAmount) {
-        uint256 currentTokenBalance = ERC20(vaultAssetAddress).balanceOf(address(vault));
-        console.log("currentTokenBalance", currentTokenBalance);
-        increaseAmount = currentTokenBalance.mulDivUp(SCALE + newYieldPercentage, SCALE) - currentTokenBalance;
-        deal(vaultAssetAddress, address(vault), increaseAmount);
-        console.log("blbbl");
-    }
-
-    function _expectedFeeSplitOfIncrease(uint256 increaseAmount) internal returns (uint256 feeAmount, uint256 netAmount) {
-        feeAmount = (increaseAmount * fee) / SCALE;
-        netAmount = increaseAmount - feeAmount;
-    }
-
-    // NOTE: Round up for user yield, round down for fee yield
-    // Based on shares over current total shares, read from vault
-    function _expectedUserYieldAmount(uint256 userShares, uint256 newYieldForUsers)
-        internal
-        returns (uint256 expectedUserYield)
-    {
-        // Rounding up expected for users, rounding down for fees on yield
-        return newYieldForUsers.mulDivUp(userShares, vault.totalSupply());
-    }
-
+    // For debug purposes
     function _logVaultBalances(address user, string memory label) internal {
         console.log("\n", label);
         console.log("ERC20 Assets\t\t\t", ERC20(vaultAssetAddress).balanceOf(address(vault)));

@@ -593,20 +593,112 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
                                 SCENARIOS
     //////////////////////////////////////////////////////////////*/
 
-    // TODO add test for aToken yield measured just holding and withdrawing
-    // vs yield achieved in the vault
+    function testTwoUsersSameDurationAmountAndYield() public {
+        uint256 amount = HUNDRED;
+        uint256 timeDeposited = 500 days; // of DeFi summer
 
-    // function testYieldSplitBasic(uint256 yieldEarned) public {}
+        _depositFromUser(ALICE, amount);
+        _depositFromUser(BOB, amount);
 
-    // function testFuzzMultiDepositTwoUsers() public {}
+        uint256 blockTimeBefore = block.timestamp;
 
-    // function testFuzzMultiMintTwoUsers() public {}
+        skip(timeDeposited);
 
-    // function testFuzzMultiWithdrawTwoUsers() public {}
+        uint256 blockTimeAfter = block.timestamp;
 
-    // function testFuzzMultiRedeemTwoUsers() public {}
+        assertEq(blockTimeAfter, blockTimeBefore + timeDeposited);
+        assertEq(vault.maxWithdraw(ALICE), vault.maxWithdraw(BOB));
 
-    // function testFuzzDepositAndWithdraw() public {}
+        _withdrawFromUser(ALICE, 0); //withdraw max
+        _withdrawFromUser(BOB, 0); //withdraw max
+
+        assertApproxEqAbs(dai.balanceOf(ALICE), dai.balanceOf(BOB), 1);
+    }
+
+    function testTwoUsersSameDurationDiffAmountAndYield() public {
+        uint256 amountAlice = HUNDRED;
+        uint256 amountBob = 2 * HUNDRED; // Bob deposits double Alice amount
+        uint256 timeDeposited = 500 days;
+
+        _depositFromUser(ALICE, amountAlice);
+        _depositFromUser(BOB, amountBob);
+
+        uint256 blockTimeBefore = block.timestamp;
+
+        skip(timeDeposited);
+
+        uint256 blockTimeAfter = block.timestamp;
+
+        assertEq(blockTimeAfter, blockTimeBefore + timeDeposited);
+        assertGt(vault.maxWithdraw(BOB), vault.maxWithdraw(ALICE));
+
+        _withdrawFromUser(ALICE, 0); //withdraw max
+        _withdrawFromUser(BOB, 0); //withdraw max
+
+        uint256 yieldAlice = dai.balanceOf(ALICE) - amountAlice;
+        uint256 yieldBob = dai.balanceOf(BOB) - amountBob;
+
+        // Bob should get double the yield
+        assertApproxEqRel(yieldBob, 2 * yieldAlice, ONE_BPS);
+    }
+
+    function testTwoUsersSameAmountDiffDurationAndYield() public {
+        uint256 amount = HUNDRED;
+        uint256 timeDepositedAlice = 500 days;
+        uint256 timeDepositedBob = 1000 days; // Bob deposits for double time
+
+        _depositFromUser(ALICE, amount);
+        _depositFromUser(BOB, amount);
+
+        uint256 blockTimeBefore = block.timestamp;
+
+        skip(timeDepositedAlice);
+
+        uint256 blockTimeAfter = block.timestamp;
+        assertEq(blockTimeAfter, blockTimeBefore + timeDepositedAlice);
+        assertEq(vault.maxWithdraw(BOB), vault.maxWithdraw(ALICE)); // Equal yield so far
+
+        _withdrawFromUser(ALICE, 0); //withdraw max
+
+        skip(timeDepositedBob - timeDepositedAlice); // spend rest of Bobs time in vault
+
+        blockTimeAfter = block.timestamp;
+        assertEq(blockTimeAfter, blockTimeBefore + timeDepositedBob);
+
+        _withdrawFromUser(BOB, 0); //withdraw max
+
+        uint256 yieldAlice = dai.balanceOf(ALICE) - amount;
+        uint256 yieldBob = dai.balanceOf(BOB) - amount;
+
+        // Very rough, but assuming stable yields, Bob should get double. Test with 5% margin
+        assertApproxEqRel(yieldBob, 2 * yieldAlice, 5 * ONE_PERCENT);
+    }
+
+    function testTheeUsersDepositAndWithdrawDiffTimes() public {
+        uint256 amount = HUNDRED;
+        uint256 timeInterval = 100 days;
+
+        _depositFromUser(ALICE, amount);
+        skip(timeInterval);
+        _depositFromUser(BOB, amount);
+        skip(timeInterval);
+        _depositFromUser(CHAD, amount);
+        skip(timeInterval);
+        _withdrawFromUser(CHAD, 0); //withdraw max
+        skip(timeInterval);
+        _withdrawFromUser(BOB, 0); //withdraw max
+        skip(timeInterval);
+        _withdrawFromUser(ALICE, 0); //withdraw max
+
+        uint256 yieldAlice = dai.balanceOf(ALICE) - amount;
+        uint256 yieldBob = dai.balanceOf(BOB) - amount;
+        uint256 yieldChad = dai.balanceOf(CHAD) - amount;
+
+        // Rough checks of yield diffs, within 1% margin
+        assertApproxEqRel(yieldBob, 3 * yieldChad, ONE_PERCENT);
+        assertApproxEqRel(yieldAlice, 5 * yieldChad, ONE_PERCENT);
+        assertGt(yieldAlice, yieldBob);
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 TEST UTILS
