@@ -543,6 +543,38 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(address(vault)), 0);
     }
 
+    function testRedeemAfterYieldEarned() public {
+        uint256 amount = HUNDRED;
+        uint256 expectedAliceAmountEnd = amount + (amount - _getFeesOnAmount(amount));
+        uint256 expectedFees = _getFeesOnAmount(amount);
+
+        _depositFromUser(ALICE, amount);
+
+        // still 1:1 exchange rate
+        assertEq(vault.convertToShares(amount), amount);
+        assertEq(vault.balanceOf(ALICE), amount);
+
+        // Increase share/asset exchange rate
+        _accrueYieldInVault(amount);
+
+        // Now 2:1 assets to shares exchange rate
+        assertEq(vault.convertToAssets(amount), amount * 2);
+
+        skip(1);
+
+        uint256 aliceMaxReedemable = vault.maxRedeem(ALICE);
+
+        assertApproxEqRel(vault.convertToAssets(aliceMaxReedemable), expectedAliceAmountEnd, ONE_BPS);
+
+        vm.startPrank(ALICE);
+        vault.redeem(aliceMaxReedemable, ALICE, ALICE);
+        vm.stopPrank();
+
+        assertEq(aDai.balanceOf(address(vault)), vault.getCurrentFees(), "FEES NOT SAME AS VAULT BALANCE");
+        assertApproxEqRel(vault.getCurrentFees(), expectedFees, ONE_BPS, "FEES NOT AS EXPECTED");
+        assertApproxEqRel(dai.balanceOf(ALICE), expectedAliceAmountEnd, ONE_BPS, "END ALICE BALANCE NOT AS EXPECTED");
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 SCENARIOS
     //////////////////////////////////////////////////////////////*/
