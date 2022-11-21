@@ -168,8 +168,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
     }
 
-    // TODO add more negative tests
-
     /*//////////////////////////////////////////////////////////////
                                 POSITIVES
     //////////////////////////////////////////////////////////////*/
@@ -376,8 +374,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
                             DEPOSIT AND MINT
     //////////////////////////////////////////////////////////////*/
 
-    // TODO add negatives for these functions here
-
     function testDepositFailsWithZeroAssets() public {
         vm.prank(ALICE);
         vm.expectRevert(ERR_ZERO_SHARES);
@@ -479,8 +475,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     /*//////////////////////////////////////////////////////////////
                             WITHDRAW AND REDEEM
     //////////////////////////////////////////////////////////////*/
-
-    // TODO add negatives for these functions here
 
     function testWithdrawBasic() public {
         uint256 amount = HUNDRED;
