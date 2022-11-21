@@ -344,13 +344,14 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         uint256 lastUpdated = vault.lastUpdated();
         uint256 lastVaultBalance = vault.lastVaultBalance();
 
+        _depositFromUser(ALICE, amount);
         skip(1);
         _depositFromUser(ALICE, amount);
         // only lastUpdated does NOT change if same timestamp
         // lastVaultBalance is updated separately regardless of timestamp
 
         assertEq(vault.lastUpdated(), lastUpdated + 1);
-        assertEq(vault.lastVaultBalance(), lastVaultBalance + amount);
+        assertApproxEqRel(vault.lastVaultBalance(), lastVaultBalance + (2 * amount), ONE_BPS);
     }
 
     function testAccrueYieldDoesNotUpdateOnSameTimestamp() public {
@@ -362,12 +363,13 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         uint256 lastVaultBalance = vault.lastVaultBalance();
 
         _depositFromUser(ALICE, amount);
+        _depositFromUser(ALICE, amount);
         // only lastUpdated does NOT change if same timestamp
         // lastVaultBalance is updated separately regardless of timestamp
 
         assertEq(block.timestamp, prevTimestamp);
         assertEq(vault.lastUpdated(), lastUpdated); // this should not have changed as timestamp is same
-        assertEq(vault.lastVaultBalance(), lastVaultBalance + amount); // This should change on deposit() anyway
+        assertApproxEqAbs(vault.lastVaultBalance(), lastVaultBalance + (2 * amount), 1); // This should change on deposit() anyway
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -375,6 +377,12 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     //////////////////////////////////////////////////////////////*/
 
     // TODO add negatives for these functions here
+
+    function testDepositFailsWithZeroAssets() public {
+        vm.prank(ALICE);
+        vm.expectRevert(ERR_ZERO_SHARES);
+        vault.deposit(0, ALICE);
+    }
 
     function testDepositSuppliesAave() public {
         _deployAndCheckProps();
@@ -521,6 +529,12 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(address(vault)), vault.getCurrentFees(), "FEES NOT SAME AS VAULT BALANCE");
         assertApproxEqRel(vault.getCurrentFees(), expectedFees, ONE_BPS, "FEES NOT AS EXPECTED");
         assertApproxEqRel(dai.balanceOf(ALICE), expectedAliceAmountEnd, ONE_BPS, "END ALICE BALANCE NOT AS EXPECTED");
+    }
+
+    function testRedeemFailsWithZeroShares() public {
+        vm.prank(ALICE);
+        vm.expectRevert(ERR_ZERO_ASSETS);
+        vault.redeem(0, ALICE, ALICE);
     }
 
     function testRedeemBasic() public {
