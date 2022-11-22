@@ -80,9 +80,29 @@ contract ATokenVault is ERC4626, Ownable {
                         DEPOSIT/WITHDRAWAL LOGIC
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Deposits the underlying asset into the vault, minting shares.
+     *
+     * @param assets The amount of underlying asset to deposit
+     * @param receiver The address to receive the shares
+     *
+     * @return shares The amount of shares minted to the receiver
+     */
     function deposit(uint256 assets, address receiver) public override returns (uint256 shares) {
         shares = _deposit(assets, receiver, msg.sender);
     }
+
+    /**
+     * @notice Deposits the underlying asset into the vault, minting shares,
+     * using an EIP721 signature to enable a third-party to call this function on behalf of the depositor.
+     *
+     * @param assets The amount of underlying asset to deposit
+     * @param receiver The address to receive the shares
+     * @param depositor The address from which to pull the assets for the deposit
+     * @param sig An EIP721 signature from the depositor to allow this function to be called on their behalf
+     *
+     * @return shares The amount of shares minted to the receiver
+     */
 
     function depositWithSig(
         uint256 assets,
