@@ -48,7 +48,7 @@ contract ATokenVault is ERC4626, Ownable {
      * @param shareName The name of the share token for this vault
      * @param shareSymbol The symbol of the share token for this vault
      * @param initialFee The fee taken on yield earned, as a fraction of 1e18
-     * @param poolAddressProvider The address of the Aave v3 Pool Address Provider
+     * @param poolAddressesProvider The address of the Aave v3 Pool Addresses Provider
      * @param rewardsController The address of the Aave v3 Rewards Controller
      */
     constructor(
