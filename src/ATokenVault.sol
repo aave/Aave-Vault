@@ -17,6 +17,13 @@ import {Events} from "./libraries/Events.sol";
 
 import "./libraries/Constants.sol";
 
+/**
+ * @title ATokenVault
+ * @author Aave Protocol
+ *
+ * @notice An ERC-4626 vault for ERC20 assets supported by Aave v3,
+ * with a potential vault fee on yield earned.
+ */
 contract ATokenVault is ERC4626, Ownable {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
@@ -36,6 +43,14 @@ contract ATokenVault is ERC4626, Ownable {
     uint256 public fee; // as a fraction of 1e18
     uint256 internal accumulatedFees; // fees accrued since last updated
 
+    /**
+     * @param underlying The underlying ERC20 asset which can be supplied to Aave
+     * @param shareName The name of the share token for this vault
+     * @param shareSymbol The symbol of the share token for this vault
+     * @param initialFee The fee taken on yield earned, as a fraction of 1e18
+     * @param poolAddressProvider The address of the Aave v3 Pool Address Provider
+     * @param rewardsController The address of the Aave v3 Rewards Controller
+     */
     constructor(
         ERC20 underlying,
         string memory shareName,
