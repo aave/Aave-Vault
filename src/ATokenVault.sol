@@ -81,7 +81,7 @@ contract ATokenVault is ERC4626, Ownable {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Deposits the underlying asset into the vault, minting shares.
+     * @notice Deposits a specified amount of assets into the vault, minting a corresponding amount of shares.
      *
      * @param assets The amount of underlying asset to deposit
      * @param receiver The address to receive the shares
@@ -93,7 +93,7 @@ contract ATokenVault is ERC4626, Ownable {
     }
 
     /**
-     * @notice Deposits the underlying asset into the vault, minting shares,
+     * @notice Deposits a specified amount of assets into the vault, minting a corresponding amount of shares,
      * using an EIP721 signature to enable a third-party to call this function on behalf of the depositor.
      *
      * @param assets The amount of underlying asset to deposit
@@ -148,10 +148,29 @@ contract ATokenVault is ERC4626, Ownable {
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
+    /**
+     * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of assets.
+     *
+     * @param shares The amount of shares to mint
+     * @param receiver The address to receive the shares
+     *
+     * @return assets The amount of assets deposited by the receiver
+     */
     function mint(uint256 shares, address receiver) public override returns (uint256 assets) {
         assets = _mint(shares, receiver, msg.sender);
     }
 
+    /**
+     * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of assets,
+     * using an EIP721 signature to enable a third-party to call this function on behalf of the depositor.
+     *
+     * @param shares The amount of shares to mint
+     * @param receiver The address to receive the shares
+     * @param depositor The address from which to pull the assets for the deposit
+     * @param sig An EIP721 signature from the depositor to allow this function to be called on their behalf
+     *
+     * @return assets The amount of assets deposited by the receiver
+     */
     function mintWithSig(
         uint256 shares,
         address receiver,
