@@ -99,7 +99,8 @@ contract ATokenVault is ERC4626, Ownable {
      * @param assets The amount of underlying asset to deposit
      * @param receiver The address to receive the shares
      * @param depositor The address from which to pull the assets for the deposit
-     * @param sig An EIP721 signature from the depositor to allow this function to be called on their behalf
+     * @param permitSig An EIP721 signature to increase depositor's allowance for vault
+     * @param depositSig An EIP721 signature from the depositor to allow this function to be called on their behalf
      *
      * @return shares The amount of shares minted to the receiver
      */
@@ -108,18 +109,35 @@ contract ATokenVault is ERC4626, Ownable {
         uint256 assets,
         address receiver,
         address depositor,
-        DataTypes.EIP712Signature calldata sig
+        DataTypes.EIP712Signature calldata permitSig,
+        DataTypes.EIP712Signature calldata depositSig
     ) public returns (uint256 shares) {
+        // Permit is allowed to fail - approval has been done separately, or token may not support permit
+        try
+            asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s)
+        {} catch {}
+
+        // TODO alternatively could use permitSig.deadline != 0 to skip if needed
+        // if (permitSig.deadline != 0)
+        //     asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s);
+
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
                     keccak256(
-                        abi.encode(DEPOSIT_WITH_SIG_TYPEHASH, assets, receiver, depositor, sigNonces[depositor]++, sig.deadline)
+                        abi.encode(
+                            DEPOSIT_WITH_SIG_TYPEHASH,
+                            assets,
+                            receiver,
+                            depositor,
+                            sigNonces[depositor]++,
+                            depositSig.deadline
+                        )
                     ),
                     DOMAIN_SEPARATOR()
                 ),
                 depositor,
-                sig
+                depositSig
             );
         }
         shares = _deposit(assets, receiver, depositor);
@@ -144,7 +162,8 @@ contract ATokenVault is ERC4626, Ownable {
      * @param shares The amount of shares to mint
      * @param receiver The address to receive the shares
      * @param depositor The address from which to pull the assets for the deposit
-     * @param sig An EIP721 signature from the depositor to allow this function to be called on their behalf
+     * @param permitSig An EIP721 signature to increase depositor's allowance for vault
+     * @param mintSig An EIP721 signature from the depositor to allow this function to be called on their behalf
      *
      * @return assets The amount of assets deposited by the receiver
      */
@@ -152,18 +171,31 @@ contract ATokenVault is ERC4626, Ownable {
         uint256 shares,
         address receiver,
         address depositor,
-        DataTypes.EIP712Signature calldata sig
+        DataTypes.EIP712Signature calldata permitSig,
+        DataTypes.EIP712Signature calldata mintSig
     ) public returns (uint256 assets) {
+        // Permit is allowed to fail - approval has been done separately, or token may not support permit
+        try
+            asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s)
+        {} catch {}
+
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
                     keccak256(
-                        abi.encode(MINT_WITH_SIG_TYPEHASH, shares, receiver, depositor, sigNonces[depositor]++, sig.deadline)
+                        abi.encode(
+                            MINT_WITH_SIG_TYPEHASH,
+                            shares,
+                            receiver,
+                            depositor,
+                            sigNonces[depositor]++,
+                            mintSig.deadline
+                        )
                     ),
                     DOMAIN_SEPARATOR()
                 ),
                 depositor,
-                sig
+                mintSig
             );
         }
         assets = _mint(shares, receiver, depositor);
@@ -178,11 +210,7 @@ contract ATokenVault is ERC4626, Ownable {
      *
      * @return shares The amount of shares burnt in the withdrawal process
      */
-    function withdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) public override returns (uint256 shares) {
+    function withdraw(uint256 assets, address receiver, address owner) public override returns (uint256 shares) {
         shares = _withdraw(assets, receiver, owner, false);
     }
 
@@ -227,11 +255,7 @@ contract ATokenVault is ERC4626, Ownable {
      *
      * @return assets The amount of assets withdrawn by the receiver
      */
-    function redeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) public override returns (uint256 assets) {
+    function redeem(uint256 shares, address receiver, address owner) public override returns (uint256 assets) {
         assets = _redeem(shares, receiver, owner, false);
     }
 
@@ -352,11 +376,7 @@ contract ATokenVault is ERC4626, Ownable {
         }
     }
 
-    function _deposit(
-        uint256 assets,
-        address receiver,
-        address depositor
-    ) internal returns (uint256 shares) {
+    function _deposit(uint256 assets, address receiver, address depositor) internal returns (uint256 shares) {
         _accrueYield();
 
         require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
@@ -375,11 +395,7 @@ contract ATokenVault is ERC4626, Ownable {
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
-    function _mint(
-        uint256 shares,
-        address receiver,
-        address depositor
-    ) internal returns (uint256 assets) {
+    function _mint(uint256 shares, address receiver, address depositor) internal returns (uint256 assets) {
         _accrueYield();
 
         assets = previewMint(shares);
@@ -398,16 +414,12 @@ contract ATokenVault is ERC4626, Ownable {
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
-    function _withdraw(
-        uint256 assets,
-        address receiver,
-        address owner,
-        bool withSig
-    ) internal returns (uint256 shares) {
+    function _withdraw(uint256 assets, address receiver, address owner, bool withSig) internal returns (uint256 shares) {
         _accrueYield();
 
         shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
 
+        // TODO remove need for allowance if sig ???
         // Check caller has allowance if not with sig
         // Check receiver has allowance if with sig
         address allowanceTarget = withSig ? receiver : msg.sender;
@@ -427,14 +439,10 @@ contract ATokenVault is ERC4626, Ownable {
         lastVaultBalance = aToken.balanceOf(address(this));
     }
 
-    function _redeem(
-        uint256 shares,
-        address receiver,
-        address owner,
-        bool withSig
-    ) internal returns (uint256 assets) {
+    function _redeem(uint256 shares, address receiver, address owner, bool withSig) internal returns (uint256 assets) {
         _accrueYield();
 
+        // TODO remove need for allowance if sig ???
         // Check caller has allowance if not with sig
         // Check receiver has allowance if with sig
         address allowanceTarget = withSig ? receiver : msg.sender;
