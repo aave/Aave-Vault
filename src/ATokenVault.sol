@@ -174,6 +174,10 @@ contract ATokenVault is ERC4626, Ownable {
         DataTypes.EIP712Signature calldata permitSig,
         DataTypes.EIP712Signature calldata mintSig
     ) public returns (uint256 assets) {
+        //yield accrued here for share conversion, will be skipped in _mint
+        _accrueYield();
+        assets = previewMint(shares);
+
         // Permit is allowed to fail - approval has been done separately, or token may not support permit
         try
             asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s)
