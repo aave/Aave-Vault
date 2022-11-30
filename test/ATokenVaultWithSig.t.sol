@@ -175,6 +175,41 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(address(vault)), amount);
     }
 
+    function testDepositWithSigFailsWithoutPermitOrApprove() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        // Create bad permit sig
+        PermitSigParams memory permitParams = PermitSigParams({
+            owner: ALICE,
+            ownerPrivKey: 1,
+            spender: address(vault),
+            value: 0,
+            nonce: dai.nonces(ALICE),
+            deadline: 0
+        });
+
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
+        });
+
+        // No approve, and bad permit sig
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
+        // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
+        vm.startPrank(BOB);
+        vm.expectRevert(ERR_TRANSFER_FROM_FAILED);
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vm.stopPrank();
+    }
+
     //     function testDepositWithSigFailsIfWrongOwner() public {
     //         uint256 amount = HUNDRED;
     //         deal(address(dai), ALICE, amount);

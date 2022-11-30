@@ -55,6 +55,7 @@ contract ATokenVaultBaseTest is Test {
     bytes constant ERR_PERMIT_DEADLINE_EXPIRED = bytes("PERMIT_DEADLINE_EXPIRED");
     bytes constant ERR_ZERO_ASSETS = bytes("ZERO_ASSETS");
     bytes constant ERR_ZERO_SHARES = bytes("ZERO_SHARES");
+    bytes constant ERR_TRANSFER_FROM_FAILED = bytes("TRANSFER_FROM_FAILED");
 
     function setUp() public virtual {}
 
