@@ -31,4 +31,9 @@ This test suite also includes a16z's [ERC-4626 Property Tests](https://a16zcrypt
 - Use of permit in `depositWithSig` and `mintWithSig`
     - The `main` branch does not include permit in these functions and assumes approval will be handled separately with relayers and a permit sig, or with the user calling `approve()` beforehand.
     - The [add-permit](https://github.com/aave/wrapped-atoken-vault/pull/19) branch does include versions of these functions with permit included, inside a `try-catch` block. This enables the withSig functions to still be used with tokens that either do not support permit at all, or use a non-standard version of permit (e.g. DAI).
-- 
+
+
+## To Change
+
+- `depositWithSig` and `mintWithSig` should take the aToken as well as the normal underlying asset.
+- Allowance in `_withdraw` and `_redeem` should only check if caller has allowance. No withSig boolean flag needed. 
