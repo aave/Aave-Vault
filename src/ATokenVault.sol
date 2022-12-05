@@ -215,7 +215,7 @@ contract ATokenVault is ERC4626, Ownable {
      * @return shares The amount of shares burnt in the withdrawal process
      */
     function withdraw(uint256 assets, address receiver, address owner) public override returns (uint256 shares) {
-        shares = _withdraw(assets, receiver, owner, false);
+        shares = _withdraw(assets, receiver, owner);
     }
 
     /**
@@ -247,7 +247,7 @@ contract ATokenVault is ERC4626, Ownable {
                 sig
             );
         }
-        shares = _withdraw(assets, receiver, owner, true);
+        shares = _withdraw(assets, receiver, owner);
     }
 
     /**
@@ -260,7 +260,7 @@ contract ATokenVault is ERC4626, Ownable {
      * @return assets The amount of assets withdrawn by the receiver
      */
     function redeem(uint256 shares, address receiver, address owner) public override returns (uint256 assets) {
-        assets = _redeem(shares, receiver, owner, false);
+        assets = _redeem(shares, receiver, owner);
     }
 
     /**
@@ -290,7 +290,7 @@ contract ATokenVault is ERC4626, Ownable {
                 sig
             );
         }
-        assets = _redeem(shares, receiver, owner, true);
+        assets = _redeem(shares, receiver, owner);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -418,20 +418,15 @@ contract ATokenVault is ERC4626, Ownable {
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
-    function _withdraw(uint256 assets, address receiver, address owner, bool withSig) internal returns (uint256 shares) {
+    function _withdraw(uint256 assets, address receiver, address owner) internal returns (uint256 shares) {
         _accrueYield();
 
         shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
 
-        // TODO remove need for allowance if sig ???
-        // Check caller has allowance if not with sig
-        // Check receiver has allowance if with sig
-        address allowanceTarget = withSig ? receiver : msg.sender;
+        if (msg.sender != owner) {
+            uint256 allowed = allowance[owner][msg.sender]; // Saves gas for limited approvals.
 
-        if (allowanceTarget != owner) {
-            uint256 allowed = allowance[owner][allowanceTarget]; // Saves gas for limited approvals.
-
-            if (allowed != type(uint256).max) allowance[owner][allowanceTarget] = allowed - shares;
+            if (allowed != type(uint256).max) allowance[owner][msg.sender] = allowed - shares;
         }
 
         _burn(owner, shares);
@@ -443,18 +438,13 @@ contract ATokenVault is ERC4626, Ownable {
         lastVaultBalance = aToken.balanceOf(address(this));
     }
 
-    function _redeem(uint256 shares, address receiver, address owner, bool withSig) internal returns (uint256 assets) {
+    function _redeem(uint256 shares, address receiver, address owner) internal returns (uint256 assets) {
         _accrueYield();
 
-        // TODO remove need for allowance if sig ???
-        // Check caller has allowance if not with sig
-        // Check receiver has allowance if with sig
-        address allowanceTarget = withSig ? receiver : msg.sender;
+        if (msg.sender != owner) {
+            uint256 allowed = allowance[owner][msg.sender];
 
-        if (allowanceTarget != owner) {
-            uint256 allowed = allowance[owner][allowanceTarget];
-
-            if (allowed != type(uint256).max) allowance[owner][allowanceTarget] = allowed - shares;
+            if (allowed != type(uint256).max) allowance[owner][msg.sender] = allowed - shares;
         }
 
         require((assets = previewRedeem(shares)) != 0, "ZERO_ASSETS");
