@@ -7,6 +7,7 @@ import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 import {ATokenVault} from "../src/ATokenVault.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvider.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
@@ -109,7 +110,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(dai.balanceOf(ALICE), amount);
@@ -155,7 +156,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Alice approves DAI and signs depositWithSig msg
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(dai.balanceOf(ALICE), amount);
@@ -199,7 +200,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         });
 
         // No approve, and bad permit sig
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
@@ -232,7 +233,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -264,7 +265,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -296,7 +297,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -328,7 +329,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -360,7 +361,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -396,7 +397,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -431,7 +432,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -465,7 +466,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ) // Deposit instead of DepositWithSig
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -501,7 +502,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(dai.balanceOf(ALICE), amount);
@@ -546,7 +547,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(dai.balanceOf(ALICE), amount);
@@ -590,7 +591,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         });
 
         // No approve, bad permit sig - should cause fail
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         // Bob calls mint on Alice's behalf
@@ -623,7 +624,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -655,7 +656,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -687,7 +688,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -719,7 +720,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -751,7 +752,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -787,7 +788,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -821,7 +822,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ) // using Mint not MintWithSig
         });
 
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, dai);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
@@ -834,7 +835,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
                                 WITHDRAW
     //////////////////////////////////////////////////////////////*/
 
-    function testWithdrawWithSig() public {
+    function testWithdrawWithSigUsingApprove() public {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
@@ -857,7 +858,54 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         assertEq(vault.balanceOf(BOB), 0);
         assertEq(aDai.balanceOf(address(vault)), amount);
 
+        vm.prank(ALICE);
+        vault.approve(BOB, amount);
+
         vm.startPrank(BOB);
+        vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
+        vm.stopPrank();
+
+        assertEq(vault.balanceOf(ALICE), 0);
+        assertEq(dai.balanceOf(ALICE), amount);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(vault.balanceOf(BOB), 0);
+        assertEq(aDai.balanceOf(address(vault)), 0);
+    }
+
+    function testWithdrawWithSigUsingPermit() public {
+        uint256 amount = HUNDRED;
+        _depositFromUser(ALICE, amount);
+
+        PermitSigParams memory permitParams = PermitSigParams({
+            owner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: BOB,
+            value: amount,
+            nonce: vault.nonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
+        });
+
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, vault);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
+        assertEq(vault.balanceOf(ALICE), amount);
+        assertEq(dai.balanceOf(ALICE), 0);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(vault.balanceOf(BOB), 0);
+        assertEq(aDai.balanceOf(address(vault)), amount);
+
+        vm.startPrank(BOB);
+        vault.permit(ALICE, BOB, amount, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
 
@@ -883,7 +931,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         });
 
         vm.prank(ALICE);
-        vault.approve(BOB, amount);
+        vault.approve(OWNER, amount); // must approve owner, as they call withdrawWithSig
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(vault.balanceOf(ALICE), amount);
@@ -1088,7 +1136,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
                                     REDEEM
         //////////////////////////////////////////////////////////////*/
 
-    function testRedeemWithSig() public {
+    function testRedeemWithSigUsingApprove() public {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
@@ -1110,7 +1158,54 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         assertEq(vault.balanceOf(BOB), 0);
         assertEq(aDai.balanceOf(address(vault)), amount);
 
+        vm.prank(ALICE);
+        vault.approve(BOB, amount);
+
         vm.startPrank(BOB);
+        vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
+        vm.stopPrank();
+
+        assertEq(dai.balanceOf(ALICE), amount);
+        assertEq(vault.balanceOf(ALICE), 0);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(vault.balanceOf(BOB), 0);
+        assertEq(aDai.balanceOf(address(vault)), 0);
+    }
+
+    function testRedeemWithSigUsingPermit() public {
+        uint256 amount = HUNDRED;
+        _depositFromUser(ALICE, amount);
+
+        PermitSigParams memory permitParams = PermitSigParams({
+            owner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            spender: BOB,
+            value: amount,
+            nonce: vault.nonces(ALICE),
+            deadline: block.timestamp
+        });
+
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.sigNonces(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: REDEEM_WITH_SIG_TYPEHASH
+        });
+
+        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams, vault);
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
+        assertEq(dai.balanceOf(ALICE), 0);
+        assertEq(vault.balanceOf(ALICE), amount);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(vault.balanceOf(BOB), 0);
+        assertEq(aDai.balanceOf(address(vault)), amount);
+
+        vm.startPrank(BOB);
+        vault.permit(ALICE, BOB, amount, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
 
@@ -1136,7 +1231,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         });
 
         vm.prank(ALICE);
-        vault.approve(BOB, amount);
+        vault.approve(OWNER, amount); // must approve owner, as they call redeemWithSig
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(dai.balanceOf(ALICE), 0);
@@ -1363,13 +1458,16 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         sig = DataTypes.EIP712Signature({v: v, r: r, s: s, deadline: params.deadline});
     }
 
-    function _createPermitSig(PermitSigParams memory params) internal returns (DataTypes.EIP712Signature memory sig) {
+    function _createPermitSig(
+        PermitSigParams memory params,
+        ERC20 token
+    ) internal returns (DataTypes.EIP712Signature memory sig) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             params.ownerPrivKey,
             keccak256(
                 abi.encodePacked(
                     "\x19\x01",
-                    dai.DOMAIN_SEPARATOR(),
+                    token.DOMAIN_SEPARATOR(),
                     keccak256(
                         abi.encode(PERMIT_TYPEHASH, params.owner, params.spender, params.value, params.nonce, params.deadline)
                     )
