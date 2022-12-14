@@ -29,11 +29,6 @@ contract ATokenVault is ERC4626, Ownable {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
 
-    uint256 internal constant AAVE_ACTIVE_MASK = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFF;
-    uint256 internal constant AAVE_FROZEN_MASK = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFFFFFFFFFFFFFF;
-    uint256 internal constant AAVE_PAUSED_MASK = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFF;
-    uint256 internal constant AAVE_SUPPLY_CAP_MASK = 0xFFFFFFFFFFFFFFFFFFFFFFFFFF000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
-
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
     IRewardsController public immutable REWARDS_CONTROLLER;
 
@@ -453,32 +448,18 @@ contract ATokenVault is ERC4626, Ownable {
     }
 
     function _maxAssetsSuppliableToAave() internal view returns (uint256) {
-        // TODO
-
-        // If reserve is
-        // - not active (bit 56)
-        // - frozen (bit 57)
-        // - or paused (bit 60)
-        //  then return 0
-
-        // if none of the above are true
-        // and supply cap is 0
-        // return type(uint256).max
-
-        // otherwise return supply cap (scale for token units)
+        // returns 0 if reserve is not active, frozen, or paused
+        // returns max uint256 value if supply cap is 0 (not capped)
+        // returns supply cap as max suppliable if there is one for this reserve
 
         AaveDataTypes.ReserveData memory reserveData = aavePool.getReserveData(address(asset));
         uint256 reserveConfigMap = reserveData.configuration.data;
-        uint256 supplyCap = 0; // TODO use bits 116 - 151 of above and scale for token units
+        uint256 supplyCap = (reserveConfigMap & ~AAVE_SUPPLY_CAP_MASK) >> AAVE_SUPPLY_CAP_BIT_POSITION;
+        supplyCap = supplyCap * 10 ** asset.decimals(); // scale supply cap by asset's decimals
 
-        // TODO fix mask values
         if (
-            // is reserve non-active
-            (reserveConfigMap & 0x0100000000000000000000000000000000000000000000000000000000000000 == 0)
-            // is reserve frozen
-            || (reserveConfigMap & 0x0100000000000000000000000000000000000000000000000000000000000000 == 0)
-            // is reserve paused
-            || (reserveConfigMap & 0x0100000000000000000000000000000000000000000000000000000000000000 == 0)
+            (reserveConfigMap & ~AAVE_ACTIVE_MASK == 0) || (reserveConfigMap & ~AAVE_FROZEN_MASK == 0)
+                || (reserveConfigMap & ~AAVE_PAUSED_MASK == 0)
         ) {
             return 0;
         } else if (supplyCap == 0) {
@@ -486,8 +467,6 @@ contract ATokenVault is ERC4626, Ownable {
         } else {
             return supplyCap;
         }
-
-        return 0;
     }
 
     /*//////////////////////////////////////////////////////////////
