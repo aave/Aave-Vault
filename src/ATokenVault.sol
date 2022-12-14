@@ -472,7 +472,19 @@ contract ATokenVault is ERC4626, Ownable {
 
     function _maxAssetsSuppliableToAave() internal view returns (uint256) {
         // TODO
-        
+
+        // If reserve is
+        // - not active (bit 56)
+        // - frozen (bit 57)
+        // - or paused (bit 60)
+        //  then return 0
+
+        // if none of the above are true
+        // and supply cap is 0
+        // return type(uint256).max
+
+        // otherwise return supply cap (scale for token units)
+
         return 0;
     }
 
