@@ -265,6 +265,20 @@ contract ATokenVault is ERC4626, Ownable {
         assets = _redeem(shares, receiver, owner, true);
     }
 
+
+    //  Max Deposit, mint
+    function maxDeposit(address owner) public view override returns(uint256) {
+        // TODO 
+
+        return 0;
+    }
+
+    function maxMint(address owner) public view override returns(uint256) {
+        // TODO 
+
+        return 0;
+    }
+
     /*//////////////////////////////////////////////////////////////
                           ONLY OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -454,6 +468,12 @@ contract ATokenVault is ERC4626, Ownable {
         // Withdraw assets from Aave v3 and send to receiver
         aavePool.withdraw(address(asset), assets, receiver);
         lastVaultBalance = aToken.balanceOf(address(this));
+    }
+
+    function _maxAssetsSuppliableToAave() internal view returns (uint256) {
+        // TODO
+        
+        return 0;
     }
 
     /*//////////////////////////////////////////////////////////////
