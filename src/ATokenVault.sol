@@ -4,6 +4,7 @@ pragma solidity 0.8.10;
 import {ERC4626, SafeTransferLib, FixedPointMathLib} from "solmate/mixins/ERC4626.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Ownable} from "openzeppelin/access/Ownable.sol";
+import {DataTypes as AaveDataTypes} from "aave/protocol/libraries/types/DataTypes.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
@@ -104,17 +105,17 @@ contract ATokenVault is ERC4626, Ownable {
      * @return shares The amount of shares minted to the receiver
      */
 
-    function depositWithSig(
-        uint256 assets,
-        address receiver,
-        address depositor,
-        DataTypes.EIP712Signature calldata sig
-    ) public returns (uint256 shares) {
+    function depositWithSig(uint256 assets, address receiver, address depositor, DataTypes.EIP712Signature calldata sig)
+        public
+        returns (uint256 shares)
+    {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
                     keccak256(
-                        abi.encode(DEPOSIT_WITH_SIG_TYPEHASH, assets, receiver, depositor, sigNonces[depositor]++, sig.deadline)
+                        abi.encode(
+                            DEPOSIT_WITH_SIG_TYPEHASH, assets, receiver, depositor, sigNonces[depositor]++, sig.deadline
+                        )
                     ),
                     DOMAIN_SEPARATOR()
                 ),
@@ -148,17 +149,17 @@ contract ATokenVault is ERC4626, Ownable {
      *
      * @return assets The amount of assets deposited by the receiver
      */
-    function mintWithSig(
-        uint256 shares,
-        address receiver,
-        address depositor,
-        DataTypes.EIP712Signature calldata sig
-    ) public returns (uint256 assets) {
+    function mintWithSig(uint256 shares, address receiver, address depositor, DataTypes.EIP712Signature calldata sig)
+        public
+        returns (uint256 assets)
+    {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
                     keccak256(
-                        abi.encode(MINT_WITH_SIG_TYPEHASH, shares, receiver, depositor, sigNonces[depositor]++, sig.deadline)
+                        abi.encode(
+                            MINT_WITH_SIG_TYPEHASH, shares, receiver, depositor, sigNonces[depositor]++, sig.deadline
+                        )
                     ),
                     DOMAIN_SEPARATOR()
                 ),
@@ -178,11 +179,7 @@ contract ATokenVault is ERC4626, Ownable {
      *
      * @return shares The amount of shares burnt in the withdrawal process
      */
-    function withdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) public override returns (uint256 shares) {
+    function withdraw(uint256 assets, address receiver, address owner) public override returns (uint256 shares) {
         shares = _withdraw(assets, receiver, owner, false);
     }
 
@@ -197,17 +194,17 @@ contract ATokenVault is ERC4626, Ownable {
      *
      * @return shares The amount of shares burnt in the withdrawal process
      */
-    function withdrawWithSig(
-        uint256 assets,
-        address receiver,
-        address owner,
-        DataTypes.EIP712Signature calldata sig
-    ) public returns (uint256 shares) {
+    function withdrawWithSig(uint256 assets, address receiver, address owner, DataTypes.EIP712Signature calldata sig)
+        public
+        returns (uint256 shares)
+    {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
                     keccak256(
-                        abi.encode(WITHDRAW_WITH_SIG_TYPEHASH, assets, receiver, owner, sigNonces[owner]++, sig.deadline)
+                        abi.encode(
+                            WITHDRAW_WITH_SIG_TYPEHASH, assets, receiver, owner, sigNonces[owner]++, sig.deadline
+                        )
                     ),
                     DOMAIN_SEPARATOR()
                 ),
@@ -227,11 +224,7 @@ contract ATokenVault is ERC4626, Ownable {
      *
      * @return assets The amount of assets withdrawn by the receiver
      */
-    function redeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) public override returns (uint256 assets) {
+    function redeem(uint256 shares, address receiver, address owner) public override returns (uint256 assets) {
         assets = _redeem(shares, receiver, owner, false);
     }
 
@@ -246,16 +239,16 @@ contract ATokenVault is ERC4626, Ownable {
      *
      * @return assets The amount of assets withdrawn by the receiver
      */
-    function redeemWithSig(
-        uint256 shares,
-        address receiver,
-        address owner,
-        DataTypes.EIP712Signature calldata sig
-    ) public returns (uint256 assets) {
+    function redeemWithSig(uint256 shares, address receiver, address owner, DataTypes.EIP712Signature calldata sig)
+        public
+        returns (uint256 assets)
+    {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
-                    keccak256(abi.encode(REDEEM_WITH_SIG_TYPEHASH, shares, receiver, owner, sigNonces[owner]++, sig.deadline)),
+                    keccak256(
+                        abi.encode(REDEEM_WITH_SIG_TYPEHASH, shares, receiver, owner, sigNonces[owner]++, sig.deadline)
+                    ),
                     DOMAIN_SEPARATOR()
                 ),
                 owner,
@@ -265,16 +258,15 @@ contract ATokenVault is ERC4626, Ownable {
         assets = _redeem(shares, receiver, owner, true);
     }
 
-
     //  Max Deposit, mint
-    function maxDeposit(address owner) public view override returns(uint256) {
-        // TODO 
+    function maxDeposit(address owner) public view override returns (uint256) {
+        // TODO
 
         return 0;
     }
 
-    function maxMint(address owner) public view override returns(uint256) {
-        // TODO 
+    function maxMint(address owner) public view override returns (uint256) {
+        // TODO
 
         return 0;
     }
@@ -366,11 +358,7 @@ contract ATokenVault is ERC4626, Ownable {
         }
     }
 
-    function _deposit(
-        uint256 assets,
-        address receiver,
-        address depositor
-    ) internal returns (uint256 shares) {
+    function _deposit(uint256 assets, address receiver, address depositor) internal returns (uint256 shares) {
         _accrueYield();
 
         require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
@@ -389,11 +377,7 @@ contract ATokenVault is ERC4626, Ownable {
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
-    function _mint(
-        uint256 shares,
-        address receiver,
-        address depositor
-    ) internal returns (uint256 assets) {
+    function _mint(uint256 shares, address receiver, address depositor) internal returns (uint256 assets) {
         _accrueYield();
 
         assets = previewMint(shares);
@@ -412,12 +396,10 @@ contract ATokenVault is ERC4626, Ownable {
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
-    function _withdraw(
-        uint256 assets,
-        address receiver,
-        address owner,
-        bool withSig
-    ) internal returns (uint256 shares) {
+    function _withdraw(uint256 assets, address receiver, address owner, bool withSig)
+        internal
+        returns (uint256 shares)
+    {
         _accrueYield();
 
         shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
@@ -441,12 +423,7 @@ contract ATokenVault is ERC4626, Ownable {
         lastVaultBalance = aToken.balanceOf(address(this));
     }
 
-    function _redeem(
-        uint256 shares,
-        address receiver,
-        address owner,
-        bool withSig
-    ) internal returns (uint256 assets) {
+    function _redeem(uint256 shares, address receiver, address owner, bool withSig) internal returns (uint256 assets) {
         _accrueYield();
 
         // Check caller has allowance if not with sig
@@ -484,6 +461,26 @@ contract ATokenVault is ERC4626, Ownable {
         // return type(uint256).max
 
         // otherwise return supply cap (scale for token units)
+
+        AaveDataTypes.ReserveData memory reserveData = aavePool.getReserveData(address(asset));
+        uint256 reserveConfig = reserveData.configuration.data;
+        uint256 supplyCap = 0; // TODO use bits 116 - 151 of above and scale for token units
+
+        // TODO fix mask values  
+        if (
+            // is reserve non-active
+            (reserveConfig & 0x0100000000000000000000000000000000000000000000000000000000000000 == 0)
+            // is reserve frozen
+            || (reserveConfig & 0x0100000000000000000000000000000000000000000000000000000000000000 == 0)
+            // is reserve paused
+            || (reserveConfig & 0x0100000000000000000000000000000000000000000000000000000000000000 == 0)
+        ) {
+            return 0;
+        } else if (supplyCap == 0) {
+            return type(uint256).max;
+        } else {
+            return supplyCap;
+        }
 
         return 0;
     }
