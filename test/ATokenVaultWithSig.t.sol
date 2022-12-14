@@ -27,18 +27,14 @@ struct VaultSigParams {
     bytes32 functionTypehash;
 }
 
-bytes32 constant DEPOSIT_WITH_SIG_TYPEHASH = keccak256(
-    "DepositWithSig(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-);
-bytes32 constant MINT_WITH_SIG_TYPEHASH = keccak256(
-    "MintWithSig(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-);
-bytes32 constant WITHDRAW_WITH_SIG_TYPEHASH = keccak256(
-    "WithdrawWithSig(uint256 assets,address receiver,address owner,uint256 nonce,uint256 deadline)"
-);
-bytes32 constant REDEEM_WITH_SIG_TYPEHASH = keccak256(
-    "RedeemWithSig(uint256 shares,address receiver,address owner,uint256 nonce,uint256 deadline)"
-);
+bytes32 constant DEPOSIT_WITH_SIG_TYPEHASH =
+    keccak256("DepositWithSig(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)");
+bytes32 constant MINT_WITH_SIG_TYPEHASH =
+    keccak256("MintWithSig(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)");
+bytes32 constant WITHDRAW_WITH_SIG_TYPEHASH =
+    keccak256("WithdrawWithSig(uint256 assets,address receiver,address owner,uint256 nonce,uint256 deadline)");
+bytes32 constant REDEEM_WITH_SIG_TYPEHASH =
+    keccak256("RedeemWithSig(uint256 shares,address receiver,address owner,uint256 nonce,uint256 deadline)");
 
 contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
     bytes32 VAULT_DOMAIN_SEPARATOR;
@@ -303,7 +299,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             deadline: block.timestamp,
             functionTypehash: keccak256(
                 "Deposit(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-            ) // Deposit instead of DepositWithSig
+                ) // Deposit instead of DepositWithSig
         });
 
         // Alice approves DAI and signs depositWithSig msg
@@ -523,7 +519,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             deadline: block.timestamp,
             functionTypehash: keccak256(
                 "Mint(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-            ) // using Mint not MintWithSig
+                ) // using Mint not MintWithSig
         });
 
         // Alice approves DAI and signs mintWithSig msg
@@ -780,7 +776,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             deadline: block.timestamp,
             functionTypehash: keccak256(
                 "Withdraw(uint256 assets,address receiver,address owner,uint256 nonce,uint256 deadline)"
-            ) // Withdraw not WithdrawWithSig
+                ) // Withdraw not WithdrawWithSig
         });
 
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
