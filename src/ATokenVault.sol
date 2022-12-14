@@ -465,8 +465,8 @@ contract ATokenVault is ERC4626, Ownable {
         supplyCap = supplyCap * 10 ** asset.decimals(); // scale supply cap by asset's decimals
 
         if (
-            (reserveConfigMap & ~AAVE_ACTIVE_MASK == 0) || (reserveConfigMap & ~AAVE_FROZEN_MASK == 0)
-                || (reserveConfigMap & ~AAVE_PAUSED_MASK == 0)
+            (reserveConfigMap & ~AAVE_ACTIVE_MASK == 0) || (reserveConfigMap & ~AAVE_FROZEN_MASK == 1)
+                || (reserveConfigMap & ~AAVE_PAUSED_MASK == 1)
         ) {
             return 0;
         } else if (supplyCap == 0) {
