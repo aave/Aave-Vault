@@ -258,17 +258,24 @@ contract ATokenVault is ERC4626, Ownable {
         assets = _redeem(shares, receiver, owner, true);
     }
 
-    //  Max Deposit, mint
-    function maxDeposit(address owner) public view override returns (uint256) {
-        // TODO
-
-        return 0;
+    /**
+     * @notice Maximum amount of assets that can be deposited into the vault,
+     * given Aave market limitations.
+     * 
+     * @return Maximum amount of assets that can be deposited into the vault
+     */
+    function maxDeposit(address) public view override returns (uint256) {
+        return _maxAssetsSuppliableToAave();
     }
 
-    function maxMint(address owner) public view override returns (uint256) {
-        // TODO
-
-        return 0;
+    /**
+     * @notice Maximum amount of shares that can be minted for the vault,
+     * given Aave market limitations.
+     *
+     * @return Maximum amount of shares that can be minted for the vault
+     */
+    function maxMint(address) public view override returns (uint256) {
+        return convertToShares(_maxAssetsSuppliableToAave());
     }
 
     /*//////////////////////////////////////////////////////////////
