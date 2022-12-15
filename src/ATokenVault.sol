@@ -261,7 +261,7 @@ contract ATokenVault is ERC4626, Ownable {
     /**
      * @notice Maximum amount of assets that can be deposited into the vault,
      * given Aave market limitations.
-     * 
+     *
      * @return Maximum amount of assets that can be deposited into the vault
      */
     function maxDeposit(address) public view override returns (uint256) {
