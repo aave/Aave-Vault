@@ -15,7 +15,6 @@ import {MockAToken} from "./mocks/MockAToken.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockDAI} from "./mocks/MockDAI.sol";
 
-// import constants
 import "../src/libraries/Constants.sol";
 
 contract ATokenVaultMocksTest is ATokenVaultBaseTest {
