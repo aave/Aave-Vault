@@ -17,14 +17,21 @@ contract MockAavePool {
 
     MockAToken public aToken;
 
+    uint256 public reserveConfigMap;
+
     constructor(MockAToken _aToken) {
         aToken = _aToken;
+    }
+
+    // For mock test purposes
+    function setReserveConfigMap(uint256 _reserveConfigMap) public {
+        reserveConfigMap = _reserveConfigMap;
     }
 
     function getReserveData(address _reserve) public returns (DataTypes.ReserveData memory) {
         return DataTypes.ReserveData({
             //stores the reserve configuration
-            configuration: DataTypes.ReserveConfigurationMap({data: 0}),
+            configuration: DataTypes.ReserveConfigurationMap({data: reserveConfigMap}),
             //the liquidity index. Expressed in ray
             liquidityIndex: 0,
             //the current supply rate. Expressed in ray
