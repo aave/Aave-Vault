@@ -22,10 +22,10 @@ contract ATokenVaultPropertiesTest is ERC4626Test, ATokenVaultBaseTest {
     MockAToken aDai;
     MockDAI dai;
 
-    // Currently to be tested in fork tests - not needed in mock tests
+    // Tested in fork tests - not needed in mock tests
     address fakeIncentivesController = address(101010101);
 
-    function setUp() public override(ERC4626Test, ATokenVaultBaseTest) {
+    function setUp() public override (ERC4626Test, ATokenVaultBaseTest) {
         aDai = new MockAToken();
         pool = new MockAavePool(aDai);
         poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));

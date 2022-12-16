@@ -101,10 +101,8 @@ contract ATokenVaultRewardsClaimTest is ATokenVaultBaseTest {
 
         skip(THIRTY_DAYS);
 
-        (rewardAssets, rewardAmounts) = IRewardsController(AVALANCHE_REWARDS_CONTROLLER).getAllUserRewards(
-            aUsdcArray,
-            address(vault)
-        );
+        (rewardAssets, rewardAmounts) =
+            IRewardsController(AVALANCHE_REWARDS_CONTROLLER).getAllUserRewards(aUsdcArray, address(vault));
 
         assertEq(ERC20(WAVAX).balanceOf(OWNER), 0); // Owner has no wAVAX before claiming
 
@@ -129,10 +127,8 @@ contract ATokenVaultRewardsClaimTest is ATokenVaultBaseTest {
 
         skip(THIRTY_DAYS);
 
-        (rewardAssets, rewardAmounts) = IRewardsController(AVALANCHE_REWARDS_CONTROLLER).getAllUserRewards(
-            aUsdcArray,
-            address(vault)
-        );
+        (rewardAssets, rewardAmounts) =
+            IRewardsController(AVALANCHE_REWARDS_CONTROLLER).getAllUserRewards(aUsdcArray, address(vault));
 
         vm.startPrank(OWNER);
         vm.expectEmit(true, false, false, true, address(vault));

@@ -16,11 +16,10 @@ library MetaTxHelpers {
     /**
      * @dev Wrapper for ecrecover to reduce code size, used in meta-tx specific functions.
      */
-    function _validateRecoveredAddress(
-        bytes32 digest,
-        address expectedAddress,
-        DataTypes.EIP712Signature calldata sig
-    ) internal view {
+    function _validateRecoveredAddress(bytes32 digest, address expectedAddress, DataTypes.EIP712Signature calldata sig)
+        internal
+        view
+    {
         if (sig.deadline < block.timestamp) revert Errors.SignatureExpired();
         address recoveredAddress = expectedAddress;
         // If the expected address is a contract, check the signature there.
