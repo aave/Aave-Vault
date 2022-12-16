@@ -168,6 +168,15 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
     }
 
+    function testNonOwnerCannotRescueTokens() public {
+        _deployAndCheckProps();
+
+        vm.startPrank(ALICE);
+        vm.expectRevert(ERR_NOT_OWNER);
+        vault.emergencyRescue(address(dai), ALICE, ONE);
+        vm.stopPrank();
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 POSITIVES
     //////////////////////////////////////////////////////////////*/
@@ -265,6 +274,34 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.expectEmit(false, false, false, true, address(vault));
         emit Events.AavePoolUpdated(expectedPoolAddress);
         vault.updateAavePool();
+        vm.stopPrank();
+    }
+
+    function testOwnerCanRescueTokens() public {
+        _deployAndCheckProps();
+
+        deal(address(dai), address(vault), ONE);
+
+        assertEq(dai.balanceOf(address(vault)), ONE);
+        assertEq(dai.balanceOf(OWNER), 0);
+
+        vm.startPrank(OWNER);
+        vault.emergencyRescue(address(dai), OWNER, ONE);
+        vm.stopPrank();
+
+        assertEq(dai.balanceOf(address(vault)), 0);
+        assertEq(dai.balanceOf(OWNER), ONE);
+    }
+
+    function testEmergencyRescueEmitsEvent() public {
+        _deployAndCheckProps();
+
+        deal(address(dai), address(vault), ONE);
+
+        vm.startPrank(OWNER);
+        vm.expectEmit(true, true, false, true, address(vault));
+        emit Events.EmergencyRescue(address(dai), OWNER, ONE);
+        vault.emergencyRescue(address(dai), OWNER, ONE);
         vm.stopPrank();
     }
 
