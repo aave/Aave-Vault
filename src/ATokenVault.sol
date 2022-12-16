@@ -13,7 +13,6 @@ import {IAToken} from "aave/interfaces/IAToken.sol";
 // Libraries
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
 import {DataTypes} from "./libraries/DataTypes.sol";
-import {Errors} from "./libraries/Errors.sol";
 import {Events} from "./libraries/Events.sol";
 
 import "./libraries/Constants.sol";
@@ -60,14 +59,14 @@ contract ATokenVault is ERC4626, Ownable {
         IPoolAddressesProvider poolAddressesProvider,
         IRewardsController rewardsController
     ) ERC4626(underlying, shareName, shareSymbol) {
-        if (initialFee > SCALE) revert Errors.FeeTooHigh();
+        require(initialFee <= SCALE, "FEE_TOO_HIGH");
 
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
         REWARDS_CONTROLLER = rewardsController;
 
         aavePool = IPool(poolAddressesProvider.getPool());
         address aTokenAddress = aavePool.getReserveData(address(underlying)).aTokenAddress;
-        if (aTokenAddress == address(0)) revert Errors.AssetNotSupported();
+        require(aTokenAddress != address(0), "ASSET_NOT_SUPPORTED");
         aToken = IAToken(aTokenAddress);
 
         fee = initialFee;
@@ -288,7 +287,7 @@ contract ATokenVault is ERC4626, Ownable {
      * @param newFee The new fee, as a fraction of 1e18.
      */
     function setFee(uint256 newFee) public onlyOwner {
-        if (newFee > SCALE) revert Errors.FeeTooHigh();
+        require(newFee <= SCALE, "FEE_TOO_HIGH");
 
         uint256 oldFee = fee;
         fee = newFee;
@@ -317,7 +316,7 @@ contract ATokenVault is ERC4626, Ownable {
      */
     function withdrawFees(address to, uint256 amount) public onlyOwner {
         uint256 currentFees = getCurrentFees();
-        if (amount > currentFees) revert Errors.InsufficientFees(); // will underflow below anyway, error msg for clarity
+        require(amount <= currentFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
 
         accumulatedFees = currentFees - amount;
         lastVaultBalance = aToken.balanceOf(address(this)) - amount;
@@ -335,7 +334,7 @@ contract ATokenVault is ERC4626, Ownable {
      *
      */
     function claimAllAaveRewards(address to) public onlyOwner {
-        if (to == address(0)) revert Errors.CannotSendRewardsToZeroAddress();
+        require(to != address(0), "CANNOT_CLAIM_TO_ZERO_ADDRESS");
 
         address[] memory assets = new address[](1);
         assets[0] = address(aToken);
@@ -355,7 +354,7 @@ contract ATokenVault is ERC4626, Ownable {
      *
      */
     function emergencyRescue(address token, address to, uint256 amount) public onlyOwner {
-        require(token != address(aToken), "CANNOT RESCUE ATOKEN");
+        require(token != address(aToken), "CANNOT_RESCUE_ATOKEN");
 
         ERC20(token).transfer(to, amount);
 

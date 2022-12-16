@@ -7,7 +7,6 @@ import {ATokenVault, FixedPointMathLib} from "../src/ATokenVault.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import {DataTypes} from "../src/libraries/DataTypes.sol";
-import {Errors} from "../src/libraries/Errors.sol";
 import {Events} from "../src/libraries/Events.sol";
 
 // Inheritting from IATokenVault to access events for tests
@@ -49,13 +48,23 @@ contract ATokenVaultBaseTest is Test {
     ATokenVault vault;
     address vaultAssetAddress; // aDAI, must be set in every setUp
 
-    // Error messages
+    // Ownable Errors
     bytes constant ERR_NOT_OWNER = bytes("Ownable: caller is not the owner");
+
+    // Meta Tx Errors
     bytes constant ERR_INVALID_SIGNER = bytes("INVALID_SIGNER");
     bytes constant ERR_PERMIT_DEADLINE_EXPIRED = bytes("PERMIT_DEADLINE_EXPIRED");
+    bytes constant ERR_SIG_INVALID = bytes("SIG_INVALID");
+    bytes constant ERR_SIG_EXPIRED = bytes("SIG_EXPIRED");
+
+    // Vault Errors
     bytes constant ERR_ZERO_ASSETS = bytes("ZERO_ASSETS");
     bytes constant ERR_ZERO_SHARES = bytes("ZERO_SHARES");
     bytes constant ERR_CANNOT_RESCUE_ATOKEN = bytes("CANNOT_RESCUE_ATOKEN");
+    bytes constant ERR_FEE_TOO_HIGH = bytes("FEE_TOO_HIGH");
+    bytes constant ERR_ASSET_NOT_SUPPORTED = bytes("ASSET_NOT_SUPPORTED");
+    bytes constant ERR_INSUFFICIENT_FEES = bytes("INSUFFICIENT_FEES");
+    bytes constant ERR_CANNOT_CLAIM_TO_ZERO_ADDRESS = bytes("CANNOT_CLAIM_TO_ZERO_ADDRESS");
 
     function setUp() public virtual {}
 

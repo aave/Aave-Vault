@@ -12,7 +12,6 @@ import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsCont
 import {IPool} from "aave/interfaces/IPool.sol";
 
 import {DataTypes} from "../src/libraries/DataTypes.sol";
-import {Errors} from "../src/libraries/Errors.sol";
 import {Events} from "../src/libraries/Events.sol";
 
 contract ATokenVaultForkTest is ATokenVaultBaseTest {
@@ -62,7 +61,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     //////////////////////////////////////////////////////////////*/
 
     function testDeployRevertsFeeTooHigh() public {
-        vm.expectRevert(Errors.FeeTooHigh.selector);
+        vm.expectRevert(ERR_FEE_TOO_HIGH);
         vault = new ATokenVault(
             dai,
             SHARE_NAME,
@@ -77,7 +76,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         // UNI token is not listed on Aave v3
         address uniToken = 0xb33EaAd8d922B1083446DC23f610c2567fB5180f;
 
-        vm.expectRevert(Errors.AssetNotSupported.selector);
+        vm.expectRevert(ERR_ASSET_NOT_SUPPORTED);
         vault = new ATokenVault(
             ERC20(uniToken),
             SHARE_NAME,
@@ -127,7 +126,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _deployAndCheckProps();
 
         vm.startPrank(OWNER);
-        vm.expectRevert(Errors.FeeTooHigh.selector);
+        vm.expectRevert(ERR_FEE_TOO_HIGH);
         vault.setFee(SCALE + 1);
         vm.stopPrank();
     }
@@ -154,7 +153,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertGt(vaultADaiBalance, feesAccrued); //Actual vault balance > feesAmount
 
         vm.startPrank(OWNER);
-        vm.expectRevert(Errors.InsufficientFees.selector);
+        vm.expectRevert(ERR_INSUFFICIENT_FEES);
         vault.withdrawFees(OWNER, feesAccrued + ONE); // Try to withdraw more than accrued
         vm.stopPrank();
     }

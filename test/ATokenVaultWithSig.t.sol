@@ -14,7 +14,6 @@ import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockDAI} from "./mocks/MockDAI.sol";
 
 import {DataTypes} from "../src/libraries/DataTypes.sol";
-import {Errors} from "../src/libraries/Errors.sol";
 import {Events} from "../src/libraries/Events.sol";
 
 struct VaultSigParams {
@@ -124,7 +123,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -149,7 +148,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -174,7 +173,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -199,7 +198,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -224,7 +223,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -253,7 +252,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureExpired.selector);
+        vm.expectRevert(ERR_SIG_EXPIRED);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -281,7 +280,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -308,7 +307,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -372,7 +371,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -397,7 +396,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -422,7 +421,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -447,7 +446,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -472,7 +471,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -501,7 +500,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureExpired.selector);
+        vm.expectRevert(ERR_SIG_EXPIRED);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -528,7 +527,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -623,7 +622,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -645,7 +644,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -667,7 +666,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -689,7 +688,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -711,7 +710,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -733,7 +732,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureExpired.selector);
+        vm.expectRevert(ERR_SIG_EXPIRED);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -758,7 +757,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -782,7 +781,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -876,7 +875,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: BOB, sig: sig});
         vm.stopPrank();
     }
@@ -898,7 +897,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -920,7 +919,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -942,7 +941,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -964,7 +963,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -986,7 +985,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureExpired.selector);
+        vm.expectRevert(ERR_SIG_EXPIRED);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -1011,7 +1010,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -1033,7 +1032,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
