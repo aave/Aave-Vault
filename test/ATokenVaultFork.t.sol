@@ -176,6 +176,15 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
     }
 
+    function testCannotRescueAToken() public {
+        _deployAndCheckProps();
+
+        vm.startPrank(OWNER);
+        vm.expectRevert(ERR_CANNOT_RESCUE_ATOKEN);
+        vault.emergencyRescue(address(aDai), OWNER, ONE);
+        vm.stopPrank();
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 POSITIVES
     //////////////////////////////////////////////////////////////*/
