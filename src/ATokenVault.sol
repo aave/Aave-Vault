@@ -113,7 +113,12 @@ contract ATokenVault is ERC4626, Ownable {
                 MetaTxHelpers._calculateDigest(
                     keccak256(
                         abi.encode(
-                            DEPOSIT_WITH_SIG_TYPEHASH, assets, receiver, depositor, _sigNonces[depositor]++, sig.deadline
+                            DEPOSIT_WITH_SIG_TYPEHASH,
+                            assets,
+                            receiver,
+                            depositor,
+                            _sigNonces[depositor]++,
+                            sig.deadline
                         )
                     ),
                     DOMAIN_SEPARATOR()
@@ -362,6 +367,47 @@ contract ATokenVault is ERC4626, Ownable {
     }
 
     /*//////////////////////////////////////////////////////////////
+                          VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    // TODO add natspec here
+
+    function totalAssets() public view override returns (uint256) {
+        // Report only the total assets net of fees, for vault share logic
+        return aToken.balanceOf(address(this)) - getCurrentFees();
+    }
+
+    function getCurrentFees() public view returns (uint256) {
+        if (block.timestamp == _lastUpdated) {
+            // Accumulated fees already up to date
+            return _accumulatedFees;
+        } else {
+            // Calculate new fees since last accrueYield
+            uint256 newVaultBalance = aToken.balanceOf(address(this));
+            uint256 newYield = newVaultBalance - _lastVaultBalance;
+            uint256 newFees = newYield.mulDivDown(_fee, SCALE);
+
+            return _accumulatedFees + newFees;
+        }
+    }
+
+    function getSigNonce(address signer) public view returns (uint256) {
+        return _sigNonces[signer];
+    }
+
+    function getLastUpdated() public view returns (uint256) {
+        return _lastUpdated;
+    }
+
+    function getLastVaultBalance() public view returns (uint256) {
+        return _lastVaultBalance;
+    }
+
+    function getFee() public view returns (uint256) {
+        return _fee;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                           INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -490,46 +536,5 @@ contract ATokenVault is ERC4626, Ownable {
         } else {
             return supplyCap;
         }
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                          VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    // TODO add natspec here
-
-    function totalAssets() public view override returns (uint256) {
-        // Report only the total assets net of fees, for vault share logic
-        return aToken.balanceOf(address(this)) - getCurrentFees();
-    }
-
-    function getCurrentFees() public view returns (uint256) {
-        if (block.timestamp == _lastUpdated) {
-            // Accumulated fees already up to date
-            return _accumulatedFees;
-        } else {
-            // Calculate new fees since last accrueYield
-            uint256 newVaultBalance = aToken.balanceOf(address(this));
-            uint256 newYield = newVaultBalance - _lastVaultBalance;
-            uint256 newFees = newYield.mulDivDown(_fee, SCALE);
-
-            return _accumulatedFees + newFees;
-        }
-    }
-
-    function getSigNonce(address signer) public view returns (uint256) {
-        return _sigNonces[signer];
-    }
-
-    function getLastUpdated() public view returns (uint256) {
-        return _lastUpdated;
-    }
-
-    function getLastVaultBalance() public view returns (uint256) {
-        return _lastVaultBalance;
-    }
-
-    function getFee() public view returns (uint256) {
-        return _fee;
     }
 }
