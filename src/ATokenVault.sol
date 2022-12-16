@@ -33,15 +33,15 @@ contract ATokenVault is ERC4626, Ownable {
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
     IRewardsController public immutable REWARDS_CONTROLLER;
 
-    mapping(address => uint256) public sigNonces;
-
     IPool public aavePool;
     IAToken public aToken;
 
-    uint256 public lastUpdated; // timestamp of last accrueYield action
-    uint256 public lastVaultBalance; // total aToken incl. fees
-    uint256 public fee; // as a fraction of 1e18
-    uint256 internal accumulatedFees; // fees accrued since last updated
+    mapping(address => uint256) internal _sigNonces;
+
+    uint256 internal _lastUpdated; // timestamp of last accrueYield action
+    uint256 internal _lastVaultBalance; // total aToken incl. fees
+    uint256 internal _fee; // as a fraction of 1e18
+    uint256 internal _accumulatedFees; // fees accrued since last updated
 
     /**
      * @param underlying The underlying ERC20 asset which can be supplied to Aave
@@ -69,9 +69,9 @@ contract ATokenVault is ERC4626, Ownable {
         require(aTokenAddress != address(0), "ASSET_NOT_SUPPORTED");
         aToken = IAToken(aTokenAddress);
 
-        fee = initialFee;
+        _fee = initialFee;
 
-        lastUpdated = block.timestamp;
+        _lastUpdated = block.timestamp;
 
         emit Events.FeeUpdated(0, initialFee);
     }
@@ -113,7 +113,7 @@ contract ATokenVault is ERC4626, Ownable {
                 MetaTxHelpers._calculateDigest(
                     keccak256(
                         abi.encode(
-                            DEPOSIT_WITH_SIG_TYPEHASH, assets, receiver, depositor, sigNonces[depositor]++, sig.deadline
+                            DEPOSIT_WITH_SIG_TYPEHASH, assets, receiver, depositor, _sigNonces[depositor]++, sig.deadline
                         )
                     ),
                     DOMAIN_SEPARATOR()
@@ -157,7 +157,7 @@ contract ATokenVault is ERC4626, Ownable {
                 MetaTxHelpers._calculateDigest(
                     keccak256(
                         abi.encode(
-                            MINT_WITH_SIG_TYPEHASH, shares, receiver, depositor, sigNonces[depositor]++, sig.deadline
+                            MINT_WITH_SIG_TYPEHASH, shares, receiver, depositor, _sigNonces[depositor]++, sig.deadline
                         )
                     ),
                     DOMAIN_SEPARATOR()
@@ -202,7 +202,7 @@ contract ATokenVault is ERC4626, Ownable {
                 MetaTxHelpers._calculateDigest(
                     keccak256(
                         abi.encode(
-                            WITHDRAW_WITH_SIG_TYPEHASH, assets, receiver, owner, sigNonces[owner]++, sig.deadline
+                            WITHDRAW_WITH_SIG_TYPEHASH, assets, receiver, owner, _sigNonces[owner]++, sig.deadline
                         )
                     ),
                     DOMAIN_SEPARATOR()
@@ -246,7 +246,7 @@ contract ATokenVault is ERC4626, Ownable {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
                     keccak256(
-                        abi.encode(REDEEM_WITH_SIG_TYPEHASH, shares, receiver, owner, sigNonces[owner]++, sig.deadline)
+                        abi.encode(REDEEM_WITH_SIG_TYPEHASH, shares, receiver, owner, _sigNonces[owner]++, sig.deadline)
                     ),
                     DOMAIN_SEPARATOR()
                 ),
@@ -289,8 +289,8 @@ contract ATokenVault is ERC4626, Ownable {
     function setFee(uint256 newFee) public onlyOwner {
         require(newFee <= SCALE, "FEE_TOO_HIGH");
 
-        uint256 oldFee = fee;
-        fee = newFee;
+        uint256 oldFee = _fee;
+        _fee = newFee;
 
         emit Events.FeeUpdated(oldFee, newFee);
     }
@@ -318,9 +318,9 @@ contract ATokenVault is ERC4626, Ownable {
         uint256 currentFees = getCurrentFees();
         require(amount <= currentFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
 
-        accumulatedFees = currentFees - amount;
-        lastVaultBalance = aToken.balanceOf(address(this)) - amount;
-        lastUpdated = block.timestamp;
+        _accumulatedFees = currentFees - amount;
+        _lastVaultBalance = aToken.balanceOf(address(this)) - amount;
+        _lastUpdated = block.timestamp;
 
         aToken.transfer(to, amount);
 
@@ -367,15 +367,15 @@ contract ATokenVault is ERC4626, Ownable {
 
     function _accrueYield() internal {
         // Fees are accrued and claimable in aToken form
-        if (block.timestamp != lastUpdated) {
+        if (block.timestamp != _lastUpdated) {
             uint256 newVaultBalance = aToken.balanceOf(address(this));
-            uint256 newYield = newVaultBalance - lastVaultBalance;
-            uint256 newFeesEarned = newYield.mulDivDown(fee, SCALE);
+            uint256 newYield = newVaultBalance - _lastVaultBalance;
+            uint256 newFeesEarned = newYield.mulDivDown(_fee, SCALE);
 
-            accumulatedFees += newFeesEarned;
+            _accumulatedFees += newFeesEarned;
 
-            lastVaultBalance = newVaultBalance;
-            lastUpdated = block.timestamp;
+            _lastVaultBalance = newVaultBalance;
+            _lastUpdated = block.timestamp;
 
             emit Events.YieldAccrued(newYield, newFeesEarned);
         }
@@ -393,7 +393,7 @@ contract ATokenVault is ERC4626, Ownable {
         asset.approve(address(aavePool), assets);
         aavePool.supply(address(asset), assets, address(this), 0);
 
-        lastVaultBalance = aToken.balanceOf(address(this));
+        _lastVaultBalance = aToken.balanceOf(address(this));
 
         _mint(receiver, shares);
 
@@ -412,7 +412,7 @@ contract ATokenVault is ERC4626, Ownable {
         asset.approve(address(aavePool), assets);
         aavePool.supply(address(asset), assets, address(this), 0);
 
-        lastVaultBalance = aToken.balanceOf(address(this));
+        _lastVaultBalance = aToken.balanceOf(address(this));
 
         _mint(receiver, shares);
 
@@ -443,7 +443,7 @@ contract ATokenVault is ERC4626, Ownable {
 
         // Withdraw assets from Aave v3 and send to receiver
         aavePool.withdraw(address(asset), assets, receiver);
-        lastVaultBalance = aToken.balanceOf(address(this));
+        _lastVaultBalance = aToken.balanceOf(address(this));
     }
 
     function _redeem(uint256 shares, address receiver, address owner, bool withSig) internal returns (uint256 assets) {
@@ -467,7 +467,7 @@ contract ATokenVault is ERC4626, Ownable {
 
         // Withdraw assets from Aave v3 and send to receiver
         aavePool.withdraw(address(asset), assets, receiver);
-        lastVaultBalance = aToken.balanceOf(address(this));
+        _lastVaultBalance = aToken.balanceOf(address(this));
     }
 
     function _maxAssetsSuppliableToAave() internal view returns (uint256) {
@@ -496,22 +496,40 @@ contract ATokenVault is ERC4626, Ownable {
                           VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    // TODO add natspec here
+
     function totalAssets() public view override returns (uint256) {
         // Report only the total assets net of fees, for vault share logic
         return aToken.balanceOf(address(this)) - getCurrentFees();
     }
 
     function getCurrentFees() public view returns (uint256) {
-        if (block.timestamp == lastUpdated) {
+        if (block.timestamp == _lastUpdated) {
             // Accumulated fees already up to date
-            return accumulatedFees;
+            return _accumulatedFees;
         } else {
             // Calculate new fees since last accrueYield
             uint256 newVaultBalance = aToken.balanceOf(address(this));
-            uint256 newYield = newVaultBalance - lastVaultBalance;
-            uint256 newFees = newYield.mulDivDown(fee, SCALE);
+            uint256 newYield = newVaultBalance - _lastVaultBalance;
+            uint256 newFees = newYield.mulDivDown(_fee, SCALE);
 
-            return accumulatedFees + newFees;
+            return _accumulatedFees + newFees;
         }
+    }
+
+    function getSigNonce(address signer) public view returns (uint256) {
+        return _sigNonces[signer];
+    }
+
+    function getLastUpdated() public view returns (uint256) {
+        return _lastUpdated;
+    }
+
+    function getLastVaultBalance() public view returns (uint256) {
+        return _lastVaultBalance;
+    }
+
+    function getFee() public view returns (uint256) {
+        return _fee;
     }
 }

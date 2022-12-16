@@ -73,10 +73,10 @@ contract ATokenVaultBaseTest is Test {
         console.log("\n", label);
         console.log("ERC20 Assets\t\t\t", ERC20(vaultAssetAddress).balanceOf(address(vault)));
         console.log("totalAssets()\t\t\t", vault.totalAssets());
-        console.log("lastVaulBalance()\t\t", vault.lastVaultBalance());
+        console.log("lastVaulBalance()\t\t", vault.getLastVaultBalance());
         console.log("User Withdrawable\t\t", vault.maxWithdraw(user));
         console.log("current fees\t\t", vault.getCurrentFees());
-        console.log("lastUpdated\t\t\t", vault.lastUpdated());
+        console.log("lastUpdated\t\t\t", vault.getLastUpdated());
         console.log("current time\t\t\t", block.timestamp);
     }
 }

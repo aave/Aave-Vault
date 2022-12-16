@@ -235,24 +235,24 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _deployAndCheckProps();
 
         uint256 newFee = 0.1e18; //10%
-        assertFalse(newFee == vault.fee()); // new fee must be different
+        assertFalse(newFee == vault.getFee()); // new fee must be different
 
         vm.startPrank(OWNER);
         vault.setFee(newFee);
         vm.stopPrank();
 
-        assertEq(vault.fee(), newFee);
+        assertEq(vault.getFee(), newFee);
     }
 
     function testSetFeeEmitsEvent() public {
         _deployAndCheckProps();
 
         uint256 newFee = 0.1e18; //10%
-        assertFalse(newFee == vault.fee()); // new fee must be different
+        assertFalse(newFee == vault.getFee()); // new fee must be different
 
         vm.startPrank(OWNER);
         vm.expectEmit(false, false, false, true, address(vault));
-        emit Events.FeeUpdated(vault.fee(), newFee);
+        emit Events.FeeUpdated(vault.getFee(), newFee);
         vault.setFee(newFee);
         vm.stopPrank();
     }
@@ -375,8 +375,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _deployAndCheckProps();
 
-        uint256 lastUpdated = vault.lastUpdated();
-        uint256 lastVaultBalance = vault.lastVaultBalance();
+        uint256 lastUpdated = vault.getLastUpdated();
+        uint256 lastVaultBalance = vault.getLastVaultBalance();
 
         _depositFromUser(ALICE, amount);
         skip(1);
@@ -384,8 +384,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         // only lastUpdated does NOT change if same timestamp
         // lastVaultBalance is updated separately regardless of timestamp
 
-        assertEq(vault.lastUpdated(), lastUpdated + 1);
-        assertApproxEqRel(vault.lastVaultBalance(), lastVaultBalance + (2 * amount), ONE_BPS);
+        assertEq(vault.getLastUpdated(), lastUpdated + 1);
+        assertApproxEqRel(vault.getLastVaultBalance(), lastVaultBalance + (2 * amount), ONE_BPS);
     }
 
     function testAccrueYieldDoesNotUpdateOnSameTimestamp() public {
@@ -393,8 +393,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _deployAndCheckProps();
 
         uint256 prevTimestamp = block.timestamp;
-        uint256 lastUpdated = vault.lastUpdated();
-        uint256 lastVaultBalance = vault.lastVaultBalance();
+        uint256 lastUpdated = vault.getLastUpdated();
+        uint256 lastVaultBalance = vault.getLastVaultBalance();
 
         _depositFromUser(ALICE, amount);
         _depositFromUser(ALICE, amount);
@@ -402,8 +402,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         // lastVaultBalance is updated separately regardless of timestamp
 
         assertEq(block.timestamp, prevTimestamp);
-        assertEq(vault.lastUpdated(), lastUpdated); // this should not have changed as timestamp is same
-        assertApproxEqAbs(vault.lastVaultBalance(), lastVaultBalance + (2 * amount), 1); // This should change on deposit() anyway
+        assertEq(vault.getLastUpdated(), lastUpdated); // this should not have changed as timestamp is same
+        assertApproxEqAbs(vault.getLastVaultBalance(), lastVaultBalance + (2 * amount), 1); // This should change on deposit() anyway
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -814,6 +814,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     }
 
     function _getFeesOnAmount(uint256 amount) public view returns (uint256) {
-        return (amount * vault.fee()) / SCALE;
+        return (amount * vault.getFee()) / SCALE;
     }
 }
