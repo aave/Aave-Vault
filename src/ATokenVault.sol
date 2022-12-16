@@ -28,10 +28,10 @@ contract ATokenVault is ERC4626, Ownable {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
 
+    uint256 internal constant SCALE = 1e18;
+
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
     IRewardsController public immutable REWARDS_CONTROLLER;
-
-    uint256 internal constant SCALE = 1e18;
 
     mapping(address => uint256) public sigNonces;
 
