@@ -345,6 +345,23 @@ contract ATokenVault is ERC4626, Ownable {
         emit Events.AaveRewardsClaimed(to, rewardsList, claimedAmounts);
     }
 
+    /**
+     * @notice Allows the owner to rescue any tokens other than the vault's aToken which may have accidentally
+     * been transferred to this contract
+     *
+     * @param token The address of the token to rescue.
+     * @param to The address to receive rescued tokens.
+     * @param amount The amount of tokens to transfer.
+     *
+     */
+    function emergencyRescue(address token, address to, uint256 amount) public onlyOwner {
+        require(token != address(aToken), "CANNOT RESCUE ATOKEN");
+
+        ERC20(token).transfer(to, amount);
+
+        emit Events.EmergencyRescue(token, to, amount);
+    }
+
     /*//////////////////////////////////////////////////////////////
                           INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/

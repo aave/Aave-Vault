@@ -9,4 +9,5 @@ library Events {
     event AavePoolUpdated(address newAavePool);
     event YieldAccrued(uint256 totalNewYield, uint256 newFeesFromYield);
     event AaveRewardsClaimed(address indexed to, address[] rewardsList, uint256[] claimedAmounts);
+    event EmergencyRescue(address indexed token, address indexed to, uint256 amount);
 }
