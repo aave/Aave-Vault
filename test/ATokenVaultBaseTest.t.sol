@@ -69,7 +69,7 @@ contract ATokenVaultBaseTest is Test {
     function setUp() public virtual {}
 
     // For debug purposes
-    function _logVaultBalances(address user, string memory label) internal {
+    function _logVaultBalances(address user, string memory label) internal view {
         console.log("\n", label);
         console.log("ERC20 Assets\t\t\t", ERC20(vaultAssetAddress).balanceOf(address(vault)));
         console.log("totalAssets()\t\t\t", vault.totalAssets());

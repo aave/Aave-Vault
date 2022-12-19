@@ -28,7 +28,7 @@ contract MockAavePool {
         reserveConfigMap = _reserveConfigMap;
     }
 
-    function getReserveData(address _reserve) public returns (DataTypes.ReserveData memory) {
+    function getReserveData(address _reserve) public view returns (DataTypes.ReserveData memory) {
         return DataTypes.ReserveData({
             //stores the reserve configuration
             configuration: DataTypes.ReserveConfigurationMap({data: reserveConfigMap}),

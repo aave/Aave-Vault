@@ -43,7 +43,7 @@ library MetaTxHelpers {
      *
      * @return bytes32 A 32-byte output representing the EIP712 digest.
      */
-    function _calculateDigest(bytes32 hashedMessage, bytes32 domainSeparator) internal view returns (bytes32) {
+    function _calculateDigest(bytes32 hashedMessage, bytes32 domainSeparator) internal pure returns (bytes32) {
         bytes32 digest;
         unchecked {
             digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, hashedMessage));
