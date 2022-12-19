@@ -243,7 +243,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     function testOwnerCanSetFee() public {
         _deployAndCheckProps();
 
-        uint256 newFee = 0.1e18; //10%
+        uint64 newFee = 0.1e18; //10%
         assertFalse(newFee == vault.getFee()); // new fee must be different
 
         vm.startPrank(OWNER);
@@ -256,12 +256,12 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     function testSetFeeEmitsEvent() public {
         _deployAndCheckProps();
 
-        uint256 newFee = 0.1e18; //10%
+        uint64 newFee = 0.1e18; //10%
         assertFalse(newFee == vault.getFee()); // new fee must be different
 
         vm.startPrank(OWNER);
         vm.expectEmit(false, false, false, true, address(vault));
-        emit Events.FeeUpdated(vault.getFee(), newFee);
+        emit Events.FeeUpdated(uint64(vault.getFee()), newFee);
         vault.setFee(newFee);
         vm.stopPrank();
     }

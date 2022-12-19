@@ -28,7 +28,7 @@ contract ATokenVault is ERC4626, Ownable {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
 
-    uint256 internal constant SCALE = 1e18;
+    uint64 internal constant SCALE = 1e18;
 
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
     IRewardsController public immutable REWARDS_CONTROLLER;
@@ -38,9 +38,9 @@ contract ATokenVault is ERC4626, Ownable {
 
     mapping(address => uint256) internal _sigNonces;
 
-    uint256 internal _lastUpdated; // timestamp of last accrueYield action
+    uint64 internal _fee; // as a fraction of 1e18
+    uint192 internal _lastUpdated; // timestamp of last accrueYield action
     uint256 internal _lastVaultBalance; // total aToken incl. fees
-    uint256 internal _fee; // as a fraction of 1e18
     uint256 internal _accumulatedFees; // fees accrued since last updated
 
     /**
@@ -55,7 +55,7 @@ contract ATokenVault is ERC4626, Ownable {
         ERC20 underlying,
         string memory shareName,
         string memory shareSymbol,
-        uint256 initialFee,
+        uint64 initialFee,
         IPoolAddressesProvider poolAddressesProvider,
         IRewardsController rewardsController
     ) ERC4626(underlying, shareName, shareSymbol) {
@@ -71,7 +71,7 @@ contract ATokenVault is ERC4626, Ownable {
 
         _fee = initialFee;
 
-        _lastUpdated = block.timestamp;
+        _lastUpdated = uint192(block.timestamp);
 
         emit Events.FeeUpdated(0, initialFee);
     }
@@ -291,10 +291,10 @@ contract ATokenVault is ERC4626, Ownable {
      *
      * @param newFee The new fee, as a fraction of 1e18.
      */
-    function setFee(uint256 newFee) public onlyOwner {
+    function setFee(uint64 newFee) public onlyOwner {
         require(newFee <= SCALE, "FEE_TOO_HIGH");
 
-        uint256 oldFee = _fee;
+        uint64 oldFee = _fee;
         _fee = newFee;
 
         emit Events.FeeUpdated(oldFee, newFee);
@@ -325,7 +325,7 @@ contract ATokenVault is ERC4626, Ownable {
 
         _accumulatedFees = currentFees - amount;
         _lastVaultBalance = aToken.balanceOf(address(this)) - amount;
-        _lastUpdated = block.timestamp;
+        _lastUpdated = uint192(block.timestamp);
 
         aToken.transfer(to, amount);
 
@@ -421,7 +421,7 @@ contract ATokenVault is ERC4626, Ownable {
             _accumulatedFees += newFeesEarned;
 
             _lastVaultBalance = newVaultBalance;
-            _lastUpdated = block.timestamp;
+            _lastUpdated = uint192(block.timestamp);
 
             emit Events.YieldAccrued(newYield, newFeesEarned);
         }

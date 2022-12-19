@@ -23,7 +23,7 @@ contract ATokenVaultBaseTest is Test {
     address constant POLYGON_POOL_ADDRESSES_PROVIDER = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
     address constant POLYGON_REWARDS_CONTROLLER = 0x929EC64c34a17401F460460D4B9390518E5B473e;
 
-    uint256 constant SCALE = 1e18;
+    uint64 constant SCALE = 1e18;
     uint256 constant ONE = 1e18;
     uint256 constant TEN = 10e18;
     uint256 constant HUNDRED = 100e18;
@@ -43,7 +43,7 @@ contract ATokenVaultBaseTest is Test {
     string constant SHARE_NAME = "Wrapped aDAI";
     string constant SHARE_SYMBOL = "waDAI";
 
-    uint256 fee = 0.2e18; // 20%
+    uint64 fee = 0.2e18; // 20%
 
     ATokenVault vault;
     address vaultAssetAddress; // aDAI, must be set in every setUp
