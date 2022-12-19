@@ -14,7 +14,6 @@ import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockDAI} from "./mocks/MockDAI.sol";
 
 import {DataTypes} from "../src/libraries/DataTypes.sol";
-import {Errors} from "../src/libraries/Errors.sol";
 import {Events} from "../src/libraries/Events.sol";
 
 struct VaultSigParams {
@@ -36,21 +35,16 @@ struct PermitSigParams {
     uint256 deadline;
 }
 
-bytes32 constant PERMIT_TYPEHASH = keccak256(
-    "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-);
-bytes32 constant DEPOSIT_WITH_SIG_TYPEHASH = keccak256(
-    "DepositWithSig(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-);
-bytes32 constant MINT_WITH_SIG_TYPEHASH = keccak256(
-    "MintWithSig(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-);
-bytes32 constant WITHDRAW_WITH_SIG_TYPEHASH = keccak256(
-    "WithdrawWithSig(uint256 assets,address receiver,address owner,uint256 nonce,uint256 deadline)"
-);
-bytes32 constant REDEEM_WITH_SIG_TYPEHASH = keccak256(
-    "RedeemWithSig(uint256 shares,address receiver,address owner,uint256 nonce,uint256 deadline)"
-);
+bytes32 constant PERMIT_TYPEHASH =
+    keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+bytes32 constant DEPOSIT_WITH_SIG_TYPEHASH =
+    keccak256("DepositWithSig(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)");
+bytes32 constant MINT_WITH_SIG_TYPEHASH =
+    keccak256("MintWithSig(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)");
+bytes32 constant WITHDRAW_WITH_SIG_TYPEHASH =
+    keccak256("WithdrawWithSig(uint256 assets,address receiver,address owner,uint256 nonce,uint256 deadline)");
+bytes32 constant REDEEM_WITH_SIG_TYPEHASH =
+    keccak256("RedeemWithSig(uint256 shares,address receiver,address owner,uint256 nonce,uint256 deadline)");
 
 contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
     bytes32 VAULT_DOMAIN_SEPARATOR;
@@ -147,7 +141,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
@@ -227,7 +221,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
@@ -236,7 +230,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
@@ -259,7 +253,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: BOB_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
@@ -268,7 +262,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
@@ -291,7 +285,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: BOB,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
@@ -300,7 +294,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
@@ -323,7 +317,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount + 1,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
@@ -332,7 +326,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
@@ -355,7 +349,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE) + 1,
+            nonce: vault.getSigNonce(ALICE) + 1,
             deadline: block.timestamp,
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
@@ -364,7 +358,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
@@ -391,7 +385,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: deadline,
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
@@ -400,7 +394,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureExpired.selector);
+        vm.expectRevert(ERR_SIG_EXPIRED);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
@@ -426,7 +420,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
@@ -435,7 +429,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
@@ -458,18 +452,18 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: keccak256(
                 "Deposit(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-            ) // Deposit instead of DepositWithSig
+                ) // Deposit instead of DepositWithSig
         });
 
         DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
@@ -496,7 +490,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
@@ -618,7 +612,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
@@ -627,7 +621,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
@@ -650,7 +644,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: BOB_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
@@ -659,7 +653,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
@@ -682,7 +676,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: BOB,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
@@ -691,7 +685,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
@@ -714,7 +708,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount + 1,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
@@ -723,7 +717,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
@@ -746,7 +740,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE) + 1,
+            nonce: vault.getSigNonce(ALICE) + 1,
             deadline: block.timestamp,
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
@@ -755,7 +749,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
@@ -782,7 +776,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: deadline,
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
@@ -791,7 +785,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureExpired.selector);
+        vm.expectRevert(ERR_SIG_EXPIRED);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
@@ -814,18 +808,18 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: keccak256(
                 "Mint(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-            ) // using Mint not MintWithSig
+                ) // using Mint not MintWithSig
         });
 
         DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
@@ -843,7 +837,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
@@ -877,7 +871,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: BOB,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
@@ -912,7 +906,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
@@ -920,7 +914,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -934,7 +928,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: BOB_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
@@ -942,7 +936,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -956,7 +950,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: BOB,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
@@ -964,7 +958,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -978,7 +972,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount + 1,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
@@ -986,7 +980,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -1000,7 +994,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE) + 1,
+            nonce: vault.getSigNonce(ALICE) + 1,
             deadline: block.timestamp,
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
@@ -1008,7 +1002,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -1022,7 +1016,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp - 1,
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
@@ -1030,7 +1024,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureExpired.selector);
+        vm.expectRevert(ERR_SIG_EXPIRED);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -1044,7 +1038,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
@@ -1055,7 +1049,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -1069,17 +1063,17 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: keccak256(
                 "Withdraw(uint256 assets,address receiver,address owner,uint256 nonce,uint256 deadline)"
-            ) // Withdraw not WithdrawWithSig
+                ) // Withdraw not WithdrawWithSig
         });
 
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -1097,7 +1091,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
@@ -1130,7 +1124,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: BOB,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
@@ -1165,7 +1159,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
@@ -1173,7 +1167,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: BOB, sig: sig});
         vm.stopPrank();
     }
@@ -1187,7 +1181,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: BOB_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
@@ -1195,7 +1189,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -1209,7 +1203,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: BOB,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
@@ -1217,7 +1211,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -1231,7 +1225,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount + 1,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
@@ -1239,7 +1233,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -1253,7 +1247,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE) + 1,
+            nonce: vault.getSigNonce(ALICE) + 1,
             deadline: block.timestamp,
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
@@ -1261,7 +1255,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -1275,7 +1269,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp - 1,
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
@@ -1283,7 +1277,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureExpired.selector);
+        vm.expectRevert(ERR_SIG_EXPIRED);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -1297,7 +1291,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
@@ -1308,7 +1302,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -1322,7 +1316,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
@@ -1330,7 +1324,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(Errors.SignatureInvalid.selector);
+        vm.expectRevert(ERR_SIG_INVALID);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -1371,7 +1365,9 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
                     "\x19\x01",
                     dai.DOMAIN_SEPARATOR(),
                     keccak256(
-                        abi.encode(PERMIT_TYPEHASH, params.owner, params.spender, params.value, params.nonce, params.deadline)
+                        abi.encode(
+                            PERMIT_TYPEHASH, params.owner, params.spender, params.value, params.nonce, params.deadline
+                        )
                     )
                 )
             )

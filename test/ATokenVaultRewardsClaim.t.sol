@@ -12,7 +12,6 @@ import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsCont
 import {IPool} from "aave/interfaces/IPool.sol";
 
 import {DataTypes} from "../src/libraries/DataTypes.sol";
-import {Errors} from "../src/libraries/Errors.sol";
 import {Events} from "../src/libraries/Events.sol";
 
 // AVALANCHE addresses
@@ -82,7 +81,7 @@ contract ATokenVaultRewardsClaimTest is ATokenVaultBaseTest {
 
     function testOwnerCannotClaimAaveRewardsToZeroAddress() public {
         vm.startPrank(OWNER);
-        vm.expectRevert(Errors.CannotSendRewardsToZeroAddress.selector);
+        vm.expectRevert(ERR_CANNOT_CLAIM_TO_ZERO_ADDRESS);
         vault.claimAllAaveRewards(address(0));
         vm.stopPrank();
     }
@@ -101,10 +100,8 @@ contract ATokenVaultRewardsClaimTest is ATokenVaultBaseTest {
 
         skip(THIRTY_DAYS);
 
-        (rewardAssets, rewardAmounts) = IRewardsController(AVALANCHE_REWARDS_CONTROLLER).getAllUserRewards(
-            aUsdcArray,
-            address(vault)
-        );
+        (rewardAssets, rewardAmounts) =
+            IRewardsController(AVALANCHE_REWARDS_CONTROLLER).getAllUserRewards(aUsdcArray, address(vault));
 
         assertEq(ERC20(WAVAX).balanceOf(OWNER), 0); // Owner has no wAVAX before claiming
 
@@ -129,10 +126,8 @@ contract ATokenVaultRewardsClaimTest is ATokenVaultBaseTest {
 
         skip(THIRTY_DAYS);
 
-        (rewardAssets, rewardAmounts) = IRewardsController(AVALANCHE_REWARDS_CONTROLLER).getAllUserRewards(
-            aUsdcArray,
-            address(vault)
-        );
+        (rewardAssets, rewardAmounts) =
+            IRewardsController(AVALANCHE_REWARDS_CONTROLLER).getAllUserRewards(aUsdcArray, address(vault));
 
         vm.startPrank(OWNER);
         vm.expectEmit(true, false, false, true, address(vault));

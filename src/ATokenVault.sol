@@ -4,6 +4,7 @@ pragma solidity 0.8.10;
 import {ERC4626, SafeTransferLib, FixedPointMathLib} from "solmate/mixins/ERC4626.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Ownable} from "openzeppelin/access/Ownable.sol";
+import {DataTypes as AaveDataTypes} from "aave/protocol/libraries/types/DataTypes.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
@@ -12,7 +13,6 @@ import {IAToken} from "aave/interfaces/IAToken.sol";
 // Libraries
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
 import {DataTypes} from "./libraries/DataTypes.sol";
-import {Errors} from "./libraries/Errors.sol";
 import {Events} from "./libraries/Events.sol";
 
 import "./libraries/Constants.sol";
@@ -28,20 +28,19 @@ contract ATokenVault is ERC4626, Ownable {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
 
-    IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
-    IRewardsController public immutable REWARDS_CONTROLLER;
-
     uint256 internal constant SCALE = 1e18;
 
-    mapping(address => uint256) public sigNonces;
+    IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
+    IRewardsController public immutable REWARDS_CONTROLLER;
+    IPool public immutable AAVE_POOL;
+    IAToken public immutable A_TOKEN;
 
-    IPool public aavePool;
-    IAToken public aToken;
+    mapping(address => uint256) internal _sigNonces;
 
-    uint256 public lastUpdated; // timestamp of last accrueYield action
-    uint256 public lastVaultBalance; // total aToken incl. fees
-    uint256 public fee; // as a fraction of 1e18
-    uint256 internal accumulatedFees; // fees accrued since last updated
+    uint256 internal _lastUpdated; // timestamp of last accrueYield action
+    uint256 internal _lastVaultBalance; // total aToken incl. fees
+    uint256 internal _fee; // as a fraction of 1e18
+    uint256 internal _accumulatedFees; // fees accrued since last updated
 
     /**
      * @param underlying The underlying ERC20 asset which can be supplied to Aave
@@ -59,19 +58,21 @@ contract ATokenVault is ERC4626, Ownable {
         IPoolAddressesProvider poolAddressesProvider,
         IRewardsController rewardsController
     ) ERC4626(underlying, shareName, shareSymbol) {
-        if (initialFee > SCALE) revert Errors.FeeTooHigh();
+        require(initialFee <= SCALE, "FEE_TOO_HIGH");
 
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
         REWARDS_CONTROLLER = rewardsController;
 
-        aavePool = IPool(poolAddressesProvider.getPool());
-        address aTokenAddress = aavePool.getReserveData(address(underlying)).aTokenAddress;
-        if (aTokenAddress == address(0)) revert Errors.AssetNotSupported();
-        aToken = IAToken(aTokenAddress);
+        AAVE_POOL = IPool(poolAddressesProvider.getPool());
+        address aTokenAddress = AAVE_POOL.getReserveData(address(underlying)).aTokenAddress;
+        require(aTokenAddress != address(0), "ASSET_NOT_SUPPORTED");
+        A_TOKEN = IAToken(aTokenAddress);
 
-        fee = initialFee;
+        asset.approve(address(AAVE_POOL), type(uint256).max);
 
-        lastUpdated = block.timestamp;
+        _fee = initialFee;
+
+        _lastUpdated = block.timestamp;
 
         emit Events.FeeUpdated(0, initialFee);
     }
@@ -89,7 +90,7 @@ contract ATokenVault is ERC4626, Ownable {
      * @return shares The amount of shares minted to the receiver
      */
     function deposit(uint256 assets, address receiver) public override returns (uint256 shares) {
-        shares = _deposit(assets, receiver, msg.sender);
+        shares = _handleDeposit(assets, receiver, msg.sender);
     }
 
     /**
@@ -113,9 +114,8 @@ contract ATokenVault is ERC4626, Ownable {
         DataTypes.EIP712Signature calldata depositSig
     ) public returns (uint256 shares) {
         // Permit is allowed to fail - approval has been done separately, or token may not support permit
-        try
-            asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s)
-        {} catch {}
+        try asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s) {}
+            catch {}
 
         // TODO alternatively could use permitSig.deadline != 0 to skip if needed
         // if (permitSig.deadline != 0)
@@ -130,7 +130,7 @@ contract ATokenVault is ERC4626, Ownable {
                             assets,
                             receiver,
                             depositor,
-                            sigNonces[depositor]++,
+                            _sigNonces[depositor]++,
                             depositSig.deadline
                         )
                     ),
@@ -140,7 +140,7 @@ contract ATokenVault is ERC4626, Ownable {
                 depositSig
             );
         }
-        shares = _deposit(assets, receiver, depositor);
+        shares = _handleDeposit(assets, receiver, depositor);
     }
 
     /**
@@ -152,7 +152,7 @@ contract ATokenVault is ERC4626, Ownable {
      * @return assets The amount of assets deposited by the receiver
      */
     function mint(uint256 shares, address receiver) public override returns (uint256 assets) {
-        assets = _mint(shares, receiver, msg.sender);
+        assets = _handleMint(shares, receiver, msg.sender);
     }
 
     /**
@@ -179,9 +179,8 @@ contract ATokenVault is ERC4626, Ownable {
         assets = previewMint(shares);
 
         // Permit is allowed to fail - approval has been done separately, or token may not support permit
-        try
-            asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s)
-        {} catch {}
+        try asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s) {}
+            catch {}
 
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
@@ -192,7 +191,7 @@ contract ATokenVault is ERC4626, Ownable {
                             shares,
                             receiver,
                             depositor,
-                            sigNonces[depositor]++,
+                            _sigNonces[depositor]++,
                             mintSig.deadline
                         )
                     ),
@@ -202,7 +201,7 @@ contract ATokenVault is ERC4626, Ownable {
                 mintSig
             );
         }
-        assets = _mint(shares, receiver, depositor);
+        assets = _handleMint(shares, receiver, depositor);
     }
 
     /**
@@ -215,7 +214,7 @@ contract ATokenVault is ERC4626, Ownable {
      * @return shares The amount of shares burnt in the withdrawal process
      */
     function withdraw(uint256 assets, address receiver, address owner) public override returns (uint256 shares) {
-        shares = _withdraw(assets, receiver, owner, false);
+        shares = _handleWithdraw(assets, receiver, owner, false);
     }
 
     /**
@@ -229,17 +228,17 @@ contract ATokenVault is ERC4626, Ownable {
      *
      * @return shares The amount of shares burnt in the withdrawal process
      */
-    function withdrawWithSig(
-        uint256 assets,
-        address receiver,
-        address owner,
-        DataTypes.EIP712Signature calldata sig
-    ) public returns (uint256 shares) {
+    function withdrawWithSig(uint256 assets, address receiver, address owner, DataTypes.EIP712Signature calldata sig)
+        public
+        returns (uint256 shares)
+    {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
                     keccak256(
-                        abi.encode(WITHDRAW_WITH_SIG_TYPEHASH, assets, receiver, owner, sigNonces[owner]++, sig.deadline)
+                        abi.encode(
+                            WITHDRAW_WITH_SIG_TYPEHASH, assets, receiver, owner, _sigNonces[owner]++, sig.deadline
+                        )
                     ),
                     DOMAIN_SEPARATOR()
                 ),
@@ -247,7 +246,7 @@ contract ATokenVault is ERC4626, Ownable {
                 sig
             );
         }
-        shares = _withdraw(assets, receiver, owner, true);
+        shares = _handleWithdraw(assets, receiver, owner, true);
     }
 
     /**
@@ -260,7 +259,7 @@ contract ATokenVault is ERC4626, Ownable {
      * @return assets The amount of assets withdrawn by the receiver
      */
     function redeem(uint256 shares, address receiver, address owner) public override returns (uint256 assets) {
-        assets = _redeem(shares, receiver, owner, false);
+        assets = _handleRedeem(shares, receiver, owner, false);
     }
 
     /**
@@ -274,23 +273,43 @@ contract ATokenVault is ERC4626, Ownable {
      *
      * @return assets The amount of assets withdrawn by the receiver
      */
-    function redeemWithSig(
-        uint256 shares,
-        address receiver,
-        address owner,
-        DataTypes.EIP712Signature calldata sig
-    ) public returns (uint256 assets) {
+    function redeemWithSig(uint256 shares, address receiver, address owner, DataTypes.EIP712Signature calldata sig)
+        public
+        returns (uint256 assets)
+    {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
-                    keccak256(abi.encode(REDEEM_WITH_SIG_TYPEHASH, shares, receiver, owner, sigNonces[owner]++, sig.deadline)),
+                    keccak256(
+                        abi.encode(REDEEM_WITH_SIG_TYPEHASH, shares, receiver, owner, _sigNonces[owner]++, sig.deadline)
+                    ),
                     DOMAIN_SEPARATOR()
                 ),
                 owner,
                 sig
             );
         }
-        assets = _redeem(shares, receiver, owner, true);
+        assets = _handleRedeem(shares, receiver, owner, true);
+    }
+
+    /**
+     * @notice Maximum amount of assets that can be deposited into the vault,
+     * given Aave market limitations.
+     *
+     * @return Maximum amount of assets that can be deposited into the vault
+     */
+    function maxDeposit(address) public view override returns (uint256) {
+        return _maxAssetsSuppliableToAave();
+    }
+
+    /**
+     * @notice Maximum amount of shares that can be minted for the vault,
+     * given Aave market limitations.
+     *
+     * @return Maximum amount of shares that can be minted for the vault
+     */
+    function maxMint(address) public view override returns (uint256) {
+        return convertToShares(_maxAssetsSuppliableToAave());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -303,24 +322,12 @@ contract ATokenVault is ERC4626, Ownable {
      * @param newFee The new fee, as a fraction of 1e18.
      */
     function setFee(uint256 newFee) public onlyOwner {
-        if (newFee > SCALE) revert Errors.FeeTooHigh();
+        require(newFee <= SCALE, "FEE_TOO_HIGH");
 
-        uint256 oldFee = fee;
-        fee = newFee;
+        uint256 oldFee = _fee;
+        _fee = newFee;
 
         emit Events.FeeUpdated(oldFee, newFee);
-    }
-
-    /**
-     * @notice Updates the Aave Pool in this vault to the latest address given by the
-     * Aave Pool Addresses Provider, only callable by the owner
-     *
-     */
-    function updateAavePool() public onlyOwner {
-        address newPool = POOL_ADDRESSES_PROVIDER.getPool();
-        aavePool = IPool(newPool);
-
-        emit Events.AavePoolUpdated(newPool);
     }
 
     /**
@@ -332,15 +339,15 @@ contract ATokenVault is ERC4626, Ownable {
      */
     function withdrawFees(address to, uint256 amount) public onlyOwner {
         uint256 currentFees = getCurrentFees();
-        if (amount > currentFees) revert Errors.InsufficientFees(); // will underflow below anyway, error msg for clarity
+        require(amount <= currentFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
 
-        accumulatedFees = currentFees - amount;
-        lastVaultBalance = aToken.balanceOf(address(this)) - amount;
-        lastUpdated = block.timestamp;
+        _accumulatedFees = currentFees - amount;
+        _lastVaultBalance = A_TOKEN.balanceOf(address(this)) - amount;
+        _lastUpdated = block.timestamp;
 
-        aToken.transfer(to, amount);
+        A_TOKEN.transfer(to, amount);
 
-        emit Events.FeesWithdrawn(to, amount);
+        emit Events.FeesWithdrawn(to, amount, _lastVaultBalance, _accumulatedFees);
     }
 
     /**
@@ -350,14 +357,72 @@ contract ATokenVault is ERC4626, Ownable {
      *
      */
     function claimAllAaveRewards(address to) public onlyOwner {
-        if (to == address(0)) revert Errors.CannotSendRewardsToZeroAddress();
+        require(to != address(0), "CANNOT_CLAIM_TO_ZERO_ADDRESS");
 
         address[] memory assets = new address[](1);
-        assets[0] = address(aToken);
+        assets[0] = address(A_TOKEN);
 
         (address[] memory rewardsList, uint256[] memory claimedAmounts) = REWARDS_CONTROLLER.claimAllRewards(assets, to);
 
         emit Events.AaveRewardsClaimed(to, rewardsList, claimedAmounts);
+    }
+
+    /**
+     * @notice Allows the owner to rescue any tokens other than the vault's aToken which may have accidentally
+     * been transferred to this contract
+     *
+     * @param token The address of the token to rescue.
+     * @param to The address to receive rescued tokens.
+     * @param amount The amount of tokens to transfer.
+     *
+     */
+    function emergencyRescue(address token, address to, uint256 amount) public onlyOwner {
+        require(token != address(A_TOKEN), "CANNOT_RESCUE_ATOKEN");
+
+        ERC20(token).transfer(to, amount);
+
+        emit Events.EmergencyRescue(token, to, amount);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    // TODO add natspec here
+
+    function totalAssets() public view override returns (uint256) {
+        // Report only the total assets net of fees, for vault share logic
+        return A_TOKEN.balanceOf(address(this)) - getCurrentFees();
+    }
+
+    function getCurrentFees() public view returns (uint256) {
+        if (block.timestamp == _lastUpdated) {
+            // Accumulated fees already up to date
+            return _accumulatedFees;
+        } else {
+            // Calculate new fees since last accrueYield
+            uint256 newVaultBalance = A_TOKEN.balanceOf(address(this));
+            uint256 newYield = newVaultBalance - _lastVaultBalance;
+            uint256 newFees = newYield.mulDivDown(_fee, SCALE);
+
+            return _accumulatedFees + newFees;
+        }
+    }
+
+    function getSigNonce(address signer) public view returns (uint256) {
+        return _sigNonces[signer];
+    }
+
+    function getLastUpdated() public view returns (uint256) {
+        return _lastUpdated;
+    }
+
+    function getLastVaultBalance() public view returns (uint256) {
+        return _lastVaultBalance;
+    }
+
+    function getFee() public view returns (uint256) {
+        return _fee;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -366,21 +431,21 @@ contract ATokenVault is ERC4626, Ownable {
 
     function _accrueYield() internal {
         // Fees are accrued and claimable in aToken form
-        if (block.timestamp != lastUpdated) {
-            uint256 newVaultBalance = aToken.balanceOf(address(this));
-            uint256 newYield = newVaultBalance - lastVaultBalance;
-            uint256 newFeesEarned = newYield.mulDivDown(fee, SCALE);
+        if (block.timestamp != _lastUpdated) {
+            uint256 newVaultBalance = A_TOKEN.balanceOf(address(this));
+            uint256 newYield = newVaultBalance - _lastVaultBalance;
+            uint256 newFeesEarned = newYield.mulDivDown(_fee, SCALE);
 
-            accumulatedFees += newFeesEarned;
+            _accumulatedFees += newFeesEarned;
 
-            lastVaultBalance = newVaultBalance;
-            lastUpdated = block.timestamp;
+            _lastVaultBalance = newVaultBalance;
+            _lastUpdated = block.timestamp;
 
-            emit Events.YieldAccrued(newYield, newFeesEarned);
+            emit Events.YieldAccrued(newYield, newFeesEarned, newVaultBalance);
         }
     }
 
-    function _deposit(uint256 assets, address receiver, address depositor) internal returns (uint256 shares) {
+    function _handleDeposit(uint256 assets, address receiver, address depositor) internal returns (uint256 shares) {
         _accrueYield();
 
         require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
@@ -388,18 +453,17 @@ contract ATokenVault is ERC4626, Ownable {
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(depositor, address(this), assets);
 
-        // Approve and Deposit the received underlying into Aave v3
-        asset.approve(address(aavePool), assets);
-        aavePool.supply(address(asset), assets, address(this), 0);
+        // Deposit the received underlying into Aave v3
+        AAVE_POOL.supply(address(asset), assets, address(this), 0);
 
-        lastVaultBalance = aToken.balanceOf(address(this));
+        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
 
         _mint(receiver, shares);
 
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
-    function _mint(uint256 shares, address receiver, address depositor) internal returns (uint256 assets) {
+    function _handleMint(uint256 shares, address receiver, address depositor) internal returns (uint256 assets) {
         _accrueYield();
 
         assets = previewMint(shares);
@@ -407,18 +471,20 @@ contract ATokenVault is ERC4626, Ownable {
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(depositor, address(this), assets);
 
-        // Approve and Deposit the received underlying into Aave v3
-        asset.approve(address(aavePool), assets);
-        aavePool.supply(address(asset), assets, address(this), 0);
+        // Deposit the received underlying into Aave v3
+        AAVE_POOL.supply(address(asset), assets, address(this), 0);
 
-        lastVaultBalance = aToken.balanceOf(address(this));
+        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
 
         _mint(receiver, shares);
 
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
-    function _withdraw(uint256 assets, address receiver, address owner, bool withSig) internal returns (uint256 shares) {
+    function _handleWithdraw(uint256 assets, address receiver, address owner, bool withSig)
+        internal
+        returns (uint256 shares)
+    {
         _accrueYield();
 
         shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
@@ -439,11 +505,14 @@ contract ATokenVault is ERC4626, Ownable {
         emit Withdraw(msg.sender, receiver, owner, assets, shares);
 
         // Withdraw assets from Aave v3 and send to receiver
-        aavePool.withdraw(address(asset), assets, receiver);
-        lastVaultBalance = aToken.balanceOf(address(this));
+        AAVE_POOL.withdraw(address(asset), assets, receiver);
+        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
     }
 
-    function _redeem(uint256 shares, address receiver, address owner, bool withSig) internal returns (uint256 assets) {
+    function _handleRedeem(uint256 shares, address receiver, address owner, bool withSig)
+        internal
+        returns (uint256 assets)
+    {
         _accrueYield();
 
         // TODO remove need for allowance if sig ???
@@ -464,30 +533,29 @@ contract ATokenVault is ERC4626, Ownable {
         emit Withdraw(msg.sender, receiver, owner, assets, shares);
 
         // Withdraw assets from Aave v3 and send to receiver
-        aavePool.withdraw(address(asset), assets, receiver);
-        lastVaultBalance = aToken.balanceOf(address(this));
+        AAVE_POOL.withdraw(address(asset), assets, receiver);
+        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
     }
 
-    /*//////////////////////////////////////////////////////////////
-                          VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
+    function _maxAssetsSuppliableToAave() internal view returns (uint256) {
+        // returns 0 if reserve is not active, frozen, or paused
+        // returns max uint256 value if supply cap is 0 (not capped)
+        // returns supply cap as max suppliable if there is one for this reserve
 
-    function totalAssets() public view override returns (uint256) {
-        // Report only the total assets net of fees, for vault share logic
-        return aToken.balanceOf(address(this)) - getCurrentFees();
-    }
+        AaveDataTypes.ReserveData memory reserveData = AAVE_POOL.getReserveData(address(asset));
+        uint256 reserveConfigMap = reserveData.configuration.data;
+        uint256 supplyCap = (reserveConfigMap & ~AAVE_SUPPLY_CAP_MASK) >> AAVE_SUPPLY_CAP_BIT_POSITION;
+        supplyCap = supplyCap * 10 ** asset.decimals(); // scale supply cap by asset's decimals
 
-    function getCurrentFees() public view returns (uint256) {
-        if (block.timestamp == lastUpdated) {
-            // Accumulated fees already up to date
-            return accumulatedFees;
+        if (
+            (reserveConfigMap & ~AAVE_ACTIVE_MASK == 0) || (reserveConfigMap & ~AAVE_FROZEN_MASK != 0)
+                || (reserveConfigMap & ~AAVE_PAUSED_MASK != 0)
+        ) {
+            return 0;
+        } else if (supplyCap == 0) {
+            return type(uint256).max;
         } else {
-            // Calculate new fees since last accrueYield
-            uint256 newVaultBalance = aToken.balanceOf(address(this));
-            uint256 newYield = newVaultBalance - lastVaultBalance;
-            uint256 newFees = newYield.mulDivDown(fee, SCALE);
-
-            return accumulatedFees + newFees;
+            return supplyCap;
         }
     }
 }
