@@ -69,6 +69,8 @@ contract ATokenVault is ERC4626, Ownable {
         require(aTokenAddress != address(0), "ASSET_NOT_SUPPORTED");
         aToken = IAToken(aTokenAddress);
 
+        asset.approve(address(aavePool), type(uint256).max);
+
         _fee = initialFee;
 
         _lastUpdated = block.timestamp;
@@ -435,8 +437,7 @@ contract ATokenVault is ERC4626, Ownable {
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(depositor, address(this), assets);
 
-        // Approve and Deposit the received underlying into Aave v3
-        asset.approve(address(aavePool), assets);
+        // Deposit the received underlying into Aave v3
         aavePool.supply(address(asset), assets, address(this), 0);
 
         _lastVaultBalance = aToken.balanceOf(address(this));
@@ -454,8 +455,7 @@ contract ATokenVault is ERC4626, Ownable {
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(depositor, address(this), assets);
 
-        // Approve and Deposit the received underlying into Aave v3
-        asset.approve(address(aavePool), assets);
+        // Deposit the received underlying into Aave v3
         aavePool.supply(address(asset), assets, address(this), 0);
 
         _lastVaultBalance = aToken.balanceOf(address(this));
