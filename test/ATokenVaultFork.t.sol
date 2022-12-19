@@ -227,7 +227,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         vm.startPrank(OWNER);
         vm.expectEmit(true, false, false, true, address(vault));
-        emit Events.FeesWithdrawn(OWNER, feesAccrued, vaultADaiBalanceBefore-feesAccrued, 0);
+        emit Events.FeesWithdrawn(OWNER, feesAccrued, vaultADaiBalanceBefore - feesAccrued, 0);
         vault.withdrawFees(OWNER, feesAccrued);
         vm.stopPrank();
     }
@@ -394,14 +394,14 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         _depositFromUser(ALICE, amount);
 
-        uint vaultBalanceBefore = aDai.balanceOf(address(vault));
+        uint256 vaultBalanceBefore = aDai.balanceOf(address(vault));
 
         skip(365 days);
 
-        uint vaultBalanceAfter = aDai.balanceOf(address(vault));
+        uint256 vaultBalanceAfter = aDai.balanceOf(address(vault));
 
-        uint expectedNewYield = vaultBalanceAfter - vaultBalanceBefore;
-        uint expectedFeesFromYield = (expectedNewYield * vault.getFee()) / SCALE;
+        uint256 expectedNewYield = vaultBalanceAfter - vaultBalanceBefore;
+        uint256 expectedFeesFromYield = (expectedNewYield * vault.getFee()) / SCALE;
 
         deal(address(dai), ALICE, amount);
 
