@@ -158,15 +158,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
     }
 
-    function testNonOwnerCannotCallUpdateAavePool() public {
-        _deployAndCheckProps();
-
-        vm.startPrank(ALICE);
-        vm.expectRevert(ERR_NOT_OWNER);
-        vault.updateAavePool();
-        vm.stopPrank();
-    }
-
     function testNonOwnerCannotRescueTokens() public {
         _deployAndCheckProps();
 
@@ -263,25 +254,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.expectEmit(false, false, false, true, address(vault));
         emit Events.FeeUpdated(vault.getFee(), newFee);
         vault.setFee(newFee);
-        vm.stopPrank();
-    }
-
-    function testOwnerCanCallUpdateAavePool() public {
-        _deployAndCheckProps();
-
-        vm.startPrank(OWNER);
-        vault.updateAavePool();
-        vm.stopPrank();
-    }
-
-    function testUpdateAavePoolEmitsEvent() public {
-        _deployAndCheckProps();
-        address expectedPoolAddress = IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER).getPool();
-
-        vm.startPrank(OWNER);
-        vm.expectEmit(false, false, false, true, address(vault));
-        emit Events.AavePoolUpdated(expectedPoolAddress);
-        vault.updateAavePool();
         vm.stopPrank();
     }
 
@@ -755,8 +727,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         );
         vm.stopPrank();
         assertEq(address(vault.asset()), POLYGON_DAI);
-        assertEq(address(vault.aToken()), POLYGON_ADAI);
-        assertEq(address(vault.aavePool()), POLYGON_AAVE_POOL);
+        assertEq(address(vault.A_TOKEN()), POLYGON_ADAI);
+        assertEq(address(vault.AAVE_POOL()), POLYGON_AAVE_POOL);
         assertEq(vault.owner(), OWNER);
     }
 
