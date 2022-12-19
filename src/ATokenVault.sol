@@ -90,7 +90,7 @@ contract ATokenVault is ERC4626, Ownable {
      * @return shares The amount of shares minted to the receiver
      */
     function deposit(uint256 assets, address receiver) public override returns (uint256 shares) {
-        shares = _deposit(assets, receiver, msg.sender);
+        shares = _handleDeposit(assets, receiver, msg.sender);
     }
 
     /**
@@ -128,7 +128,7 @@ contract ATokenVault is ERC4626, Ownable {
                 sig
             );
         }
-        shares = _deposit(assets, receiver, depositor);
+        shares = _handleDeposit(assets, receiver, depositor);
     }
 
     /**
@@ -140,7 +140,7 @@ contract ATokenVault is ERC4626, Ownable {
      * @return assets The amount of assets deposited by the receiver
      */
     function mint(uint256 shares, address receiver) public override returns (uint256 assets) {
-        assets = _mint(shares, receiver, msg.sender);
+        assets = _handleMint(shares, receiver, msg.sender);
     }
 
     /**
@@ -172,7 +172,7 @@ contract ATokenVault is ERC4626, Ownable {
                 sig
             );
         }
-        assets = _mint(shares, receiver, depositor);
+        assets = _handleMint(shares, receiver, depositor);
     }
 
     /**
@@ -185,7 +185,7 @@ contract ATokenVault is ERC4626, Ownable {
      * @return shares The amount of shares burnt in the withdrawal process
      */
     function withdraw(uint256 assets, address receiver, address owner) public override returns (uint256 shares) {
-        shares = _withdraw(assets, receiver, owner, false);
+        shares = _handleWithdraw(assets, receiver, owner, false);
     }
 
     /**
@@ -217,7 +217,7 @@ contract ATokenVault is ERC4626, Ownable {
                 sig
             );
         }
-        shares = _withdraw(assets, receiver, owner, true);
+        shares = _handleWithdraw(assets, receiver, owner, true);
     }
 
     /**
@@ -230,7 +230,7 @@ contract ATokenVault is ERC4626, Ownable {
      * @return assets The amount of assets withdrawn by the receiver
      */
     function redeem(uint256 shares, address receiver, address owner) public override returns (uint256 assets) {
-        assets = _redeem(shares, receiver, owner, false);
+        assets = _handleRedeem(shares, receiver, owner, false);
     }
 
     /**
@@ -260,7 +260,7 @@ contract ATokenVault is ERC4626, Ownable {
                 sig
             );
         }
-        assets = _redeem(shares, receiver, owner, true);
+        assets = _handleRedeem(shares, receiver, owner, true);
     }
 
     /**
@@ -416,7 +416,7 @@ contract ATokenVault is ERC4626, Ownable {
         }
     }
 
-    function _deposit(uint256 assets, address receiver, address depositor) internal returns (uint256 shares) {
+    function _handleDeposit(uint256 assets, address receiver, address depositor) internal returns (uint256 shares) {
         _accrueYield();
 
         require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
@@ -434,7 +434,7 @@ contract ATokenVault is ERC4626, Ownable {
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
-    function _mint(uint256 shares, address receiver, address depositor) internal returns (uint256 assets) {
+    function _handleMint(uint256 shares, address receiver, address depositor) internal returns (uint256 assets) {
         _accrueYield();
 
         assets = previewMint(shares);
@@ -452,7 +452,7 @@ contract ATokenVault is ERC4626, Ownable {
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
-    function _withdraw(uint256 assets, address receiver, address owner, bool withSig)
+    function _handleWithdraw(uint256 assets, address receiver, address owner, bool withSig)
         internal
         returns (uint256 shares)
     {
@@ -479,7 +479,10 @@ contract ATokenVault is ERC4626, Ownable {
         _lastVaultBalance = A_TOKEN.balanceOf(address(this));
     }
 
-    function _redeem(uint256 shares, address receiver, address owner, bool withSig) internal returns (uint256 assets) {
+    function _handleRedeem(uint256 shares, address receiver, address owner, bool withSig)
+        internal
+        returns (uint256 assets)
+    {
         _accrueYield();
 
         // Check caller has allowance if not with sig
