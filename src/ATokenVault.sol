@@ -32,9 +32,8 @@ contract ATokenVault is ERC4626, Ownable {
 
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
     IRewardsController public immutable REWARDS_CONTROLLER;
-
-    IPool public aavePool;
-    IAToken public aToken;
+    IPool public immutable AAVE_POOL;
+    IAToken public immutable A_TOKEN;
 
     mapping(address => uint256) internal _sigNonces;
 
@@ -64,10 +63,12 @@ contract ATokenVault is ERC4626, Ownable {
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
         REWARDS_CONTROLLER = rewardsController;
 
-        aavePool = IPool(poolAddressesProvider.getPool());
-        address aTokenAddress = aavePool.getReserveData(address(underlying)).aTokenAddress;
+        AAVE_POOL = IPool(poolAddressesProvider.getPool());
+        address aTokenAddress = AAVE_POOL.getReserveData(address(underlying)).aTokenAddress;
         require(aTokenAddress != address(0), "ASSET_NOT_SUPPORTED");
-        aToken = IAToken(aTokenAddress);
+        A_TOKEN = IAToken(aTokenAddress);
+
+        asset.approve(address(AAVE_POOL), type(uint256).max);
 
         _fee = initialFee;
 
@@ -301,18 +302,6 @@ contract ATokenVault is ERC4626, Ownable {
     }
 
     /**
-     * @notice Updates the Aave Pool in this vault to the latest address given by the
-     * Aave Pool Addresses Provider, only callable by the owner
-     *
-     */
-    function updateAavePool() public onlyOwner {
-        address newPool = POOL_ADDRESSES_PROVIDER.getPool();
-        aavePool = IPool(newPool);
-
-        emit Events.AavePoolUpdated(newPool);
-    }
-
-    /**
      * @notice Withdraws fees earned by the vault, in the form of aTokens, to a specified address. Only callable by the owner.
      *
      * @param to The address to receive the fees
@@ -324,10 +313,10 @@ contract ATokenVault is ERC4626, Ownable {
         require(amount <= currentFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
 
         _accumulatedFees = currentFees - amount;
-        _lastVaultBalance = aToken.balanceOf(address(this)) - amount;
+        _lastVaultBalance = A_TOKEN.balanceOf(address(this)) - amount;
         _lastUpdated = block.timestamp;
 
-        aToken.transfer(to, amount);
+        A_TOKEN.transfer(to, amount);
 
         emit Events.FeesWithdrawn(to, amount);
     }
@@ -342,7 +331,7 @@ contract ATokenVault is ERC4626, Ownable {
         require(to != address(0), "CANNOT_CLAIM_TO_ZERO_ADDRESS");
 
         address[] memory assets = new address[](1);
-        assets[0] = address(aToken);
+        assets[0] = address(A_TOKEN);
 
         (address[] memory rewardsList, uint256[] memory claimedAmounts) = REWARDS_CONTROLLER.claimAllRewards(assets, to);
 
@@ -359,7 +348,7 @@ contract ATokenVault is ERC4626, Ownable {
      *
      */
     function emergencyRescue(address token, address to, uint256 amount) public onlyOwner {
-        require(token != address(aToken), "CANNOT_RESCUE_ATOKEN");
+        require(token != address(A_TOKEN), "CANNOT_RESCUE_ATOKEN");
 
         ERC20(token).transfer(to, amount);
 
@@ -374,7 +363,7 @@ contract ATokenVault is ERC4626, Ownable {
 
     function totalAssets() public view override returns (uint256) {
         // Report only the total assets net of fees, for vault share logic
-        return aToken.balanceOf(address(this)) - getCurrentFees();
+        return A_TOKEN.balanceOf(address(this)) - getCurrentFees();
     }
 
     function getCurrentFees() public view returns (uint256) {
@@ -383,7 +372,7 @@ contract ATokenVault is ERC4626, Ownable {
             return _accumulatedFees;
         } else {
             // Calculate new fees since last accrueYield
-            uint256 newVaultBalance = aToken.balanceOf(address(this));
+            uint256 newVaultBalance = A_TOKEN.balanceOf(address(this));
             uint256 newYield = newVaultBalance - _lastVaultBalance;
             uint256 newFees = newYield.mulDivDown(_fee, SCALE);
 
@@ -414,7 +403,7 @@ contract ATokenVault is ERC4626, Ownable {
     function _accrueYield() internal {
         // Fees are accrued and claimable in aToken form
         if (block.timestamp != _lastUpdated) {
-            uint256 newVaultBalance = aToken.balanceOf(address(this));
+            uint256 newVaultBalance = A_TOKEN.balanceOf(address(this));
             uint256 newYield = newVaultBalance - _lastVaultBalance;
             uint256 newFeesEarned = newYield.mulDivDown(_fee, SCALE);
 
@@ -435,11 +424,10 @@ contract ATokenVault is ERC4626, Ownable {
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(depositor, address(this), assets);
 
-        // Approve and Deposit the received underlying into Aave v3
-        asset.approve(address(aavePool), assets);
-        aavePool.supply(address(asset), assets, address(this), 0);
+        // Deposit the received underlying into Aave v3
+        AAVE_POOL.supply(address(asset), assets, address(this), 0);
 
-        _lastVaultBalance = aToken.balanceOf(address(this));
+        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
 
         _mint(receiver, shares);
 
@@ -454,11 +442,10 @@ contract ATokenVault is ERC4626, Ownable {
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(depositor, address(this), assets);
 
-        // Approve and Deposit the received underlying into Aave v3
-        asset.approve(address(aavePool), assets);
-        aavePool.supply(address(asset), assets, address(this), 0);
+        // Deposit the received underlying into Aave v3
+        AAVE_POOL.supply(address(asset), assets, address(this), 0);
 
-        _lastVaultBalance = aToken.balanceOf(address(this));
+        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
 
         _mint(receiver, shares);
 
@@ -488,8 +475,8 @@ contract ATokenVault is ERC4626, Ownable {
         emit Withdraw(msg.sender, receiver, owner, assets, shares);
 
         // Withdraw assets from Aave v3 and send to receiver
-        aavePool.withdraw(address(asset), assets, receiver);
-        _lastVaultBalance = aToken.balanceOf(address(this));
+        AAVE_POOL.withdraw(address(asset), assets, receiver);
+        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
     }
 
     function _redeem(uint256 shares, address receiver, address owner, bool withSig) internal returns (uint256 assets) {
@@ -512,8 +499,8 @@ contract ATokenVault is ERC4626, Ownable {
         emit Withdraw(msg.sender, receiver, owner, assets, shares);
 
         // Withdraw assets from Aave v3 and send to receiver
-        aavePool.withdraw(address(asset), assets, receiver);
-        _lastVaultBalance = aToken.balanceOf(address(this));
+        AAVE_POOL.withdraw(address(asset), assets, receiver);
+        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
     }
 
     function _maxAssetsSuppliableToAave() internal view returns (uint256) {
@@ -521,7 +508,7 @@ contract ATokenVault is ERC4626, Ownable {
         // returns max uint256 value if supply cap is 0 (not capped)
         // returns supply cap as max suppliable if there is one for this reserve
 
-        AaveDataTypes.ReserveData memory reserveData = aavePool.getReserveData(address(asset));
+        AaveDataTypes.ReserveData memory reserveData = AAVE_POOL.getReserveData(address(asset));
         uint256 reserveConfigMap = reserveData.configuration.data;
         uint256 supplyCap = (reserveConfigMap & ~AAVE_SUPPLY_CAP_MASK) >> AAVE_SUPPLY_CAP_BIT_POSITION;
         supplyCap = supplyCap * 10 ** asset.decimals(); // scale supply cap by asset's decimals
