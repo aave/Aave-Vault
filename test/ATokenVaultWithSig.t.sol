@@ -98,7 +98,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
@@ -187,7 +187,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
@@ -533,7 +533,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
@@ -578,7 +578,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
             receiver: ALICE,
-            nonce: vault.sigNonces(ALICE),
+            nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
