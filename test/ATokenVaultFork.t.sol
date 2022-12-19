@@ -12,7 +12,6 @@ import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsCont
 import {IPool} from "aave/interfaces/IPool.sol";
 
 import {DataTypes} from "../src/libraries/DataTypes.sol";
-import {Errors} from "../src/libraries/Errors.sol";
 import {Events} from "../src/libraries/Events.sol";
 
 contract ATokenVaultForkTest is ATokenVaultBaseTest {
@@ -62,7 +61,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     //////////////////////////////////////////////////////////////*/
 
     function testDeployRevertsFeeTooHigh() public {
-        vm.expectRevert(Errors.FeeTooHigh.selector);
+        vm.expectRevert(ERR_FEE_TOO_HIGH);
         vault = new ATokenVault(
             dai,
             SHARE_NAME,
@@ -77,7 +76,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         // UNI token is not listed on Aave v3
         address uniToken = 0xb33EaAd8d922B1083446DC23f610c2567fB5180f;
 
-        vm.expectRevert(Errors.AssetNotSupported.selector);
+        vm.expectRevert(ERR_ASSET_NOT_SUPPORTED);
         vault = new ATokenVault(
             ERC20(uniToken),
             SHARE_NAME,
@@ -127,7 +126,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _deployAndCheckProps();
 
         vm.startPrank(OWNER);
-        vm.expectRevert(Errors.FeeTooHigh.selector);
+        vm.expectRevert(ERR_FEE_TOO_HIGH);
         vault.setFee(SCALE + 1);
         vm.stopPrank();
     }
@@ -154,7 +153,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertGt(vaultADaiBalance, feesAccrued); //Actual vault balance > feesAmount
 
         vm.startPrank(OWNER);
-        vm.expectRevert(Errors.InsufficientFees.selector);
+        vm.expectRevert(ERR_INSUFFICIENT_FEES);
         vault.withdrawFees(OWNER, feesAccrued + ONE); // Try to withdraw more than accrued
         vm.stopPrank();
     }
@@ -165,6 +164,24 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.startPrank(ALICE);
         vm.expectRevert(ERR_NOT_OWNER);
         vault.updateAavePool();
+        vm.stopPrank();
+    }
+
+    function testNonOwnerCannotRescueTokens() public {
+        _deployAndCheckProps();
+
+        vm.startPrank(ALICE);
+        vm.expectRevert(ERR_NOT_OWNER);
+        vault.emergencyRescue(address(dai), ALICE, ONE);
+        vm.stopPrank();
+    }
+
+    function testCannotRescueAToken() public {
+        _deployAndCheckProps();
+
+        vm.startPrank(OWNER);
+        vm.expectRevert(ERR_CANNOT_RESCUE_ATOKEN);
+        vault.emergencyRescue(address(aDai), OWNER, ONE);
         vm.stopPrank();
     }
 
@@ -227,24 +244,24 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _deployAndCheckProps();
 
         uint256 newFee = 0.1e18; //10%
-        assertFalse(newFee == vault.fee()); // new fee must be different
+        assertFalse(newFee == vault.getFee()); // new fee must be different
 
         vm.startPrank(OWNER);
         vault.setFee(newFee);
         vm.stopPrank();
 
-        assertEq(vault.fee(), newFee);
+        assertEq(vault.getFee(), newFee);
     }
 
     function testSetFeeEmitsEvent() public {
         _deployAndCheckProps();
 
         uint256 newFee = 0.1e18; //10%
-        assertFalse(newFee == vault.fee()); // new fee must be different
+        assertFalse(newFee == vault.getFee()); // new fee must be different
 
         vm.startPrank(OWNER);
         vm.expectEmit(false, false, false, true, address(vault));
-        emit Events.FeeUpdated(vault.fee(), newFee);
+        emit Events.FeeUpdated(vault.getFee(), newFee);
         vault.setFee(newFee);
         vm.stopPrank();
     }
@@ -265,6 +282,34 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.expectEmit(false, false, false, true, address(vault));
         emit Events.AavePoolUpdated(expectedPoolAddress);
         vault.updateAavePool();
+        vm.stopPrank();
+    }
+
+    function testOwnerCanRescueTokens() public {
+        _deployAndCheckProps();
+
+        deal(address(dai), address(vault), ONE);
+
+        assertEq(dai.balanceOf(address(vault)), ONE);
+        assertEq(dai.balanceOf(OWNER), 0);
+
+        vm.startPrank(OWNER);
+        vault.emergencyRescue(address(dai), OWNER, ONE);
+        vm.stopPrank();
+
+        assertEq(dai.balanceOf(address(vault)), 0);
+        assertEq(dai.balanceOf(OWNER), ONE);
+    }
+
+    function testEmergencyRescueEmitsEvent() public {
+        _deployAndCheckProps();
+
+        deal(address(dai), address(vault), ONE);
+
+        vm.startPrank(OWNER);
+        vm.expectEmit(true, true, false, true, address(vault));
+        emit Events.EmergencyRescue(address(dai), OWNER, ONE);
+        vault.emergencyRescue(address(dai), OWNER, ONE);
         vm.stopPrank();
     }
 
@@ -339,8 +384,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _deployAndCheckProps();
 
-        uint256 lastUpdated = vault.lastUpdated();
-        uint256 lastVaultBalance = vault.lastVaultBalance();
+        uint256 lastUpdated = vault.getLastUpdated();
+        uint256 lastVaultBalance = vault.getLastVaultBalance();
 
         _depositFromUser(ALICE, amount);
         skip(1);
@@ -348,8 +393,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         // only lastUpdated does NOT change if same timestamp
         // lastVaultBalance is updated separately regardless of timestamp
 
-        assertEq(vault.lastUpdated(), lastUpdated + 1);
-        assertApproxEqRel(vault.lastVaultBalance(), lastVaultBalance + (2 * amount), ONE_BPS);
+        assertEq(vault.getLastUpdated(), lastUpdated + 1);
+        assertApproxEqRel(vault.getLastVaultBalance(), lastVaultBalance + (2 * amount), ONE_BPS);
     }
 
     function testAccrueYieldDoesNotUpdateOnSameTimestamp() public {
@@ -357,8 +402,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _deployAndCheckProps();
 
         uint256 prevTimestamp = block.timestamp;
-        uint256 lastUpdated = vault.lastUpdated();
-        uint256 lastVaultBalance = vault.lastVaultBalance();
+        uint256 lastUpdated = vault.getLastUpdated();
+        uint256 lastVaultBalance = vault.getLastVaultBalance();
 
         _depositFromUser(ALICE, amount);
         _depositFromUser(ALICE, amount);
@@ -366,8 +411,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         // lastVaultBalance is updated separately regardless of timestamp
 
         assertEq(block.timestamp, prevTimestamp);
-        assertEq(vault.lastUpdated(), lastUpdated); // this should not have changed as timestamp is same
-        assertApproxEqAbs(vault.lastVaultBalance(), lastVaultBalance + (2 * amount), 1); // This should change on deposit() anyway
+        assertEq(vault.getLastUpdated(), lastUpdated); // this should not have changed as timestamp is same
+        assertApproxEqAbs(vault.getLastVaultBalance(), lastVaultBalance + (2 * amount), 1); // This should change on deposit() anyway
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -778,6 +823,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     }
 
     function _getFeesOnAmount(uint256 amount) public view returns (uint256) {
-        return (amount * vault.fee()) / SCALE;
+        return (amount * vault.getFee()) / SCALE;
     }
 }
