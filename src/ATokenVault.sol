@@ -318,7 +318,7 @@ contract ATokenVault is ERC4626, Ownable {
 
         A_TOKEN.transfer(to, amount);
 
-        emit Events.FeesWithdrawn(to, amount);
+        emit Events.FeesWithdrawn(to, amount, _lastVaultBalance, _accumulatedFees);
     }
 
     /**
@@ -412,7 +412,7 @@ contract ATokenVault is ERC4626, Ownable {
             _lastVaultBalance = newVaultBalance;
             _lastUpdated = block.timestamp;
 
-            emit Events.YieldAccrued(newYield, newFeesEarned);
+            emit Events.YieldAccrued(newYield, newFeesEarned, newVaultBalance);
         }
     }
 
