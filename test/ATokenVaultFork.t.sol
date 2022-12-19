@@ -221,12 +221,13 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _accrueFeesInVault(feesAmount);
 
         uint256 feesAccrued = vault.getCurrentFees();
+        uint256 vaultADaiBalanceBefore = aDai.balanceOf(address(vault));
 
         assertGt(feesAccrued, 0);
 
         vm.startPrank(OWNER);
         vm.expectEmit(true, false, false, true, address(vault));
-        emit Events.FeesWithdrawn(OWNER, feesAccrued);
+        emit Events.FeesWithdrawn(OWNER, feesAccrued, vaultADaiBalanceBefore-feesAccrued, 0);
         vault.withdrawFees(OWNER, feesAccrued);
         vm.stopPrank();
     }
@@ -385,6 +386,32 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(block.timestamp, prevTimestamp);
         assertEq(vault.getLastUpdated(), lastUpdated); // this should not have changed as timestamp is same
         assertApproxEqAbs(vault.getLastVaultBalance(), lastVaultBalance + (2 * amount), 1); // This should change on deposit() anyway
+    }
+
+    function testAccrueYieldEmitsEvent() public {
+        uint256 amount = HUNDRED;
+        _deployAndCheckProps();
+
+        _depositFromUser(ALICE, amount);
+
+        uint vaultBalanceBefore = aDai.balanceOf(address(vault));
+
+        skip(365 days);
+
+        uint vaultBalanceAfter = aDai.balanceOf(address(vault));
+
+        uint expectedNewYield = vaultBalanceAfter - vaultBalanceBefore;
+        uint expectedFeesFromYield = (expectedNewYield * vault.getFee()) / SCALE;
+
+        deal(address(dai), ALICE, amount);
+
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), amount);
+
+        vm.expectEmit(false, false, false, true, address(vault));
+        emit Events.YieldAccrued(expectedNewYield, expectedFeesFromYield, vaultBalanceAfter);
+        vault.deposit(amount, ALICE);
+        vm.stopPrank();
     }
 
     /*//////////////////////////////////////////////////////////////
