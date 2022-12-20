@@ -346,7 +346,9 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             receiver: ALICE,
             nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
-            functionTypehash: keccak256("Deposit(uint256 amount,address receiver,address depositor,uint256 nonce,uint256 deadline)")
+            functionTypehash: keccak256(
+                "Deposit(uint256 amount,address receiver,address depositor,uint256 nonce,uint256 deadline)"
+                )
         });
 
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
@@ -396,7 +398,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
-        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({
+            assets: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            depositSig: sig
+        });
         vm.stopPrank();
 
         assertEq(dai.balanceOf(ALICE), 0);
@@ -436,7 +444,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
         vm.expectRevert(ERR_PERMIT_DEADLINE_EXPIRED);
-        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({
+            assets: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            depositSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -468,7 +482,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({
+            assets: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            depositSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -500,7 +520,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({
+            assets: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            depositSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -532,7 +558,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({
+            assets: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            depositSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -564,7 +596,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({
+            assets: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            depositSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -596,7 +634,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({
+            assets: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            depositSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -632,7 +676,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
-        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({
+            assets: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            depositSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -667,7 +717,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({
+            assets: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            depositSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -701,7 +757,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({
+            assets: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            depositSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -934,7 +996,9 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             receiver: ALICE,
             nonce: vault.getSigNonce(ALICE),
             deadline: block.timestamp,
-            functionTypehash: keccak256("Mint(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)")
+            functionTypehash: keccak256(
+                "Mint(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)"
+                )
         });
 
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
@@ -980,7 +1044,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         // Bob calls mint on Alice's behalf
         vm.startPrank(BOB);
-        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({
+            shares: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            mintSig: sig
+        });
         vm.stopPrank();
 
         assertEq(dai.balanceOf(ALICE), 0);
@@ -1020,7 +1090,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Bob calls mint on Alice's behalf
         vm.startPrank(BOB);
         vm.expectRevert(ERR_PERMIT_DEADLINE_EXPIRED);
-        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({
+            shares: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            mintSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -1052,7 +1128,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({
+            shares: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            mintSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -1084,7 +1166,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({
+            shares: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            mintSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -1116,7 +1204,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({
+            shares: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            mintSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -1148,7 +1242,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({
+            shares: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            mintSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -1180,7 +1280,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({
+            shares: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            mintSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -1216,7 +1322,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
-        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({
+            shares: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            mintSig: sig
+        });
         vm.stopPrank();
     }
 
@@ -1250,7 +1362,13 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({
+            shares: amount,
+            receiver: ALICE,
+            depositor: ALICE,
+            permitSig: permitSig,
+            mintSig: sig
+        });
         vm.stopPrank();
     }
 
