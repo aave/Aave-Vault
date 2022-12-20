@@ -80,7 +80,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
                                 DEPOSIT
     //////////////////////////////////////////////////////////////*/
 
-    function testDepositWithSigUsingPermit() public {
+    function testPermitAndDepositWithSig() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -113,7 +113,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
 
         assertEq(dai.balanceOf(ALICE), 0);
@@ -122,53 +122,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(address(vault)), amount);
     }
 
-    function testDepositWithSigUsingApprove() public {
-        uint256 amount = HUNDRED;
-        deal(address(dai), ALICE, amount);
-
-        // Create bad permit sig
-        PermitSigParams memory permitParams = PermitSigParams({
-            owner: ALICE,
-            ownerPrivKey: 1,
-            spender: address(vault),
-            value: 0,
-            nonce: dai.nonces(ALICE),
-            deadline: 0
-        });
-
-        VaultSigParams memory params = VaultSigParams({
-            assetOwner: ALICE,
-            ownerPrivKey: ALICE_PRIV_KEY,
-            amount: amount,
-            receiver: ALICE,
-            nonce: vault.getSigNonce(ALICE),
-            deadline: block.timestamp,
-            functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
-        });
-
-        // Alice approves DAI and signs depositWithSig msg
-        vm.prank(ALICE);
-        dai.approve(address(vault), amount);
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
-        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
-
-        assertEq(dai.balanceOf(ALICE), amount);
-        assertEq(dai.balanceOf(BOB), 0);
-        assertEq(dai.balanceOf(address(vault)), 0);
-        assertEq(aDai.balanceOf(address(vault)), 0);
-
-        // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
-        vm.startPrank(BOB);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
-        vm.stopPrank();
-
-        assertEq(dai.balanceOf(ALICE), 0);
-        assertEq(dai.balanceOf(BOB), 0);
-        assertEq(dai.balanceOf(address(vault)), 0);
-        assertEq(aDai.balanceOf(address(vault)), amount);
-    }
-
-    function testDepositWithSigFailsWithoutPermitOrApprove() public {
+    function testPermitAndDepositWithSigFailsIfPermitFails() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -198,12 +152,12 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
-        vm.expectRevert(ERR_TRANSFER_FROM_FAILED);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vm.expectRevert(ERR_PERMIT_DEADLINE_EXPIRED);
+        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
 
-    function testDepositWithSigFailsIfWrongOwner() public {
+    function testPermitAndDepositWithSigFailsIfWrongOwner() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -231,11 +185,11 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
 
-    function testDepositWithSigFailsIfWrongPrivKey() public {
+    function testPermitAndDepositWithSigFailsIfWrongPrivKey() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -263,11 +217,11 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
 
-    function testDepositWithSigFailsIfWrongReceiver() public {
+    function testPermitAndDepositWithSigFailsIfWrongReceiver() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -295,11 +249,11 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
 
-    function testDepositWithSigFailsIfWrongValue() public {
+    function testPermitAndDepositWithSigFailsIfWrongValue() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -327,11 +281,11 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
 
-    function testDepositWithSigFailsIfWrongNonce() public {
+    function testPermitAndDepositWithSigFailsIfWrongNonce() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -359,11 +313,11 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
 
-    function testDepositWithSigFailsIfPastDeadline() public {
+    function testPermitAndDepositWithSigFailsIfPastDeadline() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -395,11 +349,11 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
 
-    function testDepositWithSigFailsIfBadDomainSeparator() public {
+    function testPermitAndDepositWithSigFailsIfBadDomainSeparator() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -430,11 +384,11 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
 
-    function testDepositWithSigFailsIfBadTypehash() public {
+    function testPermitAndDepositWithSigFailsIfBadTypehash() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -464,7 +418,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
+        vault.permitAndDepositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, depositSig: sig});
         vm.stopPrank();
     }
 
@@ -472,7 +426,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
                                     MINT
     //////////////////////////////////////////////////////////////*/
 
-    function testMintWithSigUsingPermit() public {
+    function testPermitAndMintWithSig() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -505,7 +459,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         // Bob calls mint on Alice's behalf
         vm.startPrank(BOB);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
 
         assertEq(dai.balanceOf(ALICE), 0);
@@ -514,52 +468,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(address(vault)), amount);
     }
 
-    function testMintWithSigUsingApprove() public {
-        uint256 amount = HUNDRED;
-        deal(address(dai), ALICE, amount);
-
-        // Bad permit sig
-        PermitSigParams memory permitParams = PermitSigParams({
-            owner: ALICE,
-            ownerPrivKey: 1,
-            spender: address(vault),
-            value: 0,
-            nonce: dai.nonces(ALICE),
-            deadline: 0
-        });
-
-        VaultSigParams memory params = VaultSigParams({
-            assetOwner: ALICE,
-            ownerPrivKey: ALICE_PRIV_KEY,
-            amount: amount,
-            receiver: ALICE,
-            nonce: vault.getSigNonce(ALICE),
-            deadline: block.timestamp,
-            functionTypehash: MINT_WITH_SIG_TYPEHASH
-        });
-
-        vm.prank(ALICE);
-        dai.approve(address(vault), amount);
-        DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
-        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
-
-        assertEq(dai.balanceOf(ALICE), amount);
-        assertEq(dai.balanceOf(BOB), 0);
-        assertEq(dai.balanceOf(address(vault)), 0);
-        assertEq(aDai.balanceOf(address(vault)), 0);
-
-        // Bob calls mint on Alice's behalf
-        vm.startPrank(BOB);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
-        vm.stopPrank();
-
-        assertEq(dai.balanceOf(ALICE), 0);
-        assertEq(dai.balanceOf(BOB), 0);
-        assertEq(dai.balanceOf(address(vault)), 0);
-        assertEq(aDai.balanceOf(address(vault)), amount);
-    }
-
-    function testMintWithSigFailsWithoutPermitOrApprove() public {
+    function testPermitAndMintWithSigFailsIfPermitFails() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -589,12 +498,12 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         // Bob calls mint on Alice's behalf
         vm.startPrank(BOB);
-        vm.expectRevert(ERR_TRANSFER_FROM_FAILED);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vm.expectRevert(ERR_PERMIT_DEADLINE_EXPIRED);
+        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
 
-    function testMintWithSigFailsIfWrongOwner() public {
+    function testPermitAndMintWithSigFailsIfWrongOwner() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -622,11 +531,11 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
 
-    function testMintWithSigFailsIfWrongPrivKey() public {
+    function testPermitAndMintWithSigFailsIfWrongPrivKey() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -654,11 +563,11 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
 
-    function testMintWithSigFailsIfWrongReceiver() public {
+    function testPermitAndMintWithSigFailsIfWrongReceiver() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -686,11 +595,11 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
 
-    function testMintWithSigFailsIfWrongValue() public {
+    function testPermitAndMintWithSigFailsIfWrongValue() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -718,11 +627,11 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
 
-    function testMintWithSigFailsIfWrongNonce() public {
+    function testPermitAndMintWithSigFailsIfWrongNonce() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -750,11 +659,11 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
 
-    function testMintWithSigFailsIfPastDeadline() public {
+    function testPermitAndMintWithSigFailsIfPastDeadline() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -786,11 +695,11 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
 
-    function testMintWithSigFailsIfWrongFunctionTypehash() public {
+    function testPermitAndMintWithSigFailsIfWrongFunctionTypehash() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
@@ -820,7 +729,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
+        vault.permitAndMintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, permitSig: permitSig, mintSig: sig});
         vm.stopPrank();
     }
 

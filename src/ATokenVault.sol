@@ -93,6 +93,45 @@ contract ATokenVault is ERC4626, Ownable {
         shares = _handleDeposit(assets, receiver, msg.sender);
     }
 
+        /**
+     * @notice Deposits a specified amount of assets into the vault, minting a corresponding amount of shares,
+     * using an EIP721 signature to enable a third-party to call this function on behalf of the depositor.
+     *
+     * @param assets The amount of underlying asset to deposit
+     * @param receiver The address to receive the shares
+     * @param depositor The address from which to pull the assets for the deposit
+     * @param depositSig An EIP721 signature from the depositor to allow this function to be called on their behalf
+     *
+     * @return shares The amount of shares minted to the receiver
+     */
+    function depositWithSig(
+        uint256 assets,
+        address receiver,
+        address depositor,
+        DataTypes.EIP712Signature calldata depositSig
+    ) public returns (uint256 shares) {
+        unchecked {
+            MetaTxHelpers._validateRecoveredAddress(
+                MetaTxHelpers._calculateDigest(
+                    keccak256(
+                        abi.encode(
+                            DEPOSIT_WITH_SIG_TYPEHASH,
+                            assets,
+                            receiver,
+                            depositor,
+                            _sigNonces[depositor]++,
+                            depositSig.deadline
+                        )
+                    ),
+                    DOMAIN_SEPARATOR()
+                ),
+                depositor,
+                depositSig
+            );
+        }
+        shares = _handleDeposit(assets, receiver, depositor);
+    }
+
     /**
      * @notice Deposits a specified amount of assets into the vault, minting a corresponding amount of shares,
      * using an EIP721 signature to enable a third-party to call this function on behalf of the depositor.
@@ -105,21 +144,14 @@ contract ATokenVault is ERC4626, Ownable {
      *
      * @return shares The amount of shares minted to the receiver
      */
-
-    function depositWithSig(
+    function permitAndDepositWithSig(
         uint256 assets,
         address receiver,
         address depositor,
         DataTypes.EIP712Signature calldata permitSig,
         DataTypes.EIP712Signature calldata depositSig
     ) public returns (uint256 shares) {
-        // Permit is allowed to fail - approval has been done separately, or token may not support permit
-        try asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s) {}
-            catch {}
-
-        // TODO alternatively could use permitSig.deadline != 0 to skip if needed
-        // if (permitSig.deadline != 0)
-        //     asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s);
+        asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s);
 
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
@@ -162,12 +194,51 @@ contract ATokenVault is ERC4626, Ownable {
      * @param shares The amount of shares to mint
      * @param receiver The address to receive the shares
      * @param depositor The address from which to pull the assets for the deposit
-     * @param permitSig An EIP721 signature to increase depositor's allowance for vault
      * @param mintSig An EIP721 signature from the depositor to allow this function to be called on their behalf
      *
      * @return assets The amount of assets deposited by the receiver
      */
     function mintWithSig(
+        uint256 shares,
+        address receiver,
+        address depositor,
+        DataTypes.EIP712Signature calldata mintSig
+    ) public returns (uint256 assets) {
+        unchecked {
+            MetaTxHelpers._validateRecoveredAddress(
+                MetaTxHelpers._calculateDigest(
+                    keccak256(
+                        abi.encode(
+                            MINT_WITH_SIG_TYPEHASH,
+                            shares,
+                            receiver,
+                            depositor,
+                            _sigNonces[depositor]++,
+                            mintSig.deadline
+                        )
+                    ),
+                    DOMAIN_SEPARATOR()
+                ),
+                depositor,
+                mintSig
+            );
+        }
+        assets = _handleMint(shares, receiver, depositor);
+    }
+
+    /**
+     * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of assets,
+     * using an EIP721 signature to enable a third-party to call this function on behalf of the depositor.
+     *
+     * @param shares The amount of shares to mint
+     * @param receiver The address to receive the shares
+     * @param depositor The address from which to pull the assets for the deposit
+     * @param permitSig An EIP721 signature to increase depositor's allowance for vault
+     * @param mintSig An EIP721 signature from the depositor to allow this function to be called on their behalf
+     *
+     * @return assets The amount of assets deposited by the receiver
+     */
+    function permitAndMintWithSig(
         uint256 shares,
         address receiver,
         address depositor,
@@ -178,9 +249,7 @@ contract ATokenVault is ERC4626, Ownable {
         _accrueYield();
         assets = previewMint(shares);
 
-        // Permit is allowed to fail - approval has been done separately, or token may not support permit
-        try asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s) {}
-            catch {}
+        asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s);
 
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
