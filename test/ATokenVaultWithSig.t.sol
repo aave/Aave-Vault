@@ -80,6 +80,73 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
                                 DEPOSIT
     //////////////////////////////////////////////////////////////*/
 
+    // DEPOSIT WITH SIG
+
+    // Fails if not approved
+    // Fails if wrong owner
+    // Fails if wrong private key
+    // Fails if wrong receiver
+    // Fails if wrong value
+    // Fails if wrong nonce
+    // Fails if past deadline
+    // Fails if bad domain separator
+    // Fails if bad typehash
+
+    function testDepositWithSig() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.getSigNonce(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
+        });
+
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
+        assertEq(dai.balanceOf(ALICE), amount);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(dai.balanceOf(address(vault)), 0);
+        assertEq(aDai.balanceOf(address(vault)), 0);
+
+        vm.prank(ALICE);
+        dai.approve(address(vault), amount);
+
+        // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
+        vm.startPrank(BOB);
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, depositSig: sig});
+        vm.stopPrank();
+
+        assertEq(dai.balanceOf(ALICE), 0);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(dai.balanceOf(address(vault)), 0);
+        assertEq(aDai.balanceOf(address(vault)), amount);
+    }
+
+    function testDepositWithSigFailsIfNotApproved() public {}
+
+    function testDepositWithSigFailsIfWrongOwner() public {}
+
+    function testDepositWithSigFailsIfWrongPrivateKey() public {}
+
+    function testDepositWithSigFailsIfWrongReceiver() public {}
+
+    function testDepositWithSigFailsIfWrongValue() public {}
+
+    function testDepositWithSigFailsIfWrongNonce() public {}
+
+    function testDepositWithSigFailsIfPastDeadline() public {}
+
+    function testDepositWithSigFailsIfBadDomainSeparator() public {}
+
+    function testDepositWithSigFailsIfBadTypehash() public {}
+
+    // PERMIT AND DEPOSIT WITH SIG
+
     function testPermitAndDepositWithSig() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
@@ -425,6 +492,63 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
     /*//////////////////////////////////////////////////////////////
                                     MINT
     //////////////////////////////////////////////////////////////*/
+
+    // MINT WITH SIG
+
+    function testMintWithSig() public {
+        uint256 amount = HUNDRED;
+        deal(address(dai), ALICE, amount);
+
+        VaultSigParams memory params = VaultSigParams({
+            assetOwner: ALICE,
+            ownerPrivKey: ALICE_PRIV_KEY,
+            amount: amount,
+            receiver: ALICE,
+            nonce: vault.getSigNonce(ALICE),
+            deadline: block.timestamp,
+            functionTypehash: MINT_WITH_SIG_TYPEHASH
+        });
+
+        DataTypes.EIP712Signature memory sig = _createVaultSig(params);
+
+        vm.prank(ALICE);
+        dai.approve(address(vault), amount);
+
+        assertEq(dai.balanceOf(ALICE), amount);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(dai.balanceOf(address(vault)), 0);
+        assertEq(aDai.balanceOf(address(vault)), 0);
+
+        vm.prank(BOB);
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, mintSig: sig});
+
+        assertEq(dai.balanceOf(ALICE), 0);
+        assertEq(dai.balanceOf(BOB), 0);
+        assertEq(dai.balanceOf(address(vault)), 0);
+        assertEq(aDai.balanceOf(address(vault)), amount);
+    }
+
+    // TODO rename to mintwithsig
+
+    function testMintWithSigFailsIfNotApproved() public {}
+
+    function testMintWithSigFailsIfWrongOwner() public {}
+
+    function testMintWithSigFailsIfWrongPrivateKey() public {}
+
+    function testMintWithSigFailsIfWrongReceiver() public {}
+
+    function testMintWithSigFailsIfWrongValue() public {}
+
+    function testMintWithSigFailsIfWrongNonce() public {}
+
+    function testMintWithSigFailsIfPastDeadline() public {}
+
+    function testMintWithSigFailsIfBadDomainSeparator() public {}
+
+    function testMintWithSigFailsIfBadTypehash() public {}
+
+    // PERMIT AND MINT WITH SIG
 
     function testPermitAndMintWithSig() public {
         uint256 amount = HUNDRED;
