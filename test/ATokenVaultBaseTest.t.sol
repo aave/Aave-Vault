@@ -60,6 +60,7 @@ contract ATokenVaultBaseTest is Test {
     // Vault Errors
     bytes constant ERR_ZERO_ASSETS = bytes("ZERO_ASSETS");
     bytes constant ERR_ZERO_SHARES = bytes("ZERO_SHARES");
+    bytes constant ERR_TRANSFER_FROM_FAILED = bytes("TRANSFER_FROM_FAILED");
     bytes constant ERR_CANNOT_RESCUE_ATOKEN = bytes("CANNOT_RESCUE_ATOKEN");
     bytes constant ERR_FEE_TOO_HIGH = bytes("FEE_TOO_HIGH");
     bytes constant ERR_ASSET_NOT_SUPPORTED = bytes("ASSET_NOT_SUPPORTED");
