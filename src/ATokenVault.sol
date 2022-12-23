@@ -34,6 +34,7 @@ contract ATokenVault is ERC4626, Ownable {
     IRewardsController public immutable REWARDS_CONTROLLER;
     IPool public immutable AAVE_POOL;
     IAToken public immutable A_TOKEN;
+    uint8 public immutable DECIMALS;
 
     mapping(address => uint256) internal _sigNonces;
 
@@ -67,6 +68,7 @@ contract ATokenVault is ERC4626, Ownable {
         address aTokenAddress = AAVE_POOL.getReserveData(address(underlying)).aTokenAddress;
         require(aTokenAddress != address(0), "ASSET_NOT_SUPPORTED");
         A_TOKEN = IAToken(aTokenAddress);
+        DECIMALS = underlying.decimals();
 
         asset.approve(address(AAVE_POOL), type(uint256).max);
 
@@ -606,7 +608,7 @@ contract ATokenVault is ERC4626, Ownable {
         AaveDataTypes.ReserveData memory reserveData = AAVE_POOL.getReserveData(address(asset));
         uint256 reserveConfigMap = reserveData.configuration.data;
         uint256 supplyCap = (reserveConfigMap & ~AAVE_SUPPLY_CAP_MASK) >> AAVE_SUPPLY_CAP_BIT_POSITION;
-        supplyCap = supplyCap * 10 ** asset.decimals(); // scale supply cap by asset's decimals
+        supplyCap = supplyCap * 10 ** DECIMALS; // scale supply cap by asset's decimals
 
         if (
             (reserveConfigMap & ~AAVE_ACTIVE_MASK == 0) || (reserveConfigMap & ~AAVE_FROZEN_MASK != 0)
