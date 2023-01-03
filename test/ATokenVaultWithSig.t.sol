@@ -82,16 +82,6 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
     // DEPOSIT WITH SIG
 
-    // Fails if not approved
-    // Fails if wrong owner
-    // Fails if wrong private key
-    // Fails if wrong receiver
-    // Fails if wrong value
-    // Fails if wrong nonce
-    // Fails if past deadline
-    // Fails if bad domain separator
-    // Fails if bad typehash
-
     function testDepositWithSig() public {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
