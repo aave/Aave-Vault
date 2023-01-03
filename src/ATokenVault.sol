@@ -231,53 +231,6 @@ contract ATokenVault is ERC4626, Ownable {
     }
 
     /**
-     * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of assets,
-     * using an EIP721 signature to enable a third-party to call this function on behalf of the depositor.
-     *
-     * @param shares The amount of shares to mint
-     * @param receiver The address to receive the shares
-     * @param depositor The address from which to pull the assets for the deposit
-     * @param permitSig An EIP721 signature to increase depositor's allowance for vault
-     * @param mintSig An EIP721 signature from the depositor to allow this function to be called on their behalf
-     *
-     * @return assets The amount of assets deposited by the receiver
-     */
-    function permitAndMintWithSig(
-        uint256 shares,
-        address receiver,
-        address depositor,
-        DataTypes.EIP712Signature calldata permitSig,
-        DataTypes.EIP712Signature calldata mintSig
-    ) public returns (uint256 assets) {
-        //yield accrued here for share conversion, will be skipped in _mint
-        _accrueYield();
-        assets = previewMint(shares);
-
-        asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s);
-
-        unchecked {
-            MetaTxHelpers._validateRecoveredAddress(
-                MetaTxHelpers._calculateDigest(
-                    keccak256(
-                        abi.encode(
-                            MINT_WITH_SIG_TYPEHASH,
-                            shares,
-                            receiver,
-                            depositor,
-                            _sigNonces[depositor]++,
-                            mintSig.deadline
-                        )
-                    ),
-                    DOMAIN_SEPARATOR()
-                ),
-                depositor,
-                mintSig
-            );
-        }
-        assets = _handleMint(shares, receiver, depositor);
-    }
-
-    /**
      * @notice Withdraws a specified amount of assets from the vault, burning the corresponding amount of shares.
      *
      * @param assets The amount of assets to withdraw
