@@ -29,6 +29,8 @@ contract ATokenVault is ERC4626, Ownable {
     using FixedPointMathLib for uint256;
 
     uint256 internal constant SCALE = 1e18;
+    uint256 internal constant RAY = 1e27;
+    uint256 internal constant HALF_RAY = 0.5e27;
 
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
     IRewardsController public immutable REWARDS_CONTROLLER;
@@ -603,9 +605,10 @@ contract ATokenVault is ERC4626, Ownable {
     function _maxAssetsSuppliableToAave() internal view returns (uint256) {
         // returns 0 if reserve is not active, frozen, or paused
         // returns max uint256 value if supply cap is 0 (not capped)
-        // returns supply cap as max suppliable if there is one for this reserve
+        // returns supply cap - current amount supplied as max suppliable if there is a supply cap for this reserve
 
         AaveDataTypes.ReserveData memory reserveData = AAVE_POOL.getReserveData(address(asset));
+
         uint256 reserveConfigMap = reserveData.configuration.data;
         uint256 supplyCap = (reserveConfigMap & ~AAVE_SUPPLY_CAP_MASK) >> AAVE_SUPPLY_CAP_BIT_POSITION;
         supplyCap = supplyCap * 10 ** DECIMALS; // scale supply cap by asset's decimals
@@ -618,7 +621,29 @@ contract ATokenVault is ERC4626, Ownable {
         } else if (supplyCap == 0) {
             return type(uint256).max;
         } else {
-            return supplyCap;
+            // Reserve's supply cap - current amount supplied
+            // See similar logic in Aave v3 ValidationLogic library, in the validateSupply function
+            // https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/ValidationLogic.sol#L71-L78
+            return supplyCap
+                - _rayMul(
+                    (A_TOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)), reserveData.liquidityIndex
+                );
+        }
+    }
+
+    /**
+     * @notice Multiplies two ray, rounding half up to the nearest ray, taken from WadRayMath lib in Aave v3
+     * @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
+     * @param a Ray
+     * @param b Ray
+     * @return c = a raymul b
+     */
+    function _rayMul(uint256 a, uint256 b) internal pure returns (uint256 c) {
+        // to avoid overflow, a <= (type(uint256).max - HALF_RAY) / b
+        assembly {
+            if iszero(or(iszero(b), iszero(gt(a, div(sub(not(0), HALF_RAY), b))))) { revert(0, 0) }
+
+            c := div(add(mul(a, b), HALF_RAY), RAY)
         }
     }
 }
