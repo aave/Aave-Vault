@@ -4,6 +4,7 @@ pragma solidity 0.8.10;
 import {ERC4626, SafeTransferLib, FixedPointMathLib} from "solmate/mixins/ERC4626.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Ownable} from "openzeppelin/access/Ownable.sol";
+import {WadRayMath} from "aave/protocol/libraries/math/WadRayMath.sol";
 import {DataTypes as AaveDataTypes} from "aave/protocol/libraries/types/DataTypes.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
@@ -14,7 +15,6 @@ import {IAToken} from "aave/interfaces/IAToken.sol";
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
 import {DataTypes} from "./libraries/DataTypes.sol";
 import {Events} from "./libraries/Events.sol";
-
 import "./libraries/Constants.sol";
 
 /**
@@ -578,25 +578,9 @@ contract ATokenVault is ERC4626, Ownable {
             // See similar logic in Aave v3 ValidationLogic library, in the validateSupply function
             // https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/ValidationLogic.sol#L71-L78
             return supplyCap
-                - _rayMul(
+                - WadRayMath.rayMul(
                     (A_TOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)), reserveData.liquidityIndex
                 );
-        }
-    }
-
-    /**
-     * @notice Multiplies two ray, rounding half up to the nearest ray, taken from WadRayMath lib in Aave v3
-     * @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
-     * @param a Ray
-     * @param b Ray
-     * @return c = a raymul b
-     */
-    function _rayMul(uint256 a, uint256 b) internal pure returns (uint256 c) {
-        // to avoid overflow, a <= (type(uint256).max - HALF_RAY) / b
-        assembly {
-            if iszero(or(iszero(b), iszero(gt(a, div(sub(not(0), HALF_RAY), b))))) { revert(0, 0) }
-
-            c := div(add(mul(a, b), HALF_RAY), RAY)
         }
     }
 }
