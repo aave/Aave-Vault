@@ -13,4 +13,8 @@ contract MockAToken is ERC20 {
     function burn(address _recipient, uint256 _amount) public {
         _burn(_recipient, _amount);
     }
+
+    function scaledTotalSupply() public view returns (uint256) {
+        return totalSupply;
+    }
 }

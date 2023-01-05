@@ -4,6 +4,7 @@ pragma solidity 0.8.10;
 import {ERC4626, SafeTransferLib, FixedPointMathLib} from "solmate/mixins/ERC4626.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Ownable} from "openzeppelin/access/Ownable.sol";
+import {WadRayMath} from "aave/protocol/libraries/math/WadRayMath.sol";
 import {DataTypes as AaveDataTypes} from "aave/protocol/libraries/types/DataTypes.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
@@ -14,7 +15,6 @@ import {IAToken} from "aave/interfaces/IAToken.sol";
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
 import {DataTypes} from "./libraries/DataTypes.sol";
 import {Events} from "./libraries/Events.sol";
-
 import "./libraries/Constants.sol";
 
 /**
@@ -29,6 +29,8 @@ contract ATokenVault is ERC4626, Ownable {
     using FixedPointMathLib for uint256;
 
     uint256 internal constant SCALE = 1e18;
+    uint256 internal constant RAY = 1e27;
+    uint256 internal constant HALF_RAY = 0.5e27;
 
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
     IRewardsController public immutable REWARDS_CONTROLLER;
@@ -206,53 +208,6 @@ contract ATokenVault is ERC4626, Ownable {
         address depositor,
         DataTypes.EIP712Signature calldata mintSig
     ) public returns (uint256 assets) {
-        unchecked {
-            MetaTxHelpers._validateRecoveredAddress(
-                MetaTxHelpers._calculateDigest(
-                    keccak256(
-                        abi.encode(
-                            MINT_WITH_SIG_TYPEHASH,
-                            shares,
-                            receiver,
-                            depositor,
-                            _sigNonces[depositor]++,
-                            mintSig.deadline
-                        )
-                    ),
-                    DOMAIN_SEPARATOR()
-                ),
-                depositor,
-                mintSig
-            );
-        }
-        assets = _handleMint(shares, receiver, depositor);
-    }
-
-    /**
-     * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of assets,
-     * using an EIP721 signature to enable a third-party to call this function on behalf of the depositor.
-     *
-     * @param shares The amount of shares to mint
-     * @param receiver The address to receive the shares
-     * @param depositor The address from which to pull the assets for the deposit
-     * @param permitSig An EIP721 signature to increase depositor's allowance for vault
-     * @param mintSig An EIP721 signature from the depositor to allow this function to be called on their behalf
-     *
-     * @return assets The amount of assets deposited by the receiver
-     */
-    function permitAndMintWithSig(
-        uint256 shares,
-        address receiver,
-        address depositor,
-        DataTypes.EIP712Signature calldata permitSig,
-        DataTypes.EIP712Signature calldata mintSig
-    ) public returns (uint256 assets) {
-        //yield accrued here for share conversion, will be skipped in _mint
-        _accrueYield();
-        assets = previewMint(shares);
-
-        asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s);
-
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
@@ -603,9 +558,10 @@ contract ATokenVault is ERC4626, Ownable {
     function _maxAssetsSuppliableToAave() internal view returns (uint256) {
         // returns 0 if reserve is not active, frozen, or paused
         // returns max uint256 value if supply cap is 0 (not capped)
-        // returns supply cap as max suppliable if there is one for this reserve
+        // returns supply cap - current amount supplied as max suppliable if there is a supply cap for this reserve
 
         AaveDataTypes.ReserveData memory reserveData = AAVE_POOL.getReserveData(address(asset));
+
         uint256 reserveConfigMap = reserveData.configuration.data;
         uint256 supplyCap = (reserveConfigMap & ~AAVE_SUPPLY_CAP_MASK) >> AAVE_SUPPLY_CAP_BIT_POSITION;
         supplyCap = supplyCap * 10 ** DECIMALS; // scale supply cap by asset's decimals
@@ -618,7 +574,13 @@ contract ATokenVault is ERC4626, Ownable {
         } else if (supplyCap == 0) {
             return type(uint256).max;
         } else {
-            return supplyCap;
+            // Reserve's supply cap - current amount supplied
+            // See similar logic in Aave v3 ValidationLogic library, in the validateSupply function
+            // https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/ValidationLogic.sol#L71-L78
+            return supplyCap
+                - WadRayMath.rayMul(
+                    (A_TOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)), reserveData.liquidityIndex
+                );
         }
     }
 }
