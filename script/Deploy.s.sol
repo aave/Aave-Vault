@@ -14,6 +14,11 @@ contract Deploy is Script {
     address constant POOL_ADDRESS_PROVIDER_MUMBAI = 0x5343b5bA672Ae99d627A1C87866b8E53F47Db2E6;
     address constant REWARDS_CONTROLLER_MUMBAI = address(0);
 
+    // POLYGON MAINNET ADDRESSES
+    address constant DAI_POLYGON = 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063;
+    address constant POOL_ADDRESS_PROVIDER_POLYGON = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
+    address constant REWARDS_CONTROLLER_POLYGON = 0x929EC64c34a17401F460460D4B9390518E5B473e;
+
     // DEPLOYMENT PARAMETERS - CHANGE THESE FOR YOUR VAULT
     // ===================================================
     address underlyingAsset = DAI_MUMBAI; // An ERC20 address, must have an Aave v3 market
