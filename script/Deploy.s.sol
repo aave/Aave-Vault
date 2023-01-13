@@ -34,6 +34,11 @@ contract Deploy is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
+        address deployerAddress = vm.addr(deployerPrivateKey);
+        console.log("Deployer address: ", deployerAddress);
+        console.log("Deployer balance: ", deployerAddress.balance);
+        console.log("Deploying vault...");
+
         vm.startBroadcast(deployerPrivateKey);
 
         vault = new ATokenVault(
