@@ -54,11 +54,16 @@ In the case of more than one call to `_accrueYield` in a single block, no additi
 
 The `totalAssets` function is used to calculate the amount of shares to be issued or redeemed, given an amount of underling assets to be deposited or withdrawn from the vault. As such, it is necessary to deduct any fees which are held in the vault, and thus reflected in the vault's aToken balance, but which are not attributable to shareholders.
 
+### Use of EIP-721 Signatures and Permit
+
+Each of the `deposit`, `mint`, `redeem`, and `withdraw` functions have a corresponding `depositWithSig`, `mintWithSig`, `redeemWithSig`, and `withdrawWithSig` function, which allow users to sign a message using the EIP-712 standard, and pass that signature to a third party to execute the action on their behalf. This is intended to create a better UX by passing the gas costs from the user to the third party - likely the vault admin.
+
+Note that in `depositWithSig` and `mintWithSig`, the user would still have to approve the vault contract to transfer their tokens, in order for these functions to not revert.
+
+To further alleviate this UX issue, the vault also includes a `permitAndDepositWithSig` function, which allows a user to sign two messages - a `permit` message to handle the ERC20 approval, and the `depositWithSig` message to handle the deposit. The third party can then execute the deposit action on behalf of the user, including the ERC20 approval, in a single transaction.
+
 ### To Write Still
 
- - explain totalAssets re: deducting fees
- - deposit, depositWithSig, permitAndDepositWithSig
- - mint, mintWithSig, and why no 3rd func
  - explain approval model with withdraw vs withdrawWithSig
  - explain logic behind maxDeposit and maxMint concerning Aave v3
  - explain claiming Aave rewards for admin
