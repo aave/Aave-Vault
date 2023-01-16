@@ -37,15 +37,25 @@ ETHERSCAN_API_KEY=xxx
 PRIVATE_KEY=xxx
 ```
 
+Then run:
+
+```bash
+source .env
+```
+
 Then run one of the following commands:
 
 Mumbai Testnet:
 
-`forge script script/Deploy.s.sol:Deploy --rpc-url $MUMBAI_RPC_URL --broadcast --verify --legacy -vvvv`
+```bash
+forge script script/Deploy.s.sol:Deploy --rpc-url $MUMBAI_RPC_URL --broadcast --verify --legacy -vvvv
+```
 
 Polygon Mainnet:
 
-`forge script script/Deploy.s.sol:Deploy --rpc-url $POLYGON_RPC_URL --broadcast --verify --legacy -vvvv`
+```bash
+forge script script/Deploy.s.sol:Deploy --rpc-url $POLYGON_RPC_URL --broadcast --verify --legacy -vvvv
+```
 
 
 ## Vault Contract Details
