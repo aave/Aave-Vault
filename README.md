@@ -44,16 +44,20 @@ No additional initialization is required.
 
 ### Yield Accrual Economics
 
+The core logic for yield accrual is contained in the internal `_accrueYield` function.
 
+This function is called at the start of every `deposit`, `mint`, `redeem`, and `withdraw` action, to ensure that whenever new shares are minted, or existing shares are redeemed, that the vault is up-to-date on yield earned through Aave up to this point, and the portion of that yield which should accrue to the vault admin in the form of the admin fee.
+
+In the case of more than one call to `_accrueYield` in a single block, no additional state updates concerning yield accrual or admin fees are made, with the function ending early as `block.timestamp == _lastUpdated`.
 
 
 ### To Write Still
 
  - explain accrueYield economic logic in deposit/withdraw flow
+ - explain totalAssets re: deducting fees
  - deposit, depositWithSig, permitAndDepositWithSig
  - mint, mintWithSig, and why no 3rd func
  - explain approval model with withdraw vs withdrawWithSig
  - explain logic behind maxDeposit and maxMint concerning Aave v3
  - explain claiming Aave rewards for admin
  - emergency rescue for non vault aToken assets
- - explain totalAssets re: deducting fees
