@@ -26,9 +26,12 @@ The fork tests all use Polygon, except tests for claiming Aave rewards, which us
 
 This test suite also includes a16z's [ERC-4626 Property Tests](https://a16zcrypto.com/generalized-property-tests-for-erc4626-vaults/), which are in the `ATokenVaultProperties.t.sol` file. These tests do not use a forked network state but rather use mock contracts, found in the `test/mocks` folder.
 
+## Deployment
+
+<!-- TODO add delpoy script stuff here -->
+
 
 ## Vault Contract Details
-
 
 ### Vault Initialization
 
@@ -62,9 +65,14 @@ Note that in `depositWithSig` and `mintWithSig`, the user would still have to ap
 
 To further alleviate this UX issue, the vault also includes a `permitAndDepositWithSig` function, which allows a user to sign two messages - a `permit` message to handle the ERC20 approval, and the `depositWithSig` message to handle the deposit. The third party can then execute the deposit action on behalf of the user, including the ERC20 approval, in a single transaction.
 
+### Allowance Model in `withdraw` and `redeem`
+
+In the `withdraw` and `redeem` functions, the allowance model follows the standard model from Solmate's ERC4626 contract - the `owner` must have approved the caller to spend their vault shares, redeeming them for the underlying assets, which then get transferred to the `receiver` address.
+
+However, in the `withdrawWithSig` and `redeemWithSig` functions, the allowance model is slightly different. In these functions, the `owner` must have approved the `receiver` address to spend their vault shares. This ensures that any third party can call these functions on the owner's behalf without the owner knowing or approving the address of this third party caller, because the the assets will still be transferred to the `receiver` address, which the owner has approved.
+
 ### To Write Still
 
- - explain approval model with withdraw vs withdrawWithSig
  - explain logic behind maxDeposit and maxMint concerning Aave v3
  - explain claiming Aave rewards for admin
  - emergency rescue for non vault aToken assets
