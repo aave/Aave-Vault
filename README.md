@@ -50,10 +50,12 @@ This function is called at the start of every `deposit`, `mint`, `redeem`, and `
 
 In the case of more than one call to `_accrueYield` in a single block, no additional state updates concerning yield accrual or admin fees are made, with the function ending early as `block.timestamp == _lastUpdated`.
 
+### Accounting for Fees in `totalAssets`
+
+The `totalAssets` function is used to calculate the amount of shares to be issued or redeemed, given an amount of underling assets to be deposited or withdrawn from the vault. As such, it is necessary to deduct any fees which are held in the vault, and thus reflected in the vault's aToken balance, but which are not attributable to shareholders.
 
 ### To Write Still
 
- - explain accrueYield economic logic in deposit/withdraw flow
  - explain totalAssets re: deducting fees
  - deposit, depositWithSig, permitAndDepositWithSig
  - mint, mintWithSig, and why no 3rd func
