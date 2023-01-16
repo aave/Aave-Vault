@@ -71,8 +71,15 @@ In the `withdraw` and `redeem` functions, the allowance model follows the standa
 
 However, in the `withdrawWithSig` and `redeemWithSig` functions, the allowance model is slightly different. In these functions, the `owner` must have approved the `receiver` address to spend their vault shares. This ensures that any third party can call these functions on the owner's behalf without the owner knowing or approving the address of this third party caller, because the the assets will still be transferred to the `receiver` address, which the owner has approved.
 
-### To Write Still
+### Limitations to `maxDeposit` and `maxMint`
 
- - explain logic behind maxDeposit and maxMint concerning Aave v3
- - explain claiming Aave rewards for admin
- - emergency rescue for non vault aToken assets
+The [ERC-4626 standard](https://eips.ethereum.org/EIPS/eip-4626) defines the `maxDeposit` and `maxMint` functions as follows:
+
+
+> maxDeposit: Maximum amount of the underlying asset that can be deposited into the Vault for the receiver, through a deposit call.
+
+and
+
+> maxMint: Maximum amount of shares that can be minted for the receiver, through a mint call.
+
+Therefore, any supply amount limitations that affect the Aave v3 market for the vault's underlying asset should be reflected in these functions. This logic is implemented `_maxAssetsSuppliableToAave` which returns the maximum amount of the underlying asset that can be supplied to Aave v3, taking into account any supply caps, and if the market is active, frozen, or paused.
