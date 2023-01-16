@@ -28,7 +28,24 @@ This test suite also includes a16z's [ERC-4626 Property Tests](https://a16zcrypt
 
 ## Deployment
 
-<!-- TODO add delpoy script stuff here -->
+To deploy the vault contract, first check that the deployment parameters in `script/Deploy.s.sol` are configured correctly, then check that your `.env` file contains these keys:
+
+```
+POLYGON_RPC_URL=xxx
+MUMBAI_RPC_URL=xxx
+ETHERSCAN_API_KEY=xxx
+PRIVATE_KEY=xxx
+```
+
+Then run one of the following commands:
+
+Mumbai Testnet:
+
+`forge script script/Deploy.s.sol:Deploy --rpc-url $MUMBAI_RPC_URL --broadcast --verify --legacy -vvvv`
+
+Polygon Mainnet:
+
+`forge script script/Deploy.s.sol:Deploy --rpc-url $POLYGON_RPC_URL --broadcast --verify --legacy -vvvv`
 
 
 ## Vault Contract Details

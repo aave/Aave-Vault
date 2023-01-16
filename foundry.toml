@@ -16,6 +16,8 @@ runs = 10000
 
 [rpc_endpoints]
 mumbai = "${MUMBAI_RPC_URL}"
+polygon = "${POLYGON_RPC_URL}"
 
 [etherscan]
 mumbai = { key = "${ETHERSCAN_API_KEY}" }
+polygon = { key = "${ETHERSCAN_API_KEY}" }
