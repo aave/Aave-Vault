@@ -350,6 +350,8 @@ contract ATokenVault is ERC4626, Ownable {
     function setFee(uint256 newFee) public onlyOwner {
         require(newFee <= SCALE, "FEE_TOO_HIGH");
 
+        _accrueYield();
+
         uint256 oldFee = _fee;
         _fee = newFee;
 
