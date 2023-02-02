@@ -487,7 +487,10 @@ contract ATokenVault is ERC4626, Ownable {
     ) internal returns (uint256 shares) {
         _accrueYield();
 
-        require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
+        shares = previewDeposit(assets);
+
+        // Check for rounding error since we round down in previewDeposit.
+        require(shares != 0, "ZERO_SHARES");
 
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(depositor, address(this), assets);
@@ -495,7 +498,7 @@ contract ATokenVault is ERC4626, Ownable {
         // Deposit the received underlying into Aave v3
         AAVE_POOL.supply(address(asset), assets, address(this), 0);
 
-        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
+        _lastVaultBalance += assets;
 
         _mint(receiver, shares);
 
@@ -509,7 +512,7 @@ contract ATokenVault is ERC4626, Ownable {
     ) internal returns (uint256 assets) {
         _accrueYield();
 
-        assets = previewMint(shares);
+        assets = previewMint(shares); // No need to check for rounding error, previewMint rounds up.
 
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(depositor, address(this), assets);
@@ -567,7 +570,10 @@ contract ATokenVault is ERC4626, Ownable {
             if (allowed != type(uint256).max) allowance[owner][allowanceTarget] = allowed - shares;
         }
 
-        require((assets = previewRedeem(shares)) != 0, "ZERO_ASSETS");
+        assets = previewRedeem(shares);
+
+        // Check for rounding error since we round down in previewRedeem.
+        require(assets != 0, "ZERO_ASSETS");
 
         _burn(owner, shares);
 
