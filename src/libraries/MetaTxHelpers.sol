@@ -2,7 +2,7 @@
 pragma solidity 0.8.10;
 
 import {IEIP1271Implementer} from "../interfaces/IEIP1271Implementer.sol";
-import {DataTypes} from "./DataTypes.sol";
+import {IATokenVault} from "../interfaces/IATokenVault.sol";
 
 import "./Constants.sol";
 
@@ -15,7 +15,7 @@ library MetaTxHelpers {
     /**
      * @dev Wrapper for ecrecover to reduce code size, used in meta-tx specific functions.
      */
-    function _validateRecoveredAddress(bytes32 digest, address expectedAddress, DataTypes.EIP712Signature calldata sig)
+    function _validateRecoveredAddress(bytes32 digest, address expectedAddress, IATokenVault.EIP712Signature calldata sig)
         internal
         view
     {

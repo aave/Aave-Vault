@@ -6,7 +6,6 @@ import "forge-std/Test.sol";
 import {ATokenVault, FixedPointMathLib} from "../src/ATokenVault.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
-import {DataTypes} from "../src/libraries/DataTypes.sol";
 import {Events} from "../src/libraries/Events.sol";
 
 // Inheritting from IATokenVault to access events for tests

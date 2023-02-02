@@ -11,7 +11,6 @@ import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
 
-import {DataTypes} from "../src/libraries/DataTypes.sol";
 import {Events} from "../src/libraries/Events.sol";
 
 contract ATokenVaultForkTest is ATokenVaultBaseTest {

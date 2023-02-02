@@ -1,11 +1,4 @@
-// SPDX-License-Identifier: MIT
-
-pragma solidity 0.8.10;
-
-/**
- * @title DataTypes
- */
-library DataTypes {
+interface IATokenVault {
     /**
      * @notice A struct containing the necessary information to reconstruct an EIP-712 typed data signature.
      *

@@ -11,9 +11,11 @@ import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsCont
 import {IPool} from "aave/interfaces/IPool.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 
+// Interface
+import {IATokenVault} from "./interfaces/IATokenVault.sol";
+
 // Libraries
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
-import {DataTypes} from "./libraries/DataTypes.sol";
 import {Events} from "./libraries/Events.sol";
 import "./libraries/Constants.sol";
 
@@ -24,7 +26,7 @@ import "./libraries/Constants.sol";
  * @notice An ERC-4626 vault for ERC20 assets supported by Aave v3,
  * with a potential vault fee on yield earned.
  */
-contract ATokenVault is ERC4626, Ownable {
+contract ATokenVault is ERC4626, Ownable, IATokenVault {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
 
@@ -104,7 +106,7 @@ contract ATokenVault is ERC4626, Ownable {
         uint256 assets,
         address receiver,
         address depositor,
-        DataTypes.EIP712Signature calldata depositSig
+        EIP712Signature calldata depositSig
     ) public returns (uint256 shares) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
@@ -144,8 +146,8 @@ contract ATokenVault is ERC4626, Ownable {
         uint256 assets,
         address receiver,
         address depositor,
-        DataTypes.EIP712Signature calldata permitSig,
-        DataTypes.EIP712Signature calldata depositSig
+        EIP712Signature calldata permitSig,
+        EIP712Signature calldata depositSig
     ) public returns (uint256 shares) {
         asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s);
 
@@ -198,7 +200,7 @@ contract ATokenVault is ERC4626, Ownable {
         uint256 shares,
         address receiver,
         address depositor,
-        DataTypes.EIP712Signature calldata mintSig
+        EIP712Signature calldata mintSig
     ) public returns (uint256 assets) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
@@ -254,7 +256,7 @@ contract ATokenVault is ERC4626, Ownable {
         uint256 assets,
         address receiver,
         address owner,
-        DataTypes.EIP712Signature calldata sig
+        EIP712Signature calldata sig
     ) public returns (uint256 shares) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
@@ -303,7 +305,7 @@ contract ATokenVault is ERC4626, Ownable {
         uint256 shares,
         address receiver,
         address owner,
-        DataTypes.EIP712Signature calldata sig
+        EIP712Signature calldata sig
     ) public returns (uint256 assets) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
