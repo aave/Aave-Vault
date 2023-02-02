@@ -60,11 +60,8 @@ contract ATokenVault is ERC4626, Ownable {
         IPoolAddressesProvider poolAddressesProvider,
         IRewardsController rewardsController
     ) ERC4626(underlying, shareName, shareSymbol) {
-        require(initialFee <= SCALE, "FEE_TOO_HIGH");
-
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
         REWARDS_CONTROLLER = rewardsController;
-
         AAVE_POOL = IPool(poolAddressesProvider.getPool());
         address aTokenAddress = AAVE_POOL.getReserveData(address(underlying)).aTokenAddress;
         require(aTokenAddress != address(0), "ASSET_NOT_SUPPORTED");
@@ -72,10 +69,10 @@ contract ATokenVault is ERC4626, Ownable {
 
         asset.approve(address(AAVE_POOL), type(uint256).max);
 
-        _fee = initialFee;
-
         _lastUpdated = block.timestamp;
 
+        _setFee(initialFee);
+        
         emit Events.FeeUpdated(0, initialFee);
     }
 
@@ -346,12 +343,8 @@ contract ATokenVault is ERC4626, Ownable {
      * @param newFee The new fee, as a fraction of 1e18.
      */
     function setFee(uint256 newFee) public onlyOwner {
-        require(newFee <= SCALE, "FEE_TOO_HIGH");
-
-        uint256 oldFee = _fee;
-        _fee = newFee;
-
-        emit Events.FeeUpdated(oldFee, newFee);
+        _accrueYield();
+        _setFee(newFee);
     }
 
     /**
@@ -450,6 +443,15 @@ contract ATokenVault is ERC4626, Ownable {
     /*//////////////////////////////////////////////////////////////
                           INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function _setFee(uint256 newFee) internal {
+        require(newFee <= SCALE, "FEE_TOO_HIGH");
+
+        uint256 oldFee = _fee;
+        _fee = newFee;
+
+        emit Events.FeeUpdated(oldFee, newFee);
+    }
 
     function _accrueYield() internal {
         // Fees are accrued and claimable in aToken form
