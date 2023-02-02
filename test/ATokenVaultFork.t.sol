@@ -11,8 +11,6 @@ import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
 
-import {Events} from "../src/libraries/Events.sol";
-
 contract ATokenVaultForkTest is ATokenVaultBaseTest {
     // Forked tests using Polygon for Aave v3
     uint256 polygonFork;
@@ -170,7 +168,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     function testDeployEmitsFeeEvent() public {
         // no indexed fields, just data check (4th param)
         vm.expectEmit(false, false, false, true);
-        emit Events.FeeUpdated(0, fee);
+        emit FeeUpdated(0, fee);
         vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
     }
 
@@ -203,7 +201,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         vm.startPrank(OWNER);
         vm.expectEmit(true, false, false, true, address(vault));
-        emit Events.FeesWithdrawn(OWNER, feesAccrued, vaultADaiBalanceBefore - feesAccrued, 0);
+        emit FeesWithdrawn(OWNER, feesAccrued, vaultADaiBalanceBefore - feesAccrued, 0);
         vault.withdrawFees(OWNER, feesAccrued);
         vm.stopPrank();
     }
@@ -229,7 +227,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         vm.startPrank(OWNER);
         vm.expectEmit(false, false, false, true, address(vault));
-        emit Events.FeeUpdated(vault.getFee(), newFee);
+        emit FeeUpdated(vault.getFee(), newFee);
         vault.setFee(newFee);
         vm.stopPrank();
     }
@@ -257,7 +255,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         vm.startPrank(OWNER);
         vm.expectEmit(true, true, false, true, address(vault));
-        emit Events.EmergencyRescue(address(dai), OWNER, ONE);
+        emit EmergencyRescue(address(dai), OWNER, ONE);
         vault.emergencyRescue(address(dai), OWNER, ONE);
         vm.stopPrank();
     }
@@ -385,7 +383,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         dai.approve(address(vault), amount);
 
         vm.expectEmit(false, false, false, true, address(vault));
-        emit Events.YieldAccrued(expectedNewYield, expectedFeesFromYield, vaultBalanceAfter);
+        emit YieldAccrued(expectedNewYield, expectedFeesFromYield, vaultBalanceAfter);
         vault.deposit(amount, ALICE);
         vm.stopPrank();
     }

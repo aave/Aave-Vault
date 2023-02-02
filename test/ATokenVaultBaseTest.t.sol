@@ -4,12 +4,11 @@ pragma solidity 0.8.10;
 import "forge-std/Test.sol";
 
 import {ATokenVault, FixedPointMathLib} from "../src/ATokenVault.sol";
+import {IATokenVaultEvents} from "../src/interfaces/IATokenVaultEvents.sol";
+import {IATokenVaultTypes} from "../src/interfaces/IATokenVaultTypes.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
-import {Events} from "../src/libraries/Events.sol";
-
-// Inheritting from IATokenVault to access events for tests
-contract ATokenVaultBaseTest is Test {
+contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
     using FixedPointMathLib for uint256;
 
     bytes32 constant PERMIT_TYPEHASH =
@@ -79,6 +78,4 @@ contract ATokenVaultBaseTest is Test {
         console.log("lastUpdated\t\t\t", vault.getLastUpdated());
         console.log("current time\t\t\t", block.timestamp);
     }
-
-    
 }

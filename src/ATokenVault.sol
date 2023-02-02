@@ -16,7 +16,6 @@ import {IATokenVault} from "./interfaces/IATokenVault.sol";
 
 // Libraries
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
-import {Events} from "./libraries/Events.sol";
 import "./libraries/Constants.sol";
 
 /**
@@ -72,7 +71,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVault {
 
         _setFee(initialFee);
 
-        emit Events.FeeUpdated(0, initialFee);
+        emit FeeUpdated(0, initialFee);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -371,7 +370,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVault {
 
         A_TOKEN.transfer(to, amount);
 
-        emit Events.FeesWithdrawn(to, amount, _lastVaultBalance, _accumulatedFees);
+        emit FeesWithdrawn(to, amount, _lastVaultBalance, _accumulatedFees);
     }
 
     /**
@@ -390,7 +389,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVault {
             POOL_ADDRESSES_PROVIDER.getAddress(REWARDS_CONTROLLER_ID)
         ).claimAllRewards(assets, to);
 
-        emit Events.AaveRewardsClaimed(to, rewardsList, claimedAmounts);
+        emit AaveRewardsClaimed(to, rewardsList, claimedAmounts);
     }
 
     /**
@@ -411,7 +410,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVault {
 
         ERC20(token).transfer(to, amount);
 
-        emit Events.EmergencyRescue(token, to, amount);
+        emit EmergencyRescue(token, to, amount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -463,7 +462,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVault {
         uint256 oldFee = _fee;
         _fee = newFee;
 
-        emit Events.FeeUpdated(oldFee, newFee);
+        emit FeeUpdated(oldFee, newFee);
     }
 
     function _accrueYield() internal {
@@ -478,7 +477,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVault {
             _lastVaultBalance = newVaultBalance;
             _lastUpdated = block.timestamp;
 
-            emit Events.YieldAccrued(newYield, newFeesEarned, newVaultBalance);
+            emit YieldAccrued(newYield, newFeesEarned, newVaultBalance);
         }
     }
 
