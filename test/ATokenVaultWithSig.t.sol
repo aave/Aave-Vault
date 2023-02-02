@@ -35,16 +35,21 @@ struct PermitSigParams {
     uint256 deadline;
 }
 
-bytes32 constant PERMIT_TYPEHASH =
-    keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-bytes32 constant DEPOSIT_WITH_SIG_TYPEHASH =
-    keccak256("DepositWithSig(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)");
-bytes32 constant MINT_WITH_SIG_TYPEHASH =
-    keccak256("MintWithSig(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)");
-bytes32 constant WITHDRAW_WITH_SIG_TYPEHASH =
-    keccak256("WithdrawWithSig(uint256 assets,address receiver,address owner,uint256 nonce,uint256 deadline)");
-bytes32 constant REDEEM_WITH_SIG_TYPEHASH =
-    keccak256("RedeemWithSig(uint256 shares,address receiver,address owner,uint256 nonce,uint256 deadline)");
+bytes32 constant PERMIT_TYPEHASH = keccak256(
+    "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+);
+bytes32 constant DEPOSIT_WITH_SIG_TYPEHASH = keccak256(
+    "DepositWithSig(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)"
+);
+bytes32 constant MINT_WITH_SIG_TYPEHASH = keccak256(
+    "MintWithSig(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)"
+);
+bytes32 constant WITHDRAW_WITH_SIG_TYPEHASH = keccak256(
+    "WithdrawWithSig(uint256 assets,address receiver,address owner,uint256 nonce,uint256 deadline)"
+);
+bytes32 constant REDEEM_WITH_SIG_TYPEHASH = keccak256(
+    "RedeemWithSig(uint256 shares,address receiver,address owner,uint256 nonce,uint256 deadline)"
+);
 
 contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
     bytes32 VAULT_DOMAIN_SEPARATOR;
@@ -64,14 +69,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vaultAssetAddress = address(aDai);
 
-        vault = new ATokenVault(
-            dai,
-            SHARE_NAME,
-            SHARE_SYMBOL,
-            fee,
-            IPoolAddressesProvider(address(poolAddrProvider)),
-            IRewardsController(POLYGON_REWARDS_CONTROLLER)
-        );
+        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(poolAddrProvider)));
 
         VAULT_DOMAIN_SEPARATOR = vault.DOMAIN_SEPARATOR();
     }
@@ -338,7 +336,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             deadline: block.timestamp,
             functionTypehash: keccak256(
                 "Deposit(uint256 amount,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-                )
+            )
         });
 
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
@@ -739,7 +737,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             deadline: block.timestamp,
             functionTypehash: keccak256(
                 "Deposit(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-                ) // Deposit instead of DepositWithSig
+            ) // Deposit instead of DepositWithSig
         });
 
         DataTypes.EIP712Signature memory permitSig = _createPermitSig(permitParams);
@@ -988,7 +986,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             deadline: block.timestamp,
             functionTypehash: keccak256(
                 "Mint(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-                )
+            )
         });
 
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
@@ -1242,7 +1240,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             deadline: block.timestamp,
             functionTypehash: keccak256(
                 "Withdraw(uint256 assets,address receiver,address owner,uint256 nonce,uint256 deadline)"
-                ) // Withdraw not WithdrawWithSig
+            ) // Withdraw not WithdrawWithSig
         });
 
         DataTypes.EIP712Signature memory sig = _createVaultSig(params);
@@ -1540,9 +1538,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
                     "\x19\x01",
                     dai.DOMAIN_SEPARATOR(),
                     keccak256(
-                        abi.encode(
-                            PERMIT_TYPEHASH, params.owner, params.spender, params.value, params.nonce, params.deadline
-                        )
+                        abi.encode(PERMIT_TYPEHASH, params.owner, params.spender, params.value, params.nonce, params.deadline)
                     )
                 )
             )

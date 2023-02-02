@@ -46,8 +46,7 @@ contract Deploy is Script {
             vaultShareName,
             vaultShareSymbol,
             fee,
-            IPoolAddressesProvider(aavePoolAddressProvider),
-            IRewardsController(aaveRewardsController)
+            IPoolAddressesProvider(aavePoolAddressProvider)
         );
 
         vm.stopBroadcast();

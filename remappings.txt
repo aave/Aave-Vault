@@ -1,6 +1,7 @@
-ds-test/=lib/forge-std/lib/ds-test/src/
+aave=lib/aave-v3-core/contracts
+aave-periphery/=lib/aave-v3-periphery/contracts/
+ds-test/=lib/solmate/lib/ds-test/src/
+erc4626-tests/=lib/erc4626-tests/
 forge-std/=lib/forge-std/src/
 solmate/=lib/solmate/src/
 openzeppelin/=lib/openzeppelin-contracts/contracts/
-aave/=lib/aave-v3-core/contracts/
-aave-periphery/=lib/aave-v3-periphery/contracts/

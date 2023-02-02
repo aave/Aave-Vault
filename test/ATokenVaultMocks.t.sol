@@ -28,12 +28,10 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
     uint256 internal constant IS_PAUSED_START_BIT_POSITION = 60;
     uint256 internal constant SUPPLY_CAP_UNSCALED = 420;
 
-    uint256 internal constant RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE =
-        (0 & AAVE_ACTIVE_MASK) | (1 << IS_ACTIVE_START_BIT_POSITION);
+    uint256 internal constant RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE = (0 & AAVE_ACTIVE_MASK) | (1 << IS_ACTIVE_START_BIT_POSITION);
 
-    uint256 internal constant RESERVE_CONFIG_MAP_CAPPED_ACTIVE = (
-        RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE & AAVE_SUPPLY_CAP_MASK
-    ) | (SUPPLY_CAP_UNSCALED << AAVE_SUPPLY_CAP_BIT_POSITION);
+    uint256 internal constant RESERVE_CONFIG_MAP_CAPPED_ACTIVE =
+        (RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE & AAVE_SUPPLY_CAP_MASK) | (SUPPLY_CAP_UNSCALED << AAVE_SUPPLY_CAP_BIT_POSITION);
 
     uint256 internal constant RESERVE_CONFIG_MAP_INACTIVE = (0 & AAVE_ACTIVE_MASK) | (0 << IS_ACTIVE_START_BIT_POSITION);
 
@@ -53,14 +51,7 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
 
         dai = new MockDAI();
 
-        vault = new ATokenVault(
-            dai,
-            SHARE_NAME,
-            SHARE_SYMBOL,
-            fee,
-            IPoolAddressesProvider(address(poolAddrProvider)),
-            IRewardsController(fakeIncentivesController)
-        );
+        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(poolAddrProvider)));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -76,7 +67,7 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
     function testMaxDepositAaveCappedSupply() public {
         pool.setReserveConfigMap(RESERVE_CONFIG_MAP_CAPPED_ACTIVE);
         uint256 maxDeposit = vault.maxDeposit(ALICE);
-        assertEq(maxDeposit, SUPPLY_CAP_UNSCALED * 10 ** dai.decimals());
+        assertEq(maxDeposit, SUPPLY_CAP_UNSCALED * 10**dai.decimals());
     }
 
     function testMaxDepositAaveInactive() public {
@@ -110,7 +101,7 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
     function testMaxMintAaveCappedSupply() public {
         pool.setReserveConfigMap(RESERVE_CONFIG_MAP_CAPPED_ACTIVE);
         uint256 maxMint = vault.maxMint(ALICE);
-        assertEq(maxMint, SUPPLY_CAP_UNSCALED * 10 ** dai.decimals());
+        assertEq(maxMint, SUPPLY_CAP_UNSCALED * 10**dai.decimals());
     }
 
     function testMaxMintAaveInactive() public {

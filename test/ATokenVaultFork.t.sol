@@ -33,14 +33,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vaultAssetAddress = address(aDai);
 
         vm.startPrank(OWNER);
-        vault = new ATokenVault(
-            dai,
-            SHARE_NAME,
-            SHARE_SYMBOL,
-            fee,
-            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
-            IRewardsController(POLYGON_REWARDS_CONTROLLER)
-        );
+        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
         vm.stopPrank();
     }
 
@@ -67,8 +60,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
             SHARE_NAME,
             SHARE_SYMBOL,
             SCALE + 1,
-            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
-            IRewardsController(POLYGON_REWARDS_CONTROLLER)
+            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER)
         );
     }
 
@@ -82,21 +74,13 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
             SHARE_NAME,
             SHARE_SYMBOL,
             fee,
-            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
-            IRewardsController(POLYGON_REWARDS_CONTROLLER)
+            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER)
         );
     }
 
     function testDeployRevertsWithBadPoolAddressProvider() public {
         vm.expectRevert();
-        vault = new ATokenVault(
-            dai,
-            SHARE_NAME,
-            SHARE_SYMBOL,
-            fee,
-            IPoolAddressesProvider(address(0)),
-            IRewardsController(POLYGON_REWARDS_CONTROLLER)
-        );
+        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(0)));
     }
 
     function testNonOwnerCannotWithdrawFees() public {
@@ -188,14 +172,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         // no indexed fields, just data check (4th param)
         vm.expectEmit(false, false, false, true);
         emit Events.FeeUpdated(0, fee);
-        vault = new ATokenVault(
-            dai,
-            SHARE_NAME,
-            SHARE_SYMBOL,
-            fee,
-            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
-            IRewardsController(POLYGON_REWARDS_CONTROLLER)
-        );
+        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
     }
 
     function testOwnerCanWithdrawFees() public {
@@ -744,14 +721,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
     function _deployAndCheckProps() public {
         vm.startPrank(OWNER);
-        vault = new ATokenVault(
-            dai,
-            SHARE_NAME,
-            SHARE_SYMBOL,
-            fee,
-            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER),
-            IRewardsController(POLYGON_REWARDS_CONTROLLER)
-        );
+        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
         vm.stopPrank();
         assertEq(address(vault.asset()), POLYGON_DAI);
         assertEq(address(vault.A_TOKEN()), POLYGON_ADAI);

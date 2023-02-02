@@ -37,9 +37,7 @@ contract ATokenVaultPropertiesTest is ERC4626Test, ATokenVaultBaseTest {
             SHARE_NAME,
             SHARE_SYMBOL,
             fee,
-            IPoolAddressesProvider(address(poolAddrProvider)),
-            IRewardsController(fakeIncentivesController)
-        );
+            IPoolAddressesProvider(address(poolAddrProvider))        );
 
         _underlying_ = address(dai);
         _vault_ = address(vault);
