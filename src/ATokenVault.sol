@@ -61,17 +61,14 @@ contract ATokenVault is ERC4626, Ownable, IATokenVault {
     ) ERC4626(underlying, shareName, shareSymbol) {
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
         AAVE_POOL = IPool(poolAddressesProvider.getPool());
+
         address aTokenAddress = AAVE_POOL.getReserveData(address(underlying)).aTokenAddress;
         require(aTokenAddress != address(0), "ASSET_NOT_SUPPORTED");
         A_TOKEN = IAToken(aTokenAddress);
 
-        asset.approve(address(AAVE_POOL), type(uint256).max);
-
-        _lastUpdated = block.timestamp;
-
         _setFee(initialFee);
-
-        emit FeeUpdated(0, initialFee);
+        _lastUpdated = block.timestamp;
+        asset.approve(address(AAVE_POOL), type(uint256).max);
     }
 
     /*//////////////////////////////////////////////////////////////
