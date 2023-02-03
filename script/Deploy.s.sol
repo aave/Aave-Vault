@@ -27,6 +27,7 @@ contract Deploy is Script {
     string vaultShareName = "Wrapped aDAI";
     string vaultShareSymbol = "waDAI";
     uint256 fee = 0.1e18; // 10%
+    uint16 referralCode = 4546;
     // ===================================================
 
     ATokenVault public vault;
@@ -46,6 +47,7 @@ contract Deploy is Script {
             vaultShareName,
             vaultShareSymbol,
             fee,
+            referralCode,
             IPoolAddressesProvider(aavePoolAddressProvider)
         );
 

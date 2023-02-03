@@ -66,7 +66,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vaultAssetAddress = address(aDai);
 
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(poolAddrProvider)));
+        _deploy(address(dai), address(poolAddrProvider));
 
         VAULT_DOMAIN_SEPARATOR = vault.DOMAIN_SEPARATOR();
     }

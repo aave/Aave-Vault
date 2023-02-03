@@ -11,9 +11,6 @@
 // import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 // import {IPool} from "aave/interfaces/IPool.sol";
 
-// // import {DataTypes} from "../src/libraries/DataTypes.sol";
-// import {Events} from "../src/libraries/Events.sol";
-
 // // AVALANCHE addresses
 // address constant AVAX_USDC = 0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E;
 // address constant AVAX_AUSDC = 0x625E7708f30cA75bfd92586e17077590C60eb4cD;
@@ -39,20 +36,11 @@
 //         vm.selectFork(avalancheFork);
 //         vm.rollFork(AVLANCHE_FORK_BLOCK);
 
-//         usdc = ERC20(AVAX_USDC);
 //         aUSDC = IAToken(AVAX_AUSDC);
 
 //         vaultAssetAddress = address(aUSDC);
 
-//         vm.startPrank(OWNER);
-//         vault = new ATokenVault(
-//             usdc,
-//             SHARE_NAME,
-//             SHARE_SYMBOL,
-//             fee,
-//             IPoolAddressesProvider(AVALANCHE_POOL_ADDRESSES_PROVIDER),
-//             IRewardsController(AVALANCHE_REWARDS_CONTROLLER)
-//         );
+//         _deploy(AVAX_USDC, AVALANCHE_POOL_ADDRESSES_PROVIDER);
 //         vm.stopPrank();
 //     }
 

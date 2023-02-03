@@ -7,6 +7,7 @@ import {ATokenVault, FixedPointMathLib} from "../src/ATokenVault.sol";
 import {IATokenVaultEvents} from "../src/interfaces/IATokenVaultEvents.sol";
 import {IATokenVaultTypes} from "../src/interfaces/IATokenVaultTypes.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
+import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 
 contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
     using FixedPointMathLib for uint256;
@@ -42,6 +43,7 @@ contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
     string constant SHARE_SYMBOL = "waDAI";
 
     uint256 fee = 0.2e18; // 20%
+    uint16 referralCode = 4546;
 
     ATokenVault vault;
     address vaultAssetAddress; // aDAI, must be set in every setUp
@@ -77,5 +79,16 @@ contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
         console.log("current fees\t\t", vault.getCurrentFees());
         console.log("lastUpdated\t\t\t", vault.getLastUpdated());
         console.log("current time\t\t\t", block.timestamp);
+    }
+
+    function _deploy(address underlying, address addressesProvider) internal {
+        vault = new ATokenVault(
+            ERC20(underlying),
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            fee,
+            referralCode,
+            IPoolAddressesProvider(addressesProvider)
+        );
     }
 }

@@ -38,6 +38,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
     IPool public immutable AAVE_POOL;
     IAToken public immutable A_TOKEN;
+    uint16 public immutable REFERRAL_CODE;
 
     mapping(address => uint256) internal _sigNonces;
 
@@ -58,10 +59,12 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         string memory shareName,
         string memory shareSymbol,
         uint256 initialFee,
+        uint16 referralCode,
         IPoolAddressesProvider poolAddressesProvider
     ) ERC4626(underlying, shareName, shareSymbol) {
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
         AAVE_POOL = IPool(poolAddressesProvider.getPool());
+        REFERRAL_CODE = referralCode;
 
         address aTokenAddress = AAVE_POOL.getReserveData(address(underlying)).aTokenAddress;
         require(aTokenAddress != address(0), "ASSET_NOT_SUPPORTED");
@@ -500,7 +503,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         emit Deposit(msg.sender, receiver, assets, shares);
 
         // Deposit the received underlying into Aave v3
-        AAVE_POOL.supply(address(asset), assets, address(this), 0);
+        AAVE_POOL.supply(address(asset), assets, address(this), REFERRAL_CODE);
     }
 
     function _handleMint(
@@ -522,7 +525,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         emit Deposit(msg.sender, receiver, assets, shares);
 
         // Deposit the received underlying into Aave v3
-        AAVE_POOL.supply(address(asset), assets, address(this), 0);
+        AAVE_POOL.supply(address(asset), assets, address(this), REFERRAL_CODE);
     }
 
     function _handleWithdraw(

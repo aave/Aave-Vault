@@ -51,7 +51,7 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
 
         dai = new MockDAI();
 
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(address(poolAddrProvider)));
+        _deploy(address(dai), address(poolAddrProvider));
     }
 
     /*//////////////////////////////////////////////////////////////
