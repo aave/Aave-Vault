@@ -23,17 +23,12 @@ import "./libraries/Constants.sol";
  * @title ATokenVault
  * @author Aave Protocol
  *
- * @notice An ERC-4626 vault for ERC20 assets supported by Aave v3,
- * with a potential vault fee on yield earned.
+ * @notice An ERC-4626 vault for ERC20 assets supported by Aave v3, with a potential 
+ * vault fee on yield earned. Some alterations overide Solmate's base implementation.
  */
 contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
-
-    uint256 internal constant SCALE = 1e18;
-    uint256 internal constant RAY = 1e27;
-    uint256 internal constant HALF_RAY = 0.5e27;
-    bytes32 internal constant REWARDS_CONTROLLER_ID = keccak256("INCENTIVES_CONTROLLER");
 
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
     IPool public immutable AAVE_POOL;
