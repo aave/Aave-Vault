@@ -12,7 +12,8 @@ import {IPool} from "aave/interfaces/IPool.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
 
 // Interface
-import {IATokenVault} from "./interfaces/IATokenVault.sol";
+import {IATokenVaultEvents} from "./interfaces/IATokenVaultEvents.sol";
+import {IATokenVaultTypes} from "./interfaces/IATokenVaultTypes.sol";
 
 // Libraries
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
@@ -25,7 +26,7 @@ import "./libraries/Constants.sol";
  * @notice An ERC-4626 vault for ERC20 assets supported by Aave v3,
  * with a potential vault fee on yield earned.
  */
-contract ATokenVault is ERC4626, Ownable, IATokenVault {
+contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
 

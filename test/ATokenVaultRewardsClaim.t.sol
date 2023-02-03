@@ -131,7 +131,7 @@
 
 //         vm.startPrank(OWNER);
 //         vm.expectEmit(true, false, false, true, address(vault));
-//         emit IATokenVault.AaveRewardsClaimed(OWNER, rewardAssets, rewardAmounts);
+//         emit AaveRewardsClaimed(OWNER, rewardAssets, rewardAmounts);
 //         vault.claimAllAaveRewards(OWNER);
 //         vm.stopPrank();
 //     }
