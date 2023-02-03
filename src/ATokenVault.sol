@@ -33,7 +33,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
     uint256 internal constant SCALE = 1e18;
     uint256 internal constant RAY = 1e27;
     uint256 internal constant HALF_RAY = 0.5e27;
-    bytes32 internal constant REWARDS_CONTROLLER_ID = 0x703c2c8634bed68d98c029c18f310e7f7ec0e5d6342c590190b3cb8b3ba54532;
+    bytes32 internal constant REWARDS_CONTROLLER_ID = keccak256("INCENTIVES_CONTROLLER");
 
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
     IPool public immutable AAVE_POOL;
