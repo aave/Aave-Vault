@@ -89,7 +89,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _accrueFeesInVault(feesAmount);
 
         uint256 feesAccrued = vault.getClaimableFees();
-        assertGt(feesAccrued, 0); // must have accrued some fees
+        assertGt(feesAccrued, feesAmount); // must have accrued some fees
 
         vm.startPrank(ALICE);
         vm.expectRevert(ERR_NOT_OWNER);
@@ -182,7 +182,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         uint256 feesAccrued = vault.getClaimableFees();
 
-        assertGt(feesAccrued, 0); // must have accrued some fees
+        assertGt(feesAccrued, feesAmount); // must have accrued some fees
 
         vm.startPrank(OWNER);
         vault.withdrawFees(OWNER, feesAccrued);
@@ -200,7 +200,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         uint256 feesAccrued = vault.getClaimableFees();
         uint256 vaultADaiBalanceBefore = aDai.balanceOf(address(vault));
 
-        assertGt(feesAccrued, 0);
+        assertGt(feesAccrued, feesAmount);
 
         vm.startPrank(OWNER);
         vm.expectEmit(true, false, false, true, address(vault));
@@ -414,6 +414,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         vm.startPrank(ALICE);
         dai.approve(address(vault), ONE);
+        vm.expectEmit(true, true, false, true, address(vault));
+        emit Deposit(ALICE, ALICE, ONE, ONE);
         vault.deposit(ONE, ALICE);
         vm.stopPrank();
 
@@ -441,6 +443,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.startPrank(ALICE);
         deal(address(dai), ALICE, amount);
         dai.approve(address(vault), amount);
+        vm.expectEmit(true, true, false, true, address(vault));
+        emit Deposit(ALICE, ALICE, amount, amount / 2);
         vault.deposit(amount, ALICE);
         vm.stopPrank();
 
@@ -460,6 +464,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         vm.startPrank(ALICE);
         dai.approve(address(vault), ONE);
+        vm.expectEmit(true, true, false, true, address(vault));
+        emit Deposit(ALICE, ALICE, ONE, ONE);
         vault.mint(ONE, ALICE);
         vm.stopPrank();
 
@@ -487,6 +493,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.startPrank(ALICE);
         deal(address(dai), ALICE, amount);
         dai.approve(address(vault), amount);
+        vm.expectEmit(true, true, false, true, address(vault));
+        emit Deposit(ALICE, ALICE, amount, amount / 2);
         vault.mint(amount / 2, ALICE);
         vm.stopPrank();
 
@@ -507,7 +515,11 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(ALICE), 0);
         assertEq(aDai.balanceOf(address(vault)), amount);
 
-        _withdrawFromUser(ALICE, amount);
+        vm.startPrank(ALICE);
+        vm.expectEmit(true, true, true, true, address(vault));
+        emit Withdraw(ALICE, ALICE, ALICE, amount, amount);
+        vault.withdraw(amount, ALICE, ALICE);
+        vm.stopPrank();
 
         assertEq(dai.balanceOf(ALICE), amount);
         assertEq(aDai.balanceOf(ALICE), 0);
@@ -538,6 +550,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertApproxEqRel(aliceMaxWithdrawable, expectedAliceAmountEnd, ONE_BPS);
 
         vm.startPrank(ALICE);
+        vm.expectEmit(true, true, true, true, address(vault));
+        emit Withdraw(ALICE, ALICE, ALICE, aliceMaxWithdrawable, amount);
         vault.withdraw(aliceMaxWithdrawable, ALICE, ALICE);
         vm.stopPrank();
 
@@ -564,6 +578,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         // Redeem instead of withdraw
         vm.startPrank(ALICE);
+        vm.expectEmit(true, true, true, true, address(vault));
+        emit Withdraw(ALICE, ALICE, ALICE, amount, amount);
         vault.redeem(vault.balanceOf(ALICE), ALICE, ALICE);
         vm.stopPrank();
 
@@ -591,12 +607,14 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         skip(1);
 
-        uint256 aliceMaxReedemable = vault.maxRedeem(ALICE);
+        uint256 aliceMaxRedeemable = vault.maxRedeem(ALICE);
 
-        assertApproxEqRel(vault.convertToAssets(aliceMaxReedemable), expectedAliceAmountEnd, ONE_BPS);
+        assertApproxEqRel(vault.convertToAssets(aliceMaxRedeemable), expectedAliceAmountEnd, ONE_BPS);
 
         vm.startPrank(ALICE);
-        vault.redeem(aliceMaxReedemable, ALICE, ALICE);
+        vm.expectEmit(true, true, true, true, address(vault));
+        emit Withdraw(ALICE, ALICE, ALICE, vault.convertToAssets(aliceMaxRedeemable), amount);
+        vault.redeem(aliceMaxRedeemable, ALICE, ALICE);
         vm.stopPrank();
 
         assertEq(aDai.balanceOf(address(vault)), vault.getClaimableFees(), "FEES NOT SAME AS VAULT BALANCE");
@@ -772,7 +790,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
     function _accrueFeesInVault(uint256 feeAmountToAccrue) public {
         require(feeAmountToAccrue > 0, "TEST: FEES ACCRUED MUST BE > 0");
-        uint256 daiAmount = feeAmountToAccrue * 5; // Assuming 20% fee
+        uint256 daiAmount = (feeAmountToAccrue * SCALE) / vault.getFee();
 
         deal(address(dai), ALICE, daiAmount + ONE);
 

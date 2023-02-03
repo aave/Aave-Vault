@@ -67,6 +67,10 @@ contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
     bytes constant ERR_INSUFFICIENT_FEES = bytes("INSUFFICIENT_FEES");
     bytes constant ERR_CANNOT_CLAIM_TO_ZERO_ADDRESS = bytes("CANNOT_CLAIM_TO_ZERO_ADDRESS");
 
+    // ERC4626 Events
+    event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares);
+    event Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares);
+
     function setUp() public virtual {}
 
     // For debug purposes
