@@ -724,7 +724,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _deploy(POLYGON_DAI, POLYGON_POOL_ADDRESSES_PROVIDER);
         vm.stopPrank();
         assertEq(address(vault.asset()), POLYGON_DAI);
-        assertEq(address(vault.A_TOKEN()), POLYGON_ADAI);
+        assertEq(address(vault.ATOKEN()), POLYGON_ADAI);
         assertEq(address(vault.AAVE_POOL()), POLYGON_AAVE_POOL);
         assertEq(vault.owner(), OWNER);
     }

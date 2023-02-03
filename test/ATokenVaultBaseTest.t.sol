@@ -74,7 +74,7 @@ contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
         console.log("\n", label);
         console.log("ERC20 Assets\t\t\t", ERC20(vaultAssetAddress).balanceOf(address(vault)));
         console.log("totalAssets()\t\t\t", vault.totalAssets());
-        console.log("lastVaulBalance()\t\t", vault.getLastVaultBalance());
+        console.log("lastVaultBalance()\t\t", vault.getLastVaultBalance());
         console.log("User Withdrawable\t\t", vault.maxWithdraw(user));
         console.log("claimable fees\t\t", vault.getClaimableFees());
         console.log("lastUpdated\t\t\t", vault.getLastUpdated());

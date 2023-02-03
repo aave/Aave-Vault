@@ -608,7 +608,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        // No approval needed because Alice is reciever
+        // No approval needed because Alice is receiver
         EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(vault.balanceOf(ALICE), amount);
