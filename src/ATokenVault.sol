@@ -657,7 +657,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         _lastVaultBalance += assets;
         _mint(receiver, shares);
 
-        emit Deposit(msg.sender, receiver, assets, shares);
+        emit Deposit(depositor, receiver, assets, shares);
     }
 
     function _baseWithdraw(
@@ -684,6 +684,6 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
             AAVE_POOL.withdraw(address(asset), assets, receiver);
         }
 
-        emit Withdraw(msg.sender, receiver, owner, assets, shares);
+        emit Withdraw(allowanceTarget, receiver, owner, assets, shares);
     }
 }
