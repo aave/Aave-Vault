@@ -8,7 +8,7 @@ import {TransparentUpgradeableProxy} from "openzeppelin-non-upgradeable/proxy/tr
 import {ATokenVault, MathUpgradeable} from "../src/ATokenVault.sol";
 import {IATokenVaultEvents} from "../src/interfaces/IATokenVaultEvents.sol";
 import {IATokenVaultTypes} from "../src/interfaces/IATokenVaultTypes.sol";
-import {ERC20} from "solmate/tokens/ERC20.sol";
+import {ERC20} from "openzeppelin-non-upgradeable/token/ERC20/ERC20.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 
 contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
@@ -52,6 +52,9 @@ contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
     ATokenVault vault;
     address vaultAssetAddress; // aDAI, must be set in every setUp
 
+    //Initializer Errors
+    bytes constant ERR_INITIALIZED = bytes("Initializable: contract is already initialized");
+
     // Ownable Errors
     bytes constant ERR_NOT_OWNER = bytes("Ownable: caller is not the owner");
 
@@ -92,11 +95,14 @@ contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
 
     function _deploy(address underlying, address addressesProvider) internal {
         vm.startPrank(OWNER);
+        
         vault = new ATokenVault(underlying, referralCode, IPoolAddressesProvider(addressesProvider));
-        vault.initialize(OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
+        
         bytes memory data = abi.encodeWithSelector(ATokenVault.initialize.selector, OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
+        
         vault = ATokenVault(address(proxy));
+        
         vm.stopPrank();
     }
 }

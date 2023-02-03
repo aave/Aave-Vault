@@ -546,7 +546,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        // Setting to wrong domain separator
+        // Change domain separator
         VAULT_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
 
         VaultSigParams memory params = VaultSigParams({
@@ -800,6 +800,9 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
+        // Change domain separator
+        VAULT_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
+
         VaultSigParams memory params = VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
@@ -809,9 +812,6 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             deadline: block.timestamp,
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
-
-        // Change domain separator
-        VAULT_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
 
         EIP712Signature memory sig = _createVaultSig(params);
 
@@ -1053,6 +1053,9 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
+        // Change domain separator
+        VAULT_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
+
         VaultSigParams memory params = VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
@@ -1062,9 +1065,6 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             deadline: block.timestamp,
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
-
-        // Setting to wrong domain separator
-        VAULT_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
 
         EIP712Signature memory sig = _createVaultSig(params);
 

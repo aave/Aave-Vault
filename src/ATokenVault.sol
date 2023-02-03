@@ -59,6 +59,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         uint16 referralCode,
         IPoolAddressesProvider poolAddressesProvider
     ) {
+        _disableInitializers();
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
         AAVE_POOL = IPool(poolAddressesProvider.getPool());
         REFERRAL_CODE = referralCode;
@@ -78,7 +79,6 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     ) external initializer {
         // Skipping ownable init to allow passing a custom owner address to prevent the proxy
         // admin from ever being the Vault owner.
-        // __Ownable_init();
         _transferOwnership(owner);
         __ERC4626_init(UNDERLYING);
         __ERC20_init(shareName, shareSymbol);
@@ -89,8 +89,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         // Note that care should be taken to provide a non-trivial amount, but this depends
         // on the asset's decimals.
         if (initialDeposit != 0) {
-            UNDERLYING.safeTransferFrom(msg.sender, address(this), initialDeposit);
-            _handleDeposit(initialDeposit, address(this), address(this), false);
+            _handleDeposit(initialDeposit, address(this), msg.sender, false);
         }
         _lastUpdated = block.timestamp;
     }

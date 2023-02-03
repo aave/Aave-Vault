@@ -6,7 +6,8 @@ import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
-import {ERC20} from "solmate/tokens/ERC20.sol";
+import {ERC20} from "openzeppelin-non-upgradeable/token/ERC20/ERC20.sol";
+import {TransparentUpgradeableProxy} from "openzeppelin-non-upgradeable/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
@@ -48,12 +49,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
                                 NEGATIVES
     //////////////////////////////////////////////////////////////*/
 
-    function testInitRevertsFeeTooHigh() public {
-        vault = new ATokenVault(address(dai), referralCode, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
-        vm.expectRevert(ERR_FEE_TOO_HIGH);
-        vault.initialize(OWNER, SCALE + 1, SHARE_NAME, SHARE_SYMBOL, 0);
-    }
-
     function testDeployRevertsWithUnlistedAsset() public {
         // UNI token is not listed on Aave v3
         address uniToken = 0xb33EaAd8d922B1083446DC23f610c2567fB5180f;
@@ -65,6 +60,28 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     function testDeployRevertsWithBadPoolAddressProvider() public {
         vm.expectRevert();
         vault = new ATokenVault(address(dai), referralCode, IPoolAddressesProvider(address(0)));
+    }
+
+    function testCannotInitImpl() public {
+        vault = new ATokenVault(address(dai), referralCode, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+        vm.expectRevert(ERR_INITIALIZED);
+        vault.initialize(OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
+    }
+
+    function testInitProxyRevertsFeeTooHigh() public {
+        vault = new ATokenVault(address(dai), referralCode, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+
+        bytes memory data = abi.encodeWithSelector(
+            ATokenVault.initialize.selector,
+            OWNER,
+            SCALE + 1,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            0
+        );
+
+        vm.expectRevert(ERR_FEE_TOO_HIGH);
+        new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
     }
 
     function testNonOwnerCannotWithdrawFees() public {
@@ -147,6 +164,45 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     /*//////////////////////////////////////////////////////////////
                                 POSITIVES
     //////////////////////////////////////////////////////////////*/
+
+    function testInitProxyWithInitialDeposit() public {
+        uint256 amount = 1e18;
+
+        vault = new ATokenVault(address(dai), referralCode, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+
+        bytes memory data = abi.encodeWithSelector(
+            ATokenVault.initialize.selector,
+            OWNER,
+            fee,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            amount
+        );
+        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)));
+
+        deal(address(dai), address(this), amount);
+        dai.approve(address(proxyAddr), amount);
+
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
+
+        vault = ATokenVault(address(proxy));
+
+        assertEq(vault.totalSupply(), amount);
+        assertEq(vault.balanceOf(address(vault)), amount);
+        assertEq(vault.convertToShares(amount), amount);
+    }
+
+    function testCannotInitProxyTwice() public {
+        vault = new ATokenVault(address(dai), referralCode, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+
+        bytes memory data = abi.encodeWithSelector(ATokenVault.initialize.selector, OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
+
+        vault = ATokenVault(address(proxy));
+
+        vm.expectRevert(ERR_INITIALIZED);
+        vault.initialize(OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
+    }
 
     function testDeploySucceedsWithValidParams() public {
         _deployAndCheckProps();

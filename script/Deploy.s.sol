@@ -4,7 +4,7 @@ pragma solidity 0.8.10;
 import "forge-std/Script.sol";
 import "../src/ATokenVault.sol";
 
-import {ERC20} from "solmate/tokens/ERC20.sol";
+import {ERC20} from "openzeppelin-non-upgradeable/token/ERC20/ERC20.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 import {TransparentUpgradeableProxy} from "openzeppelin-non-upgradeable/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -50,9 +50,13 @@ contract Deploy is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
+        // Deploy the implementation, which disables initializers on construction
         vault = new ATokenVault(underlyingAsset, referralCode, IPoolAddressesProvider(aavePoolAddressProvider));
-        vault.initialize(owner, fee, shareName, shareSymbol, 0);
+
+        // Encode the initializer call
         bytes memory data = abi.encodeWithSelector(ATokenVault.initialize.selector, owner, fee, shareName, shareSymbol, 0);
+
+        // Deploy and initialize the proxy
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), proxyAdmin, data);
 
         vm.stopBroadcast();
