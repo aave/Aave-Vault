@@ -24,7 +24,7 @@ import "./libraries/Constants.sol";
  * @author Aave Protocol
  *
  * @notice An ERC-4626 vault for ERC20 assets supported by Aave v3, with a potential
- * vault fee on yield earned. Some alterations overide Solmate's base implementation.
+ * vault fee on yield earned. Some alterations override Solmate's base implementation.
  */
 contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes {
     using SafeTransferLib for ERC20;
@@ -92,12 +92,12 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
 
     /**
      * @notice Deposits a specified amount of assets into the vault, minting a corresponding amount of shares,
-     * using an EIP721 signature to enable a third-party to call this function on behalf of the depositor.
+     * using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
      *
      * @param assets The amount of underlying asset to deposit
      * @param receiver The address to receive the shares
      * @param depositor The address from which to pull the assets for the deposit
-     * @param sig An EIP721 signature from the depositor to allow this function to be called on their behalf
+     * @param sig An EIP712 signature from the depositor to allow this function to be called on their behalf
      *
      * @return shares The amount of shares minted to the receiver
      */
@@ -175,12 +175,12 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
 
     /**
      * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of assets,
-     * using an EIP721 signature to enable a third-party to call this function on behalf of the depositor.
+     * using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
      *
      * @param shares The amount of shares to mint
      * @param receiver The address to receive the shares
      * @param depositor The address from which to pull the assets for the deposit
-     * @param sig An EIP721 signature from the depositor to allow this function to be called on their behalf
+     * @param sig An EIP712 signature from the depositor to allow this function to be called on their behalf
      *
      * @return assets The amount of assets deposited by the receiver
      */
@@ -260,12 +260,12 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
 
     /**
      * @notice Withdraws a specified amount of assets from the vault, burning the corresponding amount of shares,
-     * using an EIP721 signature to enable a third-party to call this function on behalf of the owner.
+     * using an EIP712 signature to enable a third-party to call this function on behalf of the owner.
      *
      * @param assets The amount of assets to withdraw
      * @param receiver The address to receive the assets
      * @param owner The address from which to pull the shares for the withdrawal
-     * @param sig An EIP721 signature from the owner to allow this function to be called on their behalf
+     * @param sig An EIP712 signature from the owner to allow this function to be called on their behalf
      *
      * @return shares The amount of shares burnt in the withdrawal process
      */
@@ -345,12 +345,12 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
 
     /**
      * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of assets,
-     * using an EIP721 signature to enable a third-party to call this function on behalf of the owner.
+     * using an EIP712 signature to enable a third-party to call this function on behalf of the owner.
      *
      * @param shares The amount of shares to burn
      * @param receiver The address to receive the assets
      * @param owner The address from which to pull the shares for the withdrawal
-     * @param sig An EIP721 signature from the owner to allow this function to be called on their behalf
+     * @param sig An EIP712 signature from the owner to allow this function to be called on their behalf
      *
      * @return assets The amount of assets withdrawn by the receiver
      */
