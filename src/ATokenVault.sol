@@ -616,7 +616,6 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
 
         uint256 reserveConfigMap = reserveData.configuration.data;
         uint256 supplyCap = (reserveConfigMap & ~AAVE_SUPPLY_CAP_MASK) >> AAVE_SUPPLY_CAP_BIT_POSITION;
-        supplyCap = supplyCap * 10**decimals; // scale supply cap by asset's decimals
 
         if (
             (reserveConfigMap & ~AAVE_ACTIVE_MASK == 0) ||
@@ -629,9 +628,9 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         } else {
             // Reserve's supply cap - current amount supplied
             // See similar logic in Aave v3 ValidationLogic library, in the validateSupply function
-            // https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/ValidationLogic.sol#L71-L78
+            // https://github.com/aave/aave-v3-core/blob/a00f28e3ad7c0e4a369d8e06e0ac9fd0acabcab7/contracts/protocol/libraries/logic/ValidationLogic.sol#L71-L78
             return
-                supplyCap -
+                (supplyCap * 10**decimals) -
                 WadRayMath.rayMul(
                     (A_TOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)),
                     reserveData.liquidityIndex
