@@ -86,6 +86,7 @@ contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
     }
 
     function _deploy(address underlying, address addressesProvider) internal {
+        vm.prank(OWNER);
         vault = new ATokenVault(
             ERC20(underlying),
             SHARE_NAME,

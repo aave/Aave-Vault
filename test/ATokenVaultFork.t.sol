@@ -29,10 +29,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
         vaultAssetAddress = address(aDai);
 
-        vm.startPrank(OWNER);
         _deploy(POLYGON_DAI, POLYGON_POOL_ADDRESSES_PROVIDER);
-        // vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
-        vm.stopPrank();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -738,9 +735,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     //////////////////////////////////////////////////////////////*/
 
     function _deployAndCheckProps() public {
-        vm.startPrank(OWNER);
         _deploy(POLYGON_DAI, POLYGON_POOL_ADDRESSES_PROVIDER);
-        vm.stopPrank();
         assertEq(address(vault.asset()), POLYGON_DAI);
         assertEq(address(vault.ATOKEN()), POLYGON_ADAI);
         assertEq(address(vault.AAVE_POOL()), POLYGON_AAVE_POOL);
