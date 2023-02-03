@@ -470,7 +470,6 @@ contract ATokenVault is ERC4626, Ownable, IATokenVault {
             uint256 newFeesEarned = newYield.mulDivDown(_fee, SCALE);
 
             _accumulatedFees += newFeesEarned;
-
             _lastVaultBalance = newVaultBalance;
             _lastUpdated = block.timestamp;
 
@@ -493,14 +492,14 @@ contract ATokenVault is ERC4626, Ownable, IATokenVault {
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(depositor, address(this), assets);
 
-        // Deposit the received underlying into Aave v3
-        AAVE_POOL.supply(address(asset), assets, address(this), 0);
-
         _lastVaultBalance += assets;
 
         _mint(receiver, shares);
 
         emit Deposit(msg.sender, receiver, assets, shares);
+
+        // Deposit the received underlying into Aave v3
+        AAVE_POOL.supply(address(asset), assets, address(this), 0);
     }
 
     function _handleMint(
@@ -515,14 +514,14 @@ contract ATokenVault is ERC4626, Ownable, IATokenVault {
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(depositor, address(this), assets);
 
-        // Deposit the received underlying into Aave v3
-        AAVE_POOL.supply(address(asset), assets, address(this), 0);
-
-        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
+        _lastVaultBalance += assets;
 
         _mint(receiver, shares);
 
         emit Deposit(msg.sender, receiver, assets, shares);
+
+        // Deposit the received underlying into Aave v3
+        AAVE_POOL.supply(address(asset), assets, address(this), 0);
     }
 
     function _handleWithdraw(
@@ -543,13 +542,14 @@ contract ATokenVault is ERC4626, Ownable, IATokenVault {
             if (allowed != type(uint256).max) allowance[owner][allowanceTarget] = allowed - shares;
         }
 
+        _lastVaultBalance -= assets;
+
         _burn(owner, shares);
 
         emit Withdraw(msg.sender, receiver, owner, assets, shares);
 
         // Withdraw assets from Aave v3 and send to receiver
         AAVE_POOL.withdraw(address(asset), assets, receiver);
-        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
     }
 
     function _handleRedeem(
@@ -573,13 +573,14 @@ contract ATokenVault is ERC4626, Ownable, IATokenVault {
         // Check for rounding error since we round down in previewRedeem.
         require(assets != 0, "ZERO_ASSETS");
 
+        _lastVaultBalance -= assets;
+
         _burn(owner, shares);
 
         emit Withdraw(msg.sender, receiver, owner, assets, shares);
 
         // Withdraw assets from Aave v3 and send to receiver
         AAVE_POOL.withdraw(address(asset), assets, receiver);
-        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
     }
 
     function _maxAssetsSuppliableToAave() internal view returns (uint256) {
