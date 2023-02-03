@@ -405,7 +405,7 @@ contract ATokenVault is ERC4626, Ownable {
     function emergencyRescue(address token, address to, uint256 amount) public onlyOwner {
         require(token != address(A_TOKEN), "CANNOT_RESCUE_ATOKEN");
 
-        ERC20(token).transfer(to, amount);
+        ERC20(token).safeTransfer(to, amount);
 
         emit Events.EmergencyRescue(token, to, amount);
     }
