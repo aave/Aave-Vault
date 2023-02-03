@@ -319,10 +319,10 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
      *
      */
     function withdrawFees(address to, uint256 amount) public onlyOwner {
-        uint256 currentFees = getCurrentFees();
-        require(amount <= currentFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
+        uint256 claimableFees = getClaimableFees();
+        require(amount <= claimableFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
 
-        _accumulatedFees = currentFees - amount;
+        _accumulatedFees = claimableFees - amount;
         _lastVaultBalance = A_TOKEN.balanceOf(address(this)) - amount;
         _lastUpdated = block.timestamp;
 
@@ -374,10 +374,10 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
 
     function totalAssets() public view override returns (uint256) {
         // Report only the total assets net of fees, for vault share logic
-        return A_TOKEN.balanceOf(address(this)) - getCurrentFees();
+        return A_TOKEN.balanceOf(address(this)) - getClaimableFees();
     }
 
-    function getCurrentFees() public view returns (uint256) {
+    function getClaimableFees() public view returns (uint256) {
         if (block.timestamp == _lastUpdated) {
             // Accumulated fees already up to date
             return _accumulatedFees;

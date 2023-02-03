@@ -88,7 +88,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _deployAndCheckProps();
         _accrueFeesInVault(feesAmount);
 
-        uint256 feesAccrued = vault.getCurrentFees();
+        uint256 feesAccrued = vault.getClaimableFees();
         assertGt(feesAccrued, 0); // must have accrued some fees
 
         vm.startPrank(ALICE);
@@ -130,7 +130,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         skip(1);
         vm.stopPrank();
 
-        uint256 feesAccrued = vault.getCurrentFees();
+        uint256 feesAccrued = vault.getClaimableFees();
         uint256 vaultADaiBalance = aDai.balanceOf(address(vault));
 
         assertGe(feesAccrued, feesAmount); //Actual fees earned >= feesAmount
@@ -180,7 +180,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _deployAndCheckProps();
         _accrueFeesInVault(feesAmount);
 
-        uint256 feesAccrued = vault.getCurrentFees();
+        uint256 feesAccrued = vault.getClaimableFees();
 
         assertGt(feesAccrued, 0); // must have accrued some fees
 
@@ -189,7 +189,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
 
         assertEq(aDai.balanceOf(OWNER), feesAccrued);
-        assertEq(vault.getCurrentFees(), 0);
+        assertEq(vault.getClaimableFees(), 0);
     }
 
     function testWithdrawFeesEmitsEvent() public {
@@ -197,7 +197,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _deployAndCheckProps();
         _accrueFeesInVault(feesAmount);
 
-        uint256 feesAccrued = vault.getCurrentFees();
+        uint256 feesAccrued = vault.getClaimableFees();
         uint256 vaultADaiBalanceBefore = aDai.balanceOf(address(vault));
 
         assertGt(feesAccrued, 0);
@@ -303,8 +303,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _withdrawFromUser(ALICE, 0);
 
         assertEq(vault.totalAssets(), 0, "Total assets not zero"); // No user funds left in vault, only fees
-        assertEq(vault.getCurrentFees(), aDai.balanceOf(address(vault)), "Fees not same as aDAI balance");
-        assertGt(vault.getCurrentFees(), 0, "Fees not zero"); // Fees remain
+        assertEq(vault.getClaimableFees(), aDai.balanceOf(address(vault)), "Fees not same as aDAI balance");
+        assertGt(vault.getClaimableFees(), 0, "Fees not zero"); // Fees remain
     }
 
     function testTotalAssetsDepositThenWithdrawWithNoFeesRemaining() public {
@@ -322,8 +322,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         _withdrawFromUser(ALICE, amount);
 
         assertEq(vault.totalAssets(), 0, "Total assets not zero"); // No user funds left in vault, only fees
-        assertEq(vault.getCurrentFees(), aDai.balanceOf(address(vault)), "Fees not equal to aDAI balance");
-        assertGt(vault.getCurrentFees(), 0, "Fees not zero"); // Some fees remain
+        assertEq(vault.getClaimableFees(), aDai.balanceOf(address(vault)), "Fees not equal to aDAI balance");
+        assertGt(vault.getClaimableFees(), 0, "Fees not zero"); // Some fees remain
 
         _withdrawFees(0); // withdraw all fees
 
@@ -541,8 +541,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vault.withdraw(aliceMaxWithdrawable, ALICE, ALICE);
         vm.stopPrank();
 
-        assertEq(aDai.balanceOf(address(vault)), vault.getCurrentFees(), "FEES NOT SAME AS VAULT BALANCE");
-        assertApproxEqRel(vault.getCurrentFees(), expectedFees, ONE_BPS, "FEES NOT AS EXPECTED");
+        assertEq(aDai.balanceOf(address(vault)), vault.getClaimableFees(), "FEES NOT SAME AS VAULT BALANCE");
+        assertApproxEqRel(vault.getClaimableFees(), expectedFees, ONE_BPS, "FEES NOT AS EXPECTED");
         assertApproxEqRel(dai.balanceOf(ALICE), expectedAliceAmountEnd, ONE_BPS, "END ALICE BALANCE NOT AS EXPECTED");
     }
 
@@ -599,8 +599,8 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vault.redeem(aliceMaxReedemable, ALICE, ALICE);
         vm.stopPrank();
 
-        assertEq(aDai.balanceOf(address(vault)), vault.getCurrentFees(), "FEES NOT SAME AS VAULT BALANCE");
-        assertApproxEqRel(vault.getCurrentFees(), expectedFees, ONE_BPS, "FEES NOT AS EXPECTED");
+        assertEq(aDai.balanceOf(address(vault)), vault.getClaimableFees(), "FEES NOT SAME AS VAULT BALANCE");
+        assertApproxEqRel(vault.getClaimableFees(), expectedFees, ONE_BPS, "FEES NOT AS EXPECTED");
         assertApproxEqRel(dai.balanceOf(ALICE), expectedAliceAmountEnd, ONE_BPS, "END ALICE BALANCE NOT AS EXPECTED");
     }
 
@@ -747,7 +747,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     }
 
     function _withdrawFees(uint256 amount) public {
-        if (amount == 0) amount = vault.getCurrentFees();
+        if (amount == 0) amount = vault.getClaimableFees();
         vm.startPrank(OWNER);
         vault.withdrawFees(OWNER, amount);
         vm.stopPrank();
@@ -788,7 +788,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
 
         // Fees will be more than specified in param because of interest earned over time in Aave
-        assertApproxEqRel(vault.getCurrentFees(), feeAmountToAccrue, ONE_BPS);
+        assertApproxEqRel(vault.getClaimableFees(), feeAmountToAccrue, ONE_BPS);
     }
 
     function _getFeesOnAmount(uint256 amount) public view returns (uint256) {
