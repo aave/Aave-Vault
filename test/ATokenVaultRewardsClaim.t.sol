@@ -28,7 +28,6 @@ contract ATokenVaultRewardsClaimTest is ATokenVaultBaseTest {
     uint256 AVALANCHE_FORK_BLOCK = 21000000; // Oct 13th 2022
     uint256 THIRTY_DAYS = 2592000; // 1 month of rewards
 
-    ERC20 usdc; //NOTE: USDC has 6 decimal places, not 18
     IAToken aUSDC;
 
     function setUp() public override {
@@ -91,7 +90,6 @@ contract ATokenVaultRewardsClaimTest is ATokenVaultBaseTest {
             aUsdcArray,
             address(vault)
         );
-
         assertEq(ERC20(WAVAX).balanceOf(OWNER), 0); // Owner has no wAVAX before claiming
 
         vm.startPrank(OWNER);
@@ -128,10 +126,9 @@ contract ATokenVaultRewardsClaimTest is ATokenVaultBaseTest {
     }
 
     function _depositFromUser(address user, uint256 amount) public {
-        deal(address(usdc), user, amount);
-
+        deal(AVAX_USDC, user, amount);
         vm.startPrank(user);
-        usdc.approve(address(vault), amount);
+        ERC20(AVAX_USDC).approve(address(vault), amount);
         vault.deposit(amount, user);
         vm.stopPrank();
     }
