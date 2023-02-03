@@ -461,9 +461,11 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
      * @param to The address to receive any rewards tokens.
      *
      */
-    function claimRewards(address[] calldata assets, address to) public onlyOwner {
+    function claimRewards(address to) public onlyOwner {
         require(to != address(0), "CANNOT_CLAIM_TO_ZERO_ADDRESS");
 
+        address[] memory assets = new address[](1);
+        assets[0] = address(ATOKEN);
         (address[] memory rewardsList, uint256[] memory claimedAmounts) = IRewardsController(
             POOL_ADDRESSES_PROVIDER.getAddress(REWARDS_CONTROLLER_ID)
         ).claimAllRewards(assets, to);
