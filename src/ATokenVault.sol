@@ -32,7 +32,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
 
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
     IPool public immutable AAVE_POOL;
-    IAToken public immutable A_TOKEN;
+    IAToken public immutable ATOKEN;
     uint16 public immutable REFERRAL_CODE;
 
     mapping(address => uint256) internal _sigNonces;
@@ -63,7 +63,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
 
         address aTokenAddress = AAVE_POOL.getReserveData(address(underlying)).aTokenAddress;
         require(aTokenAddress != address(0), "ASSET_NOT_SUPPORTED");
-        A_TOKEN = IAToken(aTokenAddress);
+        ATOKEN = IAToken(aTokenAddress);
 
         _setFee(initialFee);
         _lastUpdated = block.timestamp;
@@ -447,10 +447,10 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         require(amount <= claimableFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
 
         _accumulatedFees = claimableFees - amount;
-        _lastVaultBalance = A_TOKEN.balanceOf(address(this)) - amount;
+        _lastVaultBalance = ATOKEN.balanceOf(address(this)) - amount;
         _lastUpdated = block.timestamp;
 
-        A_TOKEN.transfer(to, amount);
+        ATOKEN.transfer(to, amount);
 
         emit FeesWithdrawn(to, amount, _lastVaultBalance, _accumulatedFees);
     }
@@ -485,7 +485,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         address to,
         uint256 amount
     ) public onlyOwner {
-        require(token != address(A_TOKEN), "CANNOT_RESCUE_ATOKEN");
+        require(token != address(ATOKEN), "CANNOT_RESCUE_ATOKEN");
 
         ERC20(token).transfer(to, amount);
 
@@ -498,7 +498,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
 
     function totalAssets() public view override returns (uint256) {
         // Report only the total assets net of fees, for vault share logic
-        return A_TOKEN.balanceOf(address(this)) - getClaimableFees();
+        return ATOKEN.balanceOf(address(this)) - getClaimableFees();
     }
 
     function getClaimableFees() public view returns (uint256) {
@@ -507,7 +507,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
             return _accumulatedFees;
         } else {
             // Calculate new fees since last accrueYield
-            uint256 newVaultBalance = A_TOKEN.balanceOf(address(this));
+            uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
             uint256 newYield = newVaultBalance - _lastVaultBalance;
             uint256 newFees = newYield.mulDivDown(_fee, SCALE);
 
@@ -547,7 +547,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
     function _accrueYield() internal {
         // Fees are accrued and claimable in aToken form
         if (block.timestamp != _lastUpdated) {
-            uint256 newVaultBalance = A_TOKEN.balanceOf(address(this));
+            uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
             uint256 newYield = newVaultBalance - _lastVaultBalance;
             uint256 newFeesEarned = newYield.mulDivDown(_fee, SCALE);
 
@@ -632,7 +632,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
             return
                 (supplyCap * 10**decimals) -
                 WadRayMath.rayMul(
-                    (A_TOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)),
+                    (ATOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)),
                     reserveData.liquidityIndex
                 );
         }
@@ -647,7 +647,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
     ) private {
         // Need to transfer before minting or ERC777s could reenter.
         if (asAToken) {
-            A_TOKEN.transferFrom(depositor, address(this), assets);
+            ATOKEN.transferFrom(depositor, address(this), assets);
         } else {
             asset.safeTransferFrom(depositor, address(this), assets);
             AAVE_POOL.supply(address(asset), assets, address(this), REFERRAL_CODE);
@@ -678,7 +678,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
 
         // Withdraw assets from Aave v3 and send to receiver
         if (asAToken) {
-            A_TOKEN.transfer(receiver, assets);
+            ATOKEN.transfer(receiver, assets);
         } else {
             AAVE_POOL.withdraw(address(asset), assets, receiver);
         }
