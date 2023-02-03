@@ -86,6 +86,15 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         shares = _handleDeposit(assets, receiver, msg.sender, false);
     }
 
+    /**
+     * @notice Deposits a specified amount of aToken assets into the vault, minting a corresponding amount of 
+     * shares.
+     *
+     * @param assets The amount of aToken assets to deposit
+     * @param receiver The address to receive the shares
+     *
+     * @return shares The amount of shares minted to the receiver
+     */
     function depositATokens(uint256 assets, address receiver) public returns (uint256 shares) {
         shares = _handleDeposit(assets, receiver, msg.sender, true);
     }
@@ -129,6 +138,17 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         shares = _handleDeposit(assets, receiver, depositor, false);
     }
 
+    /**
+     * @notice Deposits a specified amount of aToken assets into the vault, minting a corresponding amount of 
+     * shares, using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
+     *
+     * @param assets The amount of aToken assets to deposit
+     * @param receiver The address to receive the shares
+     * @param depositor The address from which to pull the aToken assets for the deposit
+     * @param sig An EIP712 signature from the depositor to allow this function to be called on their behalf
+     *
+     * @return shares The amount of shares minted to the receiver
+     */
     function depositATokensWithSig(
         uint256 assets,
         address receiver,
@@ -163,12 +183,21 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
      * @param shares The amount of shares to mint
      * @param receiver The address to receive the shares
      *
-     * @return assets The amount of assets deposited by the receiver
+     * @return assets The amount of assets deposited by the caller
      */
     function mint(uint256 shares, address receiver) public override returns (uint256 assets) {
         assets = _handleMint(shares, receiver, msg.sender, false);
     }
 
+    /**
+     * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of aToken
+     * assets.
+     *
+     * @param shares The amount of shares to mint
+     * @param receiver The address to receive the shares
+     *
+     * @return assets The amount of aToken assets deposited by the caller
+     */
     function mintWithATokens(uint256 shares, address receiver) public returns (uint256 assets) {
         assets = _handleMint(shares, receiver, msg.sender, true);
     }
@@ -182,7 +211,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
      * @param depositor The address from which to pull the assets for the deposit
      * @param sig An EIP712 signature from the depositor to allow this function to be called on their behalf
      *
-     * @return assets The amount of assets deposited by the receiver
+     * @return assets The amount of assets deposited by the depositor
      */
     function mintWithSig(
         uint256 shares,
@@ -205,6 +234,17 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         assets = _handleMint(shares, receiver, depositor, false);
     }
 
+    /**
+     * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of aToken
+     * assets, using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
+     *
+     * @param shares The amount of shares to mint
+     * @param receiver The address to receive the shares
+     * @param depositor The address from which to pull the aToken assets for the deposit
+     * @param sig An EIP712 signature from the depositor to allow this function to be called on their behalf
+     *
+     * @return assets The amount of aToken assets deposited by the depositor
+     */
     function mintWithATokensWithSig(
         uint256 shares,
         address receiver,
@@ -250,6 +290,16 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         shares = _handleWithdraw(assets, receiver, owner, msg.sender, false);
     }
 
+    /**
+     * @notice Withdraws a specified amount of aToken assets from the vault, burning the corresponding amount of
+     * shares.
+     *
+     * @param assets The amount of aToken assets to withdraw
+     * @param receiver The address to receive the aToken assets
+     * @param owner The address from which to pull the shares for the withdrawal
+     *
+     * @return shares The amount of shares burnt in the withdrawal process
+     */
     function withdrawATokens(
         uint256 assets,
         address receiver,
@@ -290,6 +340,17 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         shares = _handleWithdraw(assets, receiver, owner, owner, false);
     }
 
+    /**
+     * @notice Withdraws a specified amount of aToken assets from the vault, burning the corresponding amount of
+     * shares, using an EIP712 signature to enable a third-party to call this function on behalf of the owner.
+     *
+     * @param assets The amount of aToken assets to withdraw
+     * @param receiver The address to receive the aToken assets
+     * @param owner The address from which to pull the shares for the withdrawal
+     * @param sig An EIP712 signature from the owner to allow this function to be called on their behalf
+     *
+     * @return shares The amount of shares burnt in the withdrawal process
+     */
     function withdrawATokensWithSig(
         uint256 assets,
         address receiver,
@@ -335,6 +396,16 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         assets = _handleRedeem(shares, receiver, owner, msg.sender, false);
     }
 
+    /**
+     * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of aToken 
+     * assets.
+     *
+     * @param shares The amount of shares to burn
+     * @param receiver The address to receive the aToken assets
+     * @param owner The address from which to pull the shares for the withdrawal
+     *
+     * @return assets The amount of aToken assets withdrawn by the receiver
+     */
     function redeemAsAtokens(
         uint256 shares,
         address receiver,
@@ -373,6 +444,17 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         assets = _handleRedeem(shares, receiver, owner, owner, false);
     }
 
+    /**
+     * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of aToken 
+     * assets, using an EIP712 signature to enable a third-party to call this function on behalf of the owner.
+     *
+     * @param shares The amount of shares to burn
+     * @param receiver The address to receive the aToken assets
+     * @param owner The address from which to pull the shares for the withdrawal
+     * @param sig An EIP712 signature from the owner to allow this function to be called on their behalf
+     *
+     * @return assets The amount of aToken assets withdrawn by the receiver
+     */
     function redeemWithATokensWithSig(
         uint256 shares,
         address receiver,
