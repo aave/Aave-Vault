@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
-import {ERC4626, SafeTransferLib, FixedPointMathLib} from "solmate/mixins/ERC4626.sol";
-import {ERC20} from "solmate/tokens/ERC20.sol";
-import {Ownable} from "openzeppelin/access/Ownable.sol";
+// Upgradeability
+import {ERC4626Upgradeable} from "openzeppelin/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import {OwnableUpgradeable} from "openzeppelin/access/OwnableUpgradeable.sol";
+import {SafeERC20Upgradeable} from "openzeppelin/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {IERC20Upgradeable} from "openzeppelin/interfaces/IERC20Upgradeable.sol";
+import {EIP712Upgradeable} from "openzeppelin/utils/cryptography/EIP712Upgradeable.sol";
+import {MathUpgradeable} from "openzeppelin/utils/math/MathUpgradeable.sol";
+
 import {WadRayMath} from "aave/protocol/libraries/math/WadRayMath.sol";
 import {DataTypes as AaveDataTypes} from "aave/protocol/libraries/types/DataTypes.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
@@ -24,15 +29,17 @@ import "./libraries/Constants.sol";
  * @author Aave Protocol
  *
  * @notice An ERC-4626 vault for ERC20 assets supported by Aave v3, with a potential
- * vault fee on yield earned. Some alterations override Solmate's base implementation.
+ * vault fee on yield earned. Some alterations override the base implementation.
  */
-contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes {
-    using SafeTransferLib for ERC20;
-    using FixedPointMathLib for uint256;
+contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeable, IATokenVaultEvents, IATokenVaultTypes {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using MathUpgradeable for uint256;
+    // using FixedPointMathLib for uint256;
 
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
     IPool public immutable AAVE_POOL;
     IAToken public immutable ATOKEN;
+    IERC20Upgradeable public immutable UNDERLYING;
     uint16 public immutable REFERRAL_CODE;
 
     mapping(address => uint256) internal _sigNonces;
@@ -44,30 +51,48 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
 
     /**
      * @param underlying The underlying ERC20 asset which can be supplied to Aave
-     * @param shareName The name of the share token for this vault
-     * @param shareSymbol The symbol of the share token for this vault
-     * @param initialFee The fee taken on yield earned, as a fraction of 1e18
+     * @param referralCode The Aave referral code to use for deposits from this vault
      * @param poolAddressesProvider The address of the Aave v3 Pool Addresses Provider
      */
     constructor(
-        ERC20 underlying,
-        string memory shareName,
-        string memory shareSymbol,
-        uint256 initialFee,
+        address underlying,
         uint16 referralCode,
         IPoolAddressesProvider poolAddressesProvider
-    ) ERC4626(underlying, shareName, shareSymbol) {
+    ) {
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
         AAVE_POOL = IPool(poolAddressesProvider.getPool());
         REFERRAL_CODE = referralCode;
+        UNDERLYING = IERC20Upgradeable(underlying);
 
         address aTokenAddress = AAVE_POOL.getReserveData(address(underlying)).aTokenAddress;
         require(aTokenAddress != address(0), "ASSET_NOT_SUPPORTED");
         ATOKEN = IAToken(aTokenAddress);
+    }
 
+    function initialize(
+        address owner,
+        uint256 initialFee,
+        string memory shareName,
+        string memory shareSymbol,
+        uint256 initialDeposit
+    ) external initializer {
+        // Skipping ownable init to allow passing a custom owner address to prevent the proxy
+        // admin from ever being the Vault owner.
+        // __Ownable_init();
+        _transferOwnership(owner);
+        __ERC4626_init(UNDERLYING);
+        __ERC20_init(shareName, shareSymbol);
+        __EIP712_init(shareName, "1");
         _setFee(initialFee);
+        UNDERLYING.safeApprove(address(AAVE_POOL), type(uint256).max);
+        // Execute initial deposit and burn to prevent frontrun attack.
+        // Note that care should be taken to provide a non-trivial amount, but this depends
+        // on the asset's decimals.
+        if (initialDeposit != 0) {
+            UNDERLYING.safeTransferFrom(msg.sender, address(this), initialDeposit);
+            _handleDeposit(initialDeposit, address(this), address(this), false);
+        }
         _lastUpdated = block.timestamp;
-        asset.approve(address(AAVE_POOL), type(uint256).max);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -87,7 +112,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
     }
 
     /**
-     * @notice Deposits a specified amount of aToken assets into the vault, minting a corresponding amount of 
+     * @notice Deposits a specified amount of aToken assets into the vault, minting a corresponding amount of
      * shares.
      *
      * @param assets The amount of aToken assets to deposit
@@ -129,7 +154,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
                             sig.deadline
                         )
                     ),
-                    DOMAIN_SEPARATOR()
+                    _domainSeparatorV4()
                 ),
                 depositor,
                 sig
@@ -139,7 +164,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
     }
 
     /**
-     * @notice Deposits a specified amount of aToken assets into the vault, minting a corresponding amount of 
+     * @notice Deposits a specified amount of aToken assets into the vault, minting a corresponding amount of
      * shares, using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
      *
      * @param assets The amount of aToken assets to deposit
@@ -168,7 +193,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
                             sig.deadline
                         )
                     ),
-                    DOMAIN_SEPARATOR()
+                    _domainSeparatorV4()
                 ),
                 depositor,
                 sig
@@ -225,7 +250,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
                     keccak256(
                         abi.encode(MINT_WITH_SIG_TYPEHASH, shares, receiver, depositor, _sigNonces[depositor]++, sig.deadline)
                     ),
-                    DOMAIN_SEPARATOR()
+                    _domainSeparatorV4()
                 ),
                 depositor,
                 sig
@@ -264,7 +289,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
                             sig.deadline
                         )
                     ),
-                    DOMAIN_SEPARATOR()
+                    _domainSeparatorV4()
                 ),
                 depositor,
                 sig
@@ -331,7 +356,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
                     keccak256(
                         abi.encode(WITHDRAW_WITH_SIG_TYPEHASH, assets, receiver, owner, _sigNonces[owner]++, sig.deadline)
                     ),
-                    DOMAIN_SEPARATOR()
+                    _domainSeparatorV4()
                 ),
                 owner,
                 sig
@@ -370,7 +395,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
                             sig.deadline
                         )
                     ),
-                    DOMAIN_SEPARATOR()
+                    _domainSeparatorV4()
                 ),
                 owner,
                 sig
@@ -397,7 +422,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
     }
 
     /**
-     * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of aToken 
+     * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of aToken
      * assets.
      *
      * @param shares The amount of shares to burn
@@ -435,7 +460,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
                     keccak256(abi.encode(REDEEM_WITH_SIG_TYPEHASH, shares, receiver, owner, _sigNonces[owner]++, sig.deadline)),
-                    DOMAIN_SEPARATOR()
+                    _domainSeparatorV4()
                 ),
                 owner,
                 sig
@@ -445,7 +470,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
     }
 
     /**
-     * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of aToken 
+     * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of aToken
      * assets, using an EIP712 signature to enable a third-party to call this function on behalf of the owner.
      *
      * @param shares The amount of shares to burn
@@ -474,7 +499,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
                             sig.deadline
                         )
                     ),
-                    DOMAIN_SEPARATOR()
+                    _domainSeparatorV4()
                 ),
                 owner,
                 sig
@@ -501,6 +526,15 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
      */
     function maxMint(address) public view override returns (uint256) {
         return convertToShares(_maxAssetsSuppliableToAave());
+    }
+
+    /**
+     * @notice returns the domain separator.
+     *
+     * @return Domain separator
+     */
+    function domainSeparator() public view returns (bytes32) {
+        return _domainSeparatorV4();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -571,7 +605,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
     ) public onlyOwner {
         require(token != address(ATOKEN), "CANNOT_RESCUE_ATOKEN");
 
-        ERC20(token).transfer(to, amount);
+        IERC20Upgradeable(token).safeTransfer(to, amount);
 
         emit EmergencyRescue(token, to, amount);
     }
@@ -593,7 +627,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
             // Calculate new fees since last accrueYield
             uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
             uint256 newYield = newVaultBalance - _lastVaultBalance;
-            uint256 newFees = newYield.mulDivDown(_fee, SCALE);
+            uint256 newFees = newYield.mulDiv(_fee, SCALE, MathUpgradeable.Rounding.Down);
 
             return _accumulatedFees + newFees;
         }
@@ -633,7 +667,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         if (block.timestamp != _lastUpdated) {
             uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
             uint256 newYield = newVaultBalance - _lastVaultBalance;
-            uint256 newFeesEarned = newYield.mulDivDown(_fee, SCALE);
+            uint256 newFeesEarned = newYield.mulDiv(_fee, SCALE, MathUpgradeable.Rounding.Down);
 
             _accumulatedFees += newFeesEarned;
             _lastVaultBalance = newVaultBalance;
@@ -696,7 +730,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         // returns max uint256 value if supply cap is 0 (not capped)
         // returns supply cap - current amount supplied as max suppliable if there is a supply cap for this reserve
 
-        AaveDataTypes.ReserveData memory reserveData = AAVE_POOL.getReserveData(address(asset));
+        AaveDataTypes.ReserveData memory reserveData = AAVE_POOL.getReserveData(address(UNDERLYING));
 
         uint256 reserveConfigMap = reserveData.configuration.data;
         uint256 supplyCap = (reserveConfigMap & ~AAVE_SUPPLY_CAP_MASK) >> AAVE_SUPPLY_CAP_BIT_POSITION;
@@ -714,7 +748,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
             // See similar logic in Aave v3 ValidationLogic library, in the validateSupply function
             // https://github.com/aave/aave-v3-core/blob/a00f28e3ad7c0e4a369d8e06e0ac9fd0acabcab7/contracts/protocol/libraries/logic/ValidationLogic.sol#L71-L78
             return
-                (supplyCap * 10**decimals) -
+                (supplyCap * 10**decimals()) -
                 WadRayMath.rayMul(
                     (ATOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)),
                     reserveData.liquidityIndex
@@ -733,8 +767,8 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         if (asAToken) {
             ATOKEN.transferFrom(depositor, address(this), assets);
         } else {
-            asset.safeTransferFrom(depositor, address(this), assets);
-            AAVE_POOL.supply(address(asset), assets, address(this), REFERRAL_CODE);
+            UNDERLYING.safeTransferFrom(depositor, address(this), assets);
+            AAVE_POOL.supply(address(UNDERLYING), assets, address(this), REFERRAL_CODE);
         }
 
         _lastVaultBalance += assets;
@@ -752,9 +786,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         bool asAToken
     ) private {
         if (allowanceTarget != owner) {
-            uint256 allowed = allowance[owner][allowanceTarget];
-
-            if (allowed != type(uint256).max) allowance[owner][allowanceTarget] = allowed - shares;
+            _spendAllowance(owner, allowanceTarget, shares);
         }
 
         _lastVaultBalance -= assets;
@@ -764,7 +796,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         if (asAToken) {
             ATOKEN.transfer(receiver, assets);
         } else {
-            AAVE_POOL.withdraw(address(asset), assets, receiver);
+            AAVE_POOL.withdraw(address(UNDERLYING), assets, receiver);
         }
 
         emit Withdraw(allowanceTarget, receiver, owner, assets, shares);

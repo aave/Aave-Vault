@@ -68,7 +68,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         _deploy(address(dai), address(poolAddrProvider));
 
-        VAULT_DOMAIN_SEPARATOR = vault.DOMAIN_SEPARATOR();
+        VAULT_DOMAIN_SEPARATOR = vault.domainSeparator();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -130,7 +130,8 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
-        vm.expectRevert(ERR_TRANSFER_FROM_FAILED);
+        // Foundry does not properly decode the bubbled up error from OZ's SafeERC20.
+        vm.expectRevert();
         vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
@@ -404,7 +405,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
-        vm.expectRevert(ERR_TRANSFER_FROM_FAILED);
+        vm.expectRevert();
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }

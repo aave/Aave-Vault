@@ -3,14 +3,16 @@ pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
 
-import {ATokenVault, FixedPointMathLib} from "../src/ATokenVault.sol";
+import {TransparentUpgradeableProxy} from "openzeppelin-non-upgradeable/proxy/transparent/TransparentUpgradeableProxy.sol";
+
+import {ATokenVault, MathUpgradeable} from "../src/ATokenVault.sol";
 import {IATokenVaultEvents} from "../src/interfaces/IATokenVaultEvents.sol";
 import {IATokenVaultTypes} from "../src/interfaces/IATokenVaultTypes.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 
 contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
-    using FixedPointMathLib for uint256;
+    using MathUpgradeable for uint256;
 
     bytes32 constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
@@ -29,11 +31,13 @@ contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
     uint256 constant ONE_PERCENT = 0.01e18;
     uint256 constant ONE_BPS = 0.0001e18;
 
+    uint256 constant PROXY_ADMIN_PRIV_KEY = 4546;
     uint256 constant OWNER_PRIV_KEY = 11111;
     uint256 constant ALICE_PRIV_KEY = 12345;
     uint256 constant BOB_PRIV_KEY = 54321;
     uint256 constant CHAD_PRIV_KEY = 98765;
 
+    address PROXY_ADMIN = vm.addr(PROXY_ADMIN_PRIV_KEY);
     address OWNER = vm.addr(OWNER_PRIV_KEY);
     address ALICE = vm.addr(ALICE_PRIV_KEY);
     address BOB = vm.addr(BOB_PRIV_KEY);
@@ -66,6 +70,7 @@ contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
     bytes constant ERR_ASSET_NOT_SUPPORTED = bytes("ASSET_NOT_SUPPORTED");
     bytes constant ERR_INSUFFICIENT_FEES = bytes("INSUFFICIENT_FEES");
     bytes constant ERR_CANNOT_CLAIM_TO_ZERO_ADDRESS = bytes("CANNOT_CLAIM_TO_ZERO_ADDRESS");
+    bytes constant SAFE_TRANSFER_ARITHMETIC = bytes("NH{q");
 
     // ERC4626 Events
     event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares);
@@ -86,14 +91,12 @@ contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
     }
 
     function _deploy(address underlying, address addressesProvider) internal {
-        vm.prank(OWNER);
-        vault = new ATokenVault(
-            ERC20(underlying),
-            SHARE_NAME,
-            SHARE_SYMBOL,
-            fee,
-            referralCode,
-            IPoolAddressesProvider(addressesProvider)
-        );
+        vm.startPrank(OWNER);
+        vault = new ATokenVault(underlying, referralCode, IPoolAddressesProvider(addressesProvider));
+        vault.initialize(OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
+        bytes memory data = abi.encodeWithSelector(ATokenVault.initialize.selector, OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
+        vault = ATokenVault(address(proxy));
+        vm.stopPrank();
     }
 }

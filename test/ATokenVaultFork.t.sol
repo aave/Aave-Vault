@@ -48,16 +48,10 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
                                 NEGATIVES
     //////////////////////////////////////////////////////////////*/
 
-    function testDeployRevertsFeeTooHigh() public {
+    function testInitRevertsFeeTooHigh() public {
+        vault = new ATokenVault(address(dai), referralCode, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
         vm.expectRevert(ERR_FEE_TOO_HIGH);
-        vault = new ATokenVault(
-            dai,
-            SHARE_NAME,
-            SHARE_SYMBOL,
-            SCALE + 1,
-            referralCode,
-            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER)
-        );
+        vault.initialize(OWNER, SCALE + 1, SHARE_NAME, SHARE_SYMBOL, 0);
     }
 
     function testDeployRevertsWithUnlistedAsset() public {
@@ -65,19 +59,12 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         address uniToken = 0xb33EaAd8d922B1083446DC23f610c2567fB5180f;
 
         vm.expectRevert(ERR_ASSET_NOT_SUPPORTED);
-        vault = new ATokenVault(
-            ERC20(uniToken),
-            SHARE_NAME,
-            SHARE_SYMBOL,
-            fee,
-            referralCode,
-            IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER)
-        );
+        vault = new ATokenVault(uniToken, referralCode, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
     }
 
     function testDeployRevertsWithBadPoolAddressProvider() public {
         vm.expectRevert();
-        vault = new ATokenVault(dai, SHARE_NAME, SHARE_SYMBOL, fee, referralCode, IPoolAddressesProvider(address(0)));
+        vault = new ATokenVault(address(dai), referralCode, IPoolAddressesProvider(address(0)));
     }
 
     function testNonOwnerCannotWithdrawFees() public {
