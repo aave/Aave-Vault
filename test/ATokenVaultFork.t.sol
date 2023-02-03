@@ -2,6 +2,7 @@
 pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
+import "forge-std/console2.sol";
 import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";
@@ -64,6 +65,18 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
     function testCannotInitImpl() public {
         vault = new ATokenVault(address(dai), referralCode, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+        vm.expectRevert(ERR_INITIALIZED);
+        vault.initialize(OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
+    }
+
+    function testCannotInitProxyTwice() public {
+        vault = new ATokenVault(address(dai), referralCode, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+
+        bytes memory data = abi.encodeWithSelector(ATokenVault.initialize.selector, OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
+
+        vault = ATokenVault(address(proxy));
+
         vm.expectRevert(ERR_INITIALIZED);
         vault.initialize(OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
     }
@@ -190,18 +203,6 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(vault.totalSupply(), amount);
         assertEq(vault.balanceOf(address(vault)), amount);
         assertEq(vault.convertToShares(amount), amount);
-    }
-
-    function testCannotInitProxyTwice() public {
-        vault = new ATokenVault(address(dai), referralCode, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
-
-        bytes memory data = abi.encodeWithSelector(ATokenVault.initialize.selector, OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
-
-        vault = ATokenVault(address(proxy));
-
-        vm.expectRevert(ERR_INITIALIZED);
-        vault.initialize(OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
     }
 
     function testDeploySucceedsWithValidParams() public {
@@ -466,6 +467,25 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(vault.balanceOf(ALICE), ONE);
     }
 
+    function testDepositATokens() public {
+        vm.startPrank(ALICE);
+        deal(address(dai), ALICE, ONE);
+
+        dai.approve(POLYGON_AAVE_POOL, ONE);
+        IPool(POLYGON_AAVE_POOL).supply(address(dai), ONE, ALICE, 0);
+
+        assertEq(aDai.balanceOf(ALICE), ONE);
+
+        aDai.approve(address(vault), ONE);
+        vm.expectEmit(true, true, false, true, address(vault));
+        emit Deposit(ALICE, ALICE, ONE, ONE);
+        vault.depositATokens(ONE, ALICE);
+
+        assertEq(aDai.balanceOf(ALICE), 0);
+        assertEq(aDai.balanceOf(address(vault)), ONE);
+        assertEq(vault.balanceOf(ALICE), ONE);
+    }
+
     function testDepositAffectedByExchangeRate() public {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
@@ -516,29 +536,47 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(vault.balanceOf(ALICE), ONE);
     }
 
+    function testMintATokens() public {
+        vm.startPrank(ALICE);
+        deal(address(dai), ALICE, ONE);
+
+        dai.approve(POLYGON_AAVE_POOL, ONE);
+        IPool(POLYGON_AAVE_POOL).supply(address(dai), ONE, ALICE, 0);
+
+        assertEq(aDai.balanceOf(ALICE), ONE);
+
+        aDai.approve(address(vault), ONE);
+        vm.expectEmit(true, true, false, true, address(vault));
+        emit Deposit(ALICE, ALICE, ONE, ONE);
+        vault.mintWithATokens(ONE, ALICE);
+
+        assertEq(aDai.balanceOf(ALICE), 0);
+        assertEq(aDai.balanceOf(address(vault)), ONE);
+        assertEq(vault.balanceOf(ALICE), ONE);
+    }
+
     function testMintAffectedByExchangeRate() public {
-        uint256 amount = HUNDRED;
-        _depositFromUser(ALICE, amount);
+        _depositFromUser(ALICE, ONE);
 
         // still 1:1 exchange rate
-        assertEq(vault.convertToShares(amount), amount);
-        assertEq(vault.balanceOf(ALICE), amount);
+        assertEq(vault.convertToShares(ONE), ONE);
+        assertEq(vault.balanceOf(ALICE), ONE);
 
         // Increase share/asset exchange rate
-        _accrueYieldInVault(amount);
+        _accrueYieldInVault(ONE);
 
         // Now 2:1 assets to shares exchange rate
-        assertEq(vault.convertToShares(amount), amount / 2);
+        assertEq(vault.convertToShares(ONE), ONE / 2);
 
         vm.startPrank(ALICE);
-        deal(address(dai), ALICE, amount);
-        dai.approve(address(vault), amount);
+        deal(address(dai), ALICE, ONE);
+        dai.approve(address(vault), ONE);
         vm.expectEmit(true, true, false, true, address(vault));
-        emit Deposit(ALICE, ALICE, amount, amount / 2);
-        vault.mint(amount / 2, ALICE);
+        emit Deposit(ALICE, ALICE, ONE, ONE / 2);
+        vault.mint(ONE / 2, ALICE);
         vm.stopPrank();
 
-        assertEq(vault.balanceOf(ALICE), amount + (amount / 2));
+        assertEq(vault.balanceOf(ALICE), ONE + (ONE / 2));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -564,6 +602,19 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(dai.balanceOf(ALICE), amount);
         assertEq(aDai.balanceOf(ALICE), 0);
         assertEq(aDai.balanceOf(address(vault)), 0);
+    }
+
+    function testWithdrawATokens() public {
+        _depositFromUser(ALICE, ONE);
+
+        vm.startPrank(ALICE);
+        vm.expectEmit(true, true, true, true, address(vault));
+        emit Withdraw(ALICE, ALICE, ALICE, ONE, ONE);
+        vault.withdrawATokens(ONE, ALICE, ALICE);
+
+        assertEq(aDai.balanceOf(ALICE), ONE);
+        assertEq(aDai.balanceOf(address(vault)), 0);
+        assertEq(vault.balanceOf(ALICE), 0);
     }
 
     function testWithdrawAfterYieldEarned() public {
@@ -626,6 +677,19 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertEq(dai.balanceOf(ALICE), amount);
         assertEq(aDai.balanceOf(ALICE), 0);
         assertEq(aDai.balanceOf(address(vault)), 0);
+    }
+
+    function testRedeemATokens() public {
+        _depositFromUser(ALICE, ONE);
+
+        vm.startPrank(ALICE);
+        vm.expectEmit(true, true, true, true, address(vault));
+        emit Withdraw(ALICE, ALICE, ALICE, ONE, ONE);
+        vault.redeemAsATokens(ONE, ALICE, ALICE);
+
+        assertEq(aDai.balanceOf(ALICE), ONE);
+        assertEq(aDai.balanceOf(address(vault)), 0);
+        assertEq(vault.balanceOf(ALICE), 0);
     }
 
     function testRedeemAfterYieldEarned() public {

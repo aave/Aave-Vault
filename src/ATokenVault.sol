@@ -430,7 +430,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
      *
      * @return assets The amount of aToken assets withdrawn by the receiver
      */
-    function redeemAsAtokens(
+    function redeemAsATokens(
         uint256 shares,
         address receiver,
         address owner
