@@ -23,7 +23,7 @@ import "./libraries/Constants.sol";
  * @title ATokenVault
  * @author Aave Protocol
  *
- * @notice An ERC-4626 vault for ERC20 assets supported by Aave v3, with a potential 
+ * @notice An ERC-4626 vault for ERC20 assets supported by Aave v3, with a potential
  * vault fee on yield earned. Some alterations overide Solmate's base implementation.
  */
 contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes {
@@ -83,7 +83,11 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
      * @return shares The amount of shares minted to the receiver
      */
     function deposit(uint256 assets, address receiver) public override returns (uint256 shares) {
-        shares = _handleDeposit(assets, receiver, msg.sender);
+        shares = _handleDeposit(assets, receiver, msg.sender, false);
+    }
+
+    function depositATokens(uint256 assets, address receiver) public returns (uint256 shares) {
+        shares = _handleDeposit(assets, receiver, msg.sender, true);
     }
 
     /**
@@ -93,7 +97,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
      * @param assets The amount of underlying asset to deposit
      * @param receiver The address to receive the shares
      * @param depositor The address from which to pull the assets for the deposit
-     * @param depositSig An EIP721 signature from the depositor to allow this function to be called on their behalf
+     * @param sig An EIP721 signature from the depositor to allow this function to be called on their behalf
      *
      * @return shares The amount of shares minted to the receiver
      */
@@ -101,7 +105,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         uint256 assets,
         address receiver,
         address depositor,
-        EIP712Signature calldata depositSig
+        EIP712Signature calldata sig
     ) public returns (uint256 shares) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
@@ -113,16 +117,44 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
                             receiver,
                             depositor,
                             _sigNonces[depositor]++,
-                            depositSig.deadline
+                            sig.deadline
                         )
                     ),
                     DOMAIN_SEPARATOR()
                 ),
                 depositor,
-                depositSig
+                sig
             );
         }
-        shares = _handleDeposit(assets, receiver, depositor);
+        shares = _handleDeposit(assets, receiver, depositor, false);
+    }
+
+    function depositATokensWithSig(
+        uint256 assets,
+        address receiver,
+        address depositor,
+        EIP712Signature calldata sig
+    ) public returns (uint256 shares) {
+        unchecked {
+            MetaTxHelpers._validateRecoveredAddress(
+                MetaTxHelpers._calculateDigest(
+                    keccak256(
+                        abi.encode(
+                            DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH,
+                            assets,
+                            receiver,
+                            depositor,
+                            _sigNonces[depositor]++,
+                            sig.deadline
+                        )
+                    ),
+                    DOMAIN_SEPARATOR()
+                ),
+                depositor,
+                sig
+            );
+        }
+        shares = _handleDeposit(assets, receiver, depositor, true);
     }
 
     /**
@@ -134,7 +166,11 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
      * @return assets The amount of assets deposited by the receiver
      */
     function mint(uint256 shares, address receiver) public override returns (uint256 assets) {
-        assets = _handleMint(shares, receiver, msg.sender);
+        assets = _handleMint(shares, receiver, msg.sender, false);
+    }
+
+    function mintWithATokens(uint256 shares, address receiver) public returns (uint256 assets) {
+        assets = _handleMint(shares, receiver, msg.sender, true);
     }
 
     /**
@@ -144,7 +180,7 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
      * @param shares The amount of shares to mint
      * @param receiver The address to receive the shares
      * @param depositor The address from which to pull the assets for the deposit
-     * @param mintSig An EIP721 signature from the depositor to allow this function to be called on their behalf
+     * @param sig An EIP721 signature from the depositor to allow this function to be called on their behalf
      *
      * @return assets The amount of assets deposited by the receiver
      */
@@ -152,28 +188,49 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         uint256 shares,
         address receiver,
         address depositor,
-        EIP712Signature calldata mintSig
+        EIP712Signature calldata sig
+    ) public returns (uint256 assets) {
+        unchecked {
+            MetaTxHelpers._validateRecoveredAddress(
+                MetaTxHelpers._calculateDigest(
+                    keccak256(
+                        abi.encode(MINT_WITH_SIG_TYPEHASH, shares, receiver, depositor, _sigNonces[depositor]++, sig.deadline)
+                    ),
+                    DOMAIN_SEPARATOR()
+                ),
+                depositor,
+                sig
+            );
+        }
+        assets = _handleMint(shares, receiver, depositor, false);
+    }
+
+    function mintWithATokensWithSig(
+        uint256 shares,
+        address receiver,
+        address depositor,
+        EIP712Signature calldata sig
     ) public returns (uint256 assets) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
                     keccak256(
                         abi.encode(
-                            MINT_WITH_SIG_TYPEHASH,
+                            MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH,
                             shares,
                             receiver,
                             depositor,
                             _sigNonces[depositor]++,
-                            mintSig.deadline
+                            sig.deadline
                         )
                     ),
                     DOMAIN_SEPARATOR()
                 ),
                 depositor,
-                mintSig
+                sig
             );
         }
-        assets = _handleMint(shares, receiver, depositor);
+        assets = _handleMint(shares, receiver, depositor, true);
     }
 
     /**
@@ -190,7 +247,15 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         address receiver,
         address owner
     ) public override returns (uint256 shares) {
-        shares = _handleWithdraw(assets, receiver, owner, msg.sender);
+        shares = _handleWithdraw(assets, receiver, owner, msg.sender, false);
+    }
+
+    function withdrawATokens(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public returns (uint256 shares) {
+        shares = _handleWithdraw(assets, receiver, owner, msg.sender, true);
     }
 
     /**
@@ -222,7 +287,35 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
                 sig
             );
         }
-        shares = _handleWithdraw(assets, receiver, owner, receiver);
+        shares = _handleWithdraw(assets, receiver, owner, owner, false);
+    }
+
+    function withdrawATokensWithSig(
+        uint256 assets,
+        address receiver,
+        address owner,
+        EIP712Signature calldata sig
+    ) public returns (uint256 shares) {
+        unchecked {
+            MetaTxHelpers._validateRecoveredAddress(
+                MetaTxHelpers._calculateDigest(
+                    keccak256(
+                        abi.encode(
+                            WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH,
+                            assets,
+                            receiver,
+                            owner,
+                            _sigNonces[owner]++,
+                            sig.deadline
+                        )
+                    ),
+                    DOMAIN_SEPARATOR()
+                ),
+                owner,
+                sig
+            );
+        }
+        shares = _handleWithdraw(assets, receiver, owner, owner, true);
     }
 
     /**
@@ -239,7 +332,15 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
         address receiver,
         address owner
     ) public override returns (uint256 assets) {
-        assets = _handleRedeem(shares, receiver, owner, msg.sender);
+        assets = _handleRedeem(shares, receiver, owner, msg.sender, false);
+    }
+
+    function redeemAsAtokens(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) public returns (uint256 assets) {
+        assets = _handleRedeem(shares, receiver, owner, msg.sender, true);
     }
 
     /**
@@ -269,7 +370,35 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
                 sig
             );
         }
-        assets = _handleRedeem(shares, receiver, owner, receiver);
+        assets = _handleRedeem(shares, receiver, owner, owner, false);
+    }
+
+    function redeemWithATokensWithSig(
+        uint256 shares,
+        address receiver,
+        address owner,
+        EIP712Signature calldata sig
+    ) public returns (uint256 assets) {
+        unchecked {
+            MetaTxHelpers._validateRecoveredAddress(
+                MetaTxHelpers._calculateDigest(
+                    keccak256(
+                        abi.encode(
+                            REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH,
+                            shares,
+                            receiver,
+                            owner,
+                            _sigNonces[owner]++,
+                            sig.deadline
+                        )
+                    ),
+                    DOMAIN_SEPARATOR()
+                ),
+                owner,
+                sig
+            );
+        }
+        assets = _handleRedeem(shares, receiver, owner, owner, true);
     }
 
     /**
@@ -433,107 +562,49 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
     function _handleDeposit(
         uint256 assets,
         address receiver,
-        address depositor
+        address depositor,
+        bool asAToken
     ) internal returns (uint256 shares) {
         _accrueYield();
-
         shares = previewDeposit(assets);
-
-        // Check for rounding error since we round down in previewDeposit.
-        require(shares != 0, "ZERO_SHARES");
-
-        // Need to transfer before minting or ERC777s could reenter.
-        asset.safeTransferFrom(depositor, address(this), assets);
-
-        _lastVaultBalance += assets;
-
-        _mint(receiver, shares);
-
-        emit Deposit(msg.sender, receiver, assets, shares);
-
-        // Deposit the received underlying into Aave v3
-        AAVE_POOL.supply(address(asset), assets, address(this), REFERRAL_CODE);
+        require(shares != 0, "ZERO_SHARES"); // Check for rounding error since we round down in previewDeposit.
+        _baseDeposit(assets, shares, depositor, receiver, asAToken);
     }
 
     function _handleMint(
         uint256 shares,
         address receiver,
-        address depositor
+        address depositor,
+        bool asAToken
     ) internal returns (uint256 assets) {
         _accrueYield();
-
         assets = previewMint(shares); // No need to check for rounding error, previewMint rounds up.
-
-        // Need to transfer before minting or ERC777s could reenter.
-        asset.safeTransferFrom(depositor, address(this), assets);
-
-        _lastVaultBalance += assets;
-
-        _mint(receiver, shares);
-
-        emit Deposit(msg.sender, receiver, assets, shares);
-
-        // Deposit the received underlying into Aave v3
-        AAVE_POOL.supply(address(asset), assets, address(this), REFERRAL_CODE);
+        _baseDeposit(assets, shares, depositor, receiver, asAToken);
     }
 
     function _handleWithdraw(
         uint256 assets,
         address receiver,
         address owner,
-        address allowanceTarget
+        address allowanceTarget,
+        bool asAToken
     ) internal returns (uint256 shares) {
         _accrueYield();
-
         shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
-
-        // Check caller has allowance if not with sig
-        // Check receiver has allowance if with sig
-        if (allowanceTarget != owner) {
-            uint256 allowed = allowance[owner][allowanceTarget]; // Saves gas for limited approvals.
-
-            if (allowed != type(uint256).max) allowance[owner][allowanceTarget] = allowed - shares;
-        }
-
-        _lastVaultBalance -= assets;
-
-        _burn(owner, shares);
-
-        emit Withdraw(msg.sender, receiver, owner, assets, shares);
-
-        // Withdraw assets from Aave v3 and send to receiver
-        AAVE_POOL.withdraw(address(asset), assets, receiver);
+        _baseWithdraw(assets, shares, owner, receiver, allowanceTarget, asAToken);
     }
 
     function _handleRedeem(
         uint256 shares,
         address receiver,
         address owner,
-        address allowanceTarget
+        address allowanceTarget,
+        bool asAToken
     ) internal returns (uint256 assets) {
         _accrueYield();
-
-        // Check caller has allowance if not with sig
-        // Check receiver has allowance if with sig
-        if (allowanceTarget != owner) {
-            uint256 allowed = allowance[owner][allowanceTarget];
-
-            if (allowed != type(uint256).max) allowance[owner][allowanceTarget] = allowed - shares;
-        }
-
         assets = previewRedeem(shares);
-
-        // Check for rounding error since we round down in previewRedeem.
-        require(assets != 0, "ZERO_ASSETS");
-
-        _lastVaultBalance -= assets;
-
-        _burn(owner, shares);
-
-        emit Withdraw(msg.sender, receiver, owner, assets, shares);
-
-        // Withdraw assets from Aave v3 and send to receiver
-        AAVE_POOL.withdraw(address(asset), assets, receiver);
+        require(assets != 0, "ZERO_ASSETS"); // Check for rounding error since we round down in previewRedeem.
+        _baseWithdraw(assets, shares, owner, receiver, allowanceTarget, asAToken);
     }
 
     function _maxAssetsSuppliableToAave() internal view returns (uint256) {
@@ -566,5 +637,53 @@ contract ATokenVault is ERC4626, Ownable, IATokenVaultEvents, IATokenVaultTypes 
                     reserveData.liquidityIndex
                 );
         }
+    }
+
+    function _baseDeposit(
+        uint256 assets,
+        uint256 shares,
+        address depositor,
+        address receiver,
+        bool asAToken
+    ) private {
+        // Need to transfer before minting or ERC777s could reenter.
+        if (asAToken) {
+            A_TOKEN.transferFrom(depositor, address(this), assets);
+        } else {
+            asset.safeTransferFrom(depositor, address(this), assets);
+            AAVE_POOL.supply(address(asset), assets, address(this), REFERRAL_CODE);
+        }
+
+        _lastVaultBalance += assets;
+        _mint(receiver, shares);
+
+        emit Deposit(msg.sender, receiver, assets, shares);
+    }
+
+    function _baseWithdraw(
+        uint256 assets,
+        uint256 shares,
+        address owner,
+        address receiver,
+        address allowanceTarget,
+        bool asAToken
+    ) private {
+        if (allowanceTarget != owner) {
+            uint256 allowed = allowance[owner][allowanceTarget];
+
+            if (allowed != type(uint256).max) allowance[owner][allowanceTarget] = allowed - shares;
+        }
+
+        _lastVaultBalance -= assets;
+        _burn(owner, shares);
+
+        // Withdraw assets from Aave v3 and send to receiver
+        if (asAToken) {
+            A_TOKEN.transfer(receiver, assets);
+        } else {
+            AAVE_POOL.withdraw(address(asset), assets, receiver);
+        }
+
+        emit Withdraw(msg.sender, receiver, owner, assets, shares);
     }
 }

@@ -103,7 +103,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, depositSig: sig});
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
 
         assertEq(dai.balanceOf(ALICE), 0);
@@ -131,7 +131,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
         vm.expectRevert(ERR_TRANSFER_FROM_FAILED);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, depositSig: sig});
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -157,7 +157,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, depositSig: sig});
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -183,7 +183,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, depositSig: sig});
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -209,7 +209,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, depositSig: sig});
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -235,7 +235,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, depositSig: sig});
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -261,7 +261,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, depositSig: sig});
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -287,7 +287,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, depositSig: sig});
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -316,7 +316,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, depositSig: sig});
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -344,7 +344,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, depositSig: sig});
+        vault.depositWithSig({assets: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -379,7 +379,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         assertEq(aDai.balanceOf(address(vault)), 0);
 
         vm.prank(BOB);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, mintSig: sig});
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
 
         assertEq(dai.balanceOf(ALICE), 0);
         assertEq(dai.balanceOf(BOB), 0);
@@ -405,7 +405,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_TRANSFER_FROM_FAILED);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, mintSig: sig});
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -427,7 +427,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, mintSig: sig});
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -449,7 +449,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, mintSig: sig});
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -471,7 +471,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, mintSig: sig});
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -493,7 +493,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.mintWithSig({shares: amount + 1, receiver: ALICE, depositor: ALICE, mintSig: sig});
+        vault.mintWithSig({shares: amount + 1, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -515,7 +515,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, mintSig: sig});
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -537,7 +537,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, mintSig: sig});
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -562,7 +562,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, mintSig: sig});
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
@@ -586,7 +586,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
-        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, mintSig: sig});
+        vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
         vm.stopPrank();
     }
 
