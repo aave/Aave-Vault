@@ -25,18 +25,20 @@
 
 // contract ATokenVaultRewardsClaimTest is ATokenVaultBaseTest {
 //     uint256 avalancheFork;
-//     uint256 AVLANCHE_FORK_BLOCK = 21000000; // Oct 13th 2022
+//     uint256 AVALANCHE_FORK_BLOCK = 21000000; // Oct 13th 2022
 //     uint256 THIRTY_DAYS = 2592000; // 1 month of rewards
 
 //     ERC20 usdc; //NOTE: USDC has 6 decimal places, not 18
 //     IAToken aUSDC;
+//     address[] toClaim;
 
 //     function setUp() public override {
 //         avalancheFork = vm.createFork(vm.envString("AVALANCHE_RPC_URL"));
 //         vm.selectFork(avalancheFork);
-//         vm.rollFork(AVLANCHE_FORK_BLOCK);
+//         vm.rollFork(AVALANCHE_FORK_BLOCK);
 
 //         aUSDC = IAToken(AVAX_AUSDC);
+//         toClaim[0] = AVAX_AUSDC;
 
 //         vaultAssetAddress = address(aUSDC);
 
@@ -45,32 +47,32 @@
 //     }
 
 //     /*//////////////////////////////////////////////////////////////
-//                         AVALANCHE FORK TESTS
-//     //////////////////////////////////////////////////////////////*/
+//                             AVALANCHE FORK TESTS
+//         //////////////////////////////////////////////////////////////*/
 
 //     function testAvalancheForkWorks() public {
 //         assertEq(vm.activeFork(), avalancheFork);
 //     }
 
 //     function testAvalancheForkAtExpectedBlock() public {
-//         assertEq(block.number, AVLANCHE_FORK_BLOCK);
+//         assertEq(block.number, AVALANCHE_FORK_BLOCK);
 //     }
 
 //     /*//////////////////////////////////////////////////////////////
-//                         AAVE REWARDS CLAIM TESTS
-//     //////////////////////////////////////////////////////////////*/
+//                             AAVE REWARDS CLAIM TESTS
+//         //////////////////////////////////////////////////////////////*/
 
 //     function testNonOwnerCannotClaimAaveRewards() public {
 //         vm.startPrank(ALICE);
 //         vm.expectRevert(ERR_NOT_OWNER);
-//         vault.claimAllAaveRewards(ALICE);
+//         vault.claimRewards(toClaim, ALICE);
 //         vm.stopPrank();
 //     }
 
 //     function testOwnerCannotClaimAaveRewardsToZeroAddress() public {
 //         vm.startPrank(OWNER);
 //         vm.expectRevert(ERR_CANNOT_CLAIM_TO_ZERO_ADDRESS);
-//         vault.claimAllAaveRewards(address(0));
+//         vault.claimRewards(toClaim, address(0));
 //         vm.stopPrank();
 //     }
 
@@ -88,13 +90,15 @@
 
 //         skip(THIRTY_DAYS);
 
-//         (rewardAssets, rewardAmounts) =
-//             IRewardsController(AVALANCHE_REWARDS_CONTROLLER).getAllUserRewards(aUsdcArray, address(vault));
+//         (rewardAssets, rewardAmounts) = IRewardsController(AVALANCHE_REWARDS_CONTROLLER).getAllUserRewards(
+//             aUsdcArray,
+//             address(vault)
+//         );
 
 //         assertEq(ERC20(WAVAX).balanceOf(OWNER), 0); // Owner has no wAVAX before claiming
 
 //         vm.startPrank(OWNER);
-//         vault.claimAllAaveRewards(OWNER);
+//         vault.claimRewards(toClaim, OWNER);
 //         vm.stopPrank();
 
 //         assertEq(ERC20(WAVAX).balanceOf(OWNER), rewardAmounts[0]); // Owner has some wAVAX after claiming
@@ -102,7 +106,7 @@
 //         assertEq(WAVAX, rewardAssets[0]);
 //     }
 
-//     function testClaimAllAaveRewardsEmitsEvent() public {
+//     function testclaimRewardsEmitsEvent() public {
 //         uint256 amount = 100_000e6; // 100 000 USDC
 
 //         address[] memory rewardAssets;
@@ -114,13 +118,15 @@
 
 //         skip(THIRTY_DAYS);
 
-//         (rewardAssets, rewardAmounts) =
-//             IRewardsController(AVALANCHE_REWARDS_CONTROLLER).getAllUserRewards(aUsdcArray, address(vault));
+//         (rewardAssets, rewardAmounts) = IRewardsController(AVALANCHE_REWARDS_CONTROLLER).getAllUserRewards(
+//             aUsdcArray,
+//             address(vault)
+//         );
 
 //         vm.startPrank(OWNER);
 //         vm.expectEmit(true, false, false, true, address(vault));
-//         emit AaveRewardsClaimed(OWNER, rewardAssets, rewardAmounts);
-//         vault.claimAllAaveRewards(OWNER);
+//         emit RewardsClaimed(OWNER, rewardAssets, rewardAmounts);
+//         vault.claimRewards(toClaim, OWNER);
 //         vm.stopPrank();
 //     }
 
