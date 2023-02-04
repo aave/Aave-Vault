@@ -75,23 +75,22 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         uint256 initialFee,
         string memory shareName,
         string memory shareSymbol,
-        uint256 initialDeposit
+        uint256 initialLockDeposit
     ) external initializer {
         // Skipping ownable init to allow passing a custom owner address to prevent the proxy
         // admin from ever being the Vault owner.
+        // Note that care should be taken to provide a non-trivial amount, but this depends
+        // on the asset's decimals.
+        require(initialLockDeposit != 0, "ZERO_INITIAL_LOCK_DEPOSIT");
         _transferOwnership(owner);
         __ERC4626_init(UNDERLYING);
         __ERC20_init(shareName, shareSymbol);
         __EIP712_init(shareName, "1");
         _setFee(initialFee);
         UNDERLYING.safeApprove(address(AAVE_POOL), type(uint256).max);
+
         // Execute initial deposit and burn to prevent frontrun attack.
-        // Note that care should be taken to provide a non-trivial amount, but this depends
-        // on the asset's decimals.
-        if (initialDeposit != 0) {
-            _handleDeposit(initialDeposit, address(this), msg.sender, false);
-        }
-        _lastUpdated = block.timestamp;
+        _handleDeposit(initialLockDeposit, address(this), msg.sender, false);
     }
 
     /*//////////////////////////////////////////////////////////////

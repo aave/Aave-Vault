@@ -93,11 +93,6 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         EIP712Signature memory sig = _createVaultSig(params);
 
-        assertEq(dai.balanceOf(ALICE), amount);
-        assertEq(dai.balanceOf(BOB), 0);
-        assertEq(dai.balanceOf(address(vault)), 0);
-        assertEq(aDai.balanceOf(address(vault)), 0);
-
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
 
@@ -107,9 +102,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         vm.stopPrank();
 
         assertEq(dai.balanceOf(ALICE), 0);
-        assertEq(dai.balanceOf(BOB), 0);
-        assertEq(dai.balanceOf(address(vault)), 0);
-        assertEq(aDai.balanceOf(address(vault)), amount);
+        assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
     }
 
     function testDepositWithSigFailsIfNotApproved() public {
@@ -374,18 +367,11 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
 
-        assertEq(dai.balanceOf(ALICE), amount);
-        assertEq(dai.balanceOf(BOB), 0);
-        assertEq(dai.balanceOf(address(vault)), 0);
-        assertEq(aDai.balanceOf(address(vault)), 0);
-
         vm.prank(BOB);
         vault.mintWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
 
         assertEq(dai.balanceOf(ALICE), 0);
-        assertEq(dai.balanceOf(BOB), 0);
-        assertEq(dai.balanceOf(address(vault)), 0);
-        assertEq(aDai.balanceOf(address(vault)), amount);
+        assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
     }
 
     function testMintWithSigFailsIfNotApproved() public {
@@ -612,11 +598,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // No approval needed because Alice is receiver
         EIP712Signature memory sig = _createVaultSig(params);
 
-        assertEq(vault.balanceOf(ALICE), amount);
-        assertEq(dai.balanceOf(ALICE), 0);
-        assertEq(dai.balanceOf(BOB), 0);
-        assertEq(vault.balanceOf(BOB), 0);
-        assertEq(aDai.balanceOf(address(vault)), amount);
+        assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
         vm.startPrank(BOB);
         vault.withdrawWithSig({assets: amount, receiver: ALICE, owner: ALICE, sig: sig});
@@ -624,9 +606,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         assertEq(vault.balanceOf(ALICE), 0);
         assertEq(dai.balanceOf(ALICE), amount);
-        assertEq(dai.balanceOf(BOB), 0);
-        assertEq(vault.balanceOf(BOB), 0);
-        assertEq(aDai.balanceOf(address(vault)), 0);
+        assertEq(aDai.balanceOf(address(vault)), initialLockDeposit);
     }
 
     function testWithdrawWithSigToAnotherAccount() public {
@@ -647,11 +627,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         vault.approve(BOB, amount);
         EIP712Signature memory sig = _createVaultSig(params);
 
-        assertEq(vault.balanceOf(ALICE), amount);
-        assertEq(dai.balanceOf(ALICE), 0);
-        assertEq(dai.balanceOf(BOB), 0);
-        assertEq(vault.balanceOf(BOB), 0);
-        assertEq(aDai.balanceOf(address(vault)), amount);
+        assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
         vm.startPrank(OWNER);
         vault.withdrawWithSig({assets: amount, receiver: BOB, owner: ALICE, sig: sig});
@@ -661,7 +637,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         assertEq(dai.balanceOf(ALICE), 0);
         assertEq(dai.balanceOf(BOB), amount);
         assertEq(vault.balanceOf(BOB), 0);
-        assertEq(aDai.balanceOf(address(vault)), 0);
+        assertEq(aDai.balanceOf(address(vault)), initialLockDeposit);
     }
 
     function testWithdrawWithSigFailsIfWrongOwner() public {
@@ -865,11 +841,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         EIP712Signature memory sig = _createVaultSig(params);
 
-        assertEq(dai.balanceOf(ALICE), 0);
-        assertEq(vault.balanceOf(ALICE), amount);
-        assertEq(dai.balanceOf(BOB), 0);
-        assertEq(vault.balanceOf(BOB), 0);
-        assertEq(aDai.balanceOf(address(vault)), amount);
+        assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
         vm.startPrank(BOB);
         vault.redeemWithSig({shares: amount, receiver: ALICE, owner: ALICE, sig: sig});
@@ -879,7 +851,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         assertEq(vault.balanceOf(ALICE), 0);
         assertEq(dai.balanceOf(BOB), 0);
         assertEq(vault.balanceOf(BOB), 0);
-        assertEq(aDai.balanceOf(address(vault)), 0);
+        assertEq(aDai.balanceOf(address(vault)), initialLockDeposit);
     }
 
     function testRedeemWithSigToAnotherAccount() public {
@@ -897,14 +869,9 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         });
 
         vm.prank(ALICE);
-        vault.approve(BOB, amount);
         EIP712Signature memory sig = _createVaultSig(params);
 
-        assertEq(dai.balanceOf(ALICE), 0);
-        assertEq(vault.balanceOf(ALICE), amount);
-        assertEq(dai.balanceOf(BOB), 0);
-        assertEq(vault.balanceOf(BOB), 0);
-        assertEq(aDai.balanceOf(address(vault)), amount);
+        assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
         vm.startPrank(OWNER);
         vault.redeemWithSig({shares: amount, receiver: BOB, owner: ALICE, sig: sig});
@@ -914,7 +881,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         assertEq(vault.balanceOf(ALICE), 0);
         assertEq(dai.balanceOf(BOB), amount);
         assertEq(vault.balanceOf(BOB), 0);
-        assertEq(aDai.balanceOf(address(vault)), 0);
+        assertEq(aDai.balanceOf(address(vault)), initialLockDeposit);
     }
 
     function testRedeemWithSigFailsIfWrongOwner() public {

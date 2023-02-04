@@ -8,10 +8,13 @@ import {TransparentUpgradeableProxy} from "openzeppelin-non-upgradeable/proxy/tr
 import {ATokenVault, MathUpgradeable} from "../src/ATokenVault.sol";
 import {IATokenVaultEvents} from "../src/interfaces/IATokenVaultEvents.sol";
 import {IATokenVaultTypes} from "../src/interfaces/IATokenVaultTypes.sol";
+import {IERC20Upgradeable} from "openzeppelin/interfaces/IERC20Upgradeable.sol";
+import {SafeERC20Upgradeable} from "openzeppelin/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import {ERC20} from "openzeppelin-non-upgradeable/token/ERC20/ERC20.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 
 contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     using MathUpgradeable for uint256;
 
     bytes32 constant PERMIT_TYPEHASH =
@@ -51,6 +54,8 @@ contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
 
     ATokenVault vault;
     address vaultAssetAddress; // aDAI, must be set in every setUp
+    uint256 initialLockDeposit; // Must be set in every setUp
+
 
     //Initializer Errors
     bytes constant ERR_INITIALIZED = bytes("Initializable: contract is already initialized");
@@ -94,15 +99,47 @@ contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
     }
 
     function _deploy(address underlying, address addressesProvider) internal {
-        vm.startPrank(OWNER);
-        
+        // vm.startPrank(OWNER);
+        // vault = new ATokenVault(underlying, referralCode, IPoolAddressesProvider(addressesProvider));
+        // bytes memory data = abi.encodeWithSelector(ATokenVault.initialize.selector, OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
+        // TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
+        // vault = ATokenVault(address(proxy));
+        // vm.stopPrank();
+        _baseDeploy(underlying, addressesProvider, 18);
+    }
+
+    function _deploy(
+        address underlying,
+        address addressesProvider,
+        uint256 decimals
+    ) internal {
+        _baseDeploy(underlying, addressesProvider, decimals);
+    }
+
+    function _baseDeploy(
+        address underlying,
+        address addressesProvider,
+        uint256 decimals
+    ) internal {
+        uint256 amount = 10**decimals;
+        initialLockDeposit = amount;
         vault = new ATokenVault(underlying, referralCode, IPoolAddressesProvider(addressesProvider));
-        
-        bytes memory data = abi.encodeWithSelector(ATokenVault.initialize.selector, OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
+
+        bytes memory data = abi.encodeWithSelector(
+            ATokenVault.initialize.selector,
+            OWNER,
+            fee,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            amount
+        );
+        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)));
+
+        deal(underlying, address(this), amount);
+        IERC20Upgradeable(underlying).safeApprove(address(proxyAddr), amount);
+
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
-        
+
         vault = ATokenVault(address(proxy));
-        
-        vm.stopPrank();
     }
 }
