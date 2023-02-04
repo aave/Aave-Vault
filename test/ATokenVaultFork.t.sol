@@ -2,20 +2,17 @@
 pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
-import "forge-std/console2.sol";
-import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
-
-import {ATokenVault} from "../src/ATokenVault.sol";
-import {DataTypes} from "@aave-v3-core/protocol/libraries/types/DataTypes.sol";
-import {IAToken} from "@aave-v3-core/interfaces/IAToken.sol";
 import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {IAToken} from "@aave-v3-core/interfaces/IAToken.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
-import {IRewardsController} from "@aave-v3-periphery/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "@aave-v3-core/interfaces/IPool.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
 import "./mocks/MocksConstants.sol";
+import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
+
+import {ATokenVault} from "../src/ATokenVault.sol";
 
 contract ATokenVaultForkTest is ATokenVaultBaseTest {
     // Forked tests using Polygon for Aave v3

@@ -2,12 +2,10 @@
 pragma solidity 0.8.10;
 
 import "forge-std/Script.sol";
-import "../src/ATokenVault.sol";
-
-import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
-import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
-import {IRewardsController} from "@aave-v3-periphery/rewards/interfaces/IRewardsController.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
+
+import "../src/ATokenVault.sol";
 
 contract Deploy is Script {
     // MUMBAI TESTNET ADDRESSES

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
-import {DataTypes} from "@aave-v3-core/protocol/libraries/types/DataTypes.sol";
 import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
+import {DataTypes} from "@aave-v3-core/protocol/libraries/types/DataTypes.sol";
 import {MockAToken} from "./MockAToken.sol";
 
 // NOTE: Yield Simulation Design

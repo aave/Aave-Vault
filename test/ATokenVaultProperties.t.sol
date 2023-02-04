@@ -3,19 +3,14 @@ pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
 import "erc4626-tests/ERC4626.test.sol";
-import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
-
-import {ATokenVault} from "../src/ATokenVault.sol";
-import {IAToken} from "@aave-v3-core/interfaces/IAToken.sol";
-import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
-import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
-import {IRewardsController} from "@aave-v3-periphery/rewards/interfaces/IRewardsController.sol";
-
 import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvider.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockDAI} from "./mocks/MockDAI.sol";
 import "./mocks/MocksConstants.sol";
+import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
+
+import {ATokenVault} from "../src/ATokenVault.sol";
 
 contract ATokenVaultPropertiesTest is ERC4626Test, ATokenVaultBaseTest {
     MockAavePoolAddressesProvider poolAddrProvider;
