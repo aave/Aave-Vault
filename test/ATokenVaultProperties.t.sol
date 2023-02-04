@@ -15,15 +15,13 @@ import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvid
 import {MockAToken} from "./mocks/MockAToken.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockDAI} from "./mocks/MockDAI.sol";
+import "./mocks/MocksConstants.sol";
 
 contract ATokenVaultPropertiesTest is ERC4626Test, ATokenVaultBaseTest {
     MockAavePoolAddressesProvider poolAddrProvider;
     MockAavePool pool;
     MockAToken aDai;
     MockDAI dai;
-
-    // Tested in fork tests - not needed in mock tests
-    address fakeIncentivesController = address(101010101);
 
     function setUp() public override(ERC4626Test, ATokenVaultBaseTest) {
         aDai = new MockAToken();
@@ -32,6 +30,7 @@ contract ATokenVaultPropertiesTest is ERC4626Test, ATokenVaultBaseTest {
 
         dai = new MockDAI();
 
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
         _deploy(address(dai), address(poolAddrProvider));
 
         _underlying_ = address(dai);

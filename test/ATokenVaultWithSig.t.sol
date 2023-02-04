@@ -13,6 +13,7 @@ import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvid
 import {MockAToken} from "./mocks/MockAToken.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockDAI} from "./mocks/MockDAI.sol";
+import "./mocks/MocksConstants.sol";
 
 struct VaultSigParams {
     address assetOwner; // where the shares/assets are flowing from
@@ -36,30 +37,6 @@ struct PermitSigParams {
 bytes32 constant PERMIT_TYPEHASH = keccak256(
     "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
 );
-bytes32 constant DEPOSIT_WITH_SIG_TYPEHASH = keccak256(
-    "DepositWithSig(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-);
-bytes32 constant DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH = keccak256(
-    "DepositATokensWithSig(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-);
-bytes32 constant MINT_WITH_SIG_TYPEHASH = keccak256(
-    "MintWithSig(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-);
-bytes32 constant MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH = keccak256(
-    "MintWithATokensWithSig(uint256 shares,address receiver,address depositor,uint256 nonce,uint256 deadline)"
-);
-bytes32 constant WITHDRAW_WITH_SIG_TYPEHASH = keccak256(
-    "WithdrawWithSig(uint256 assets,address receiver,address owner,uint256 nonce,uint256 deadline)"
-);
-bytes32 constant WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH = keccak256(
-    "WithdrawATokensWithSig(uint256 assets,address receiver,address owner,uint256 nonce,uint256 deadline)"
-);
-bytes32 constant REDEEM_WITH_SIG_TYPEHASH = keccak256(
-    "RedeemWithSig(uint256 shares,address receiver,address owner,uint256 nonce,uint256 deadline)"
-);
-bytes32 constant REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH = keccak256(
-    "RedeemWithATokensWithSig(uint256 shares,address receiver,address owner,uint256 nonce,uint256 deadline)"
-);
 
 contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
     bytes32 VAULT_DOMAIN_SEPARATOR;
@@ -79,6 +56,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vaultAssetAddress = address(aDai);
 
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
         _deploy(address(dai), address(poolAddrProvider));
 
         VAULT_DOMAIN_SEPARATOR = vault.domainSeparator();

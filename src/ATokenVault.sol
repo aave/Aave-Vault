@@ -523,6 +523,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         address depositor,
         bool asAToken
     ) internal returns (uint256 shares) {
+        require(assets <= maxDeposit(receiver), "DEPOSIT_EXCEEDS_MAX");
         _accrueYield();
         shares = previewDeposit(assets);
         require(shares != 0, "ZERO_SHARES"); // Check for rounding error since we round down in previewDeposit.
@@ -535,6 +536,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         address depositor,
         bool asAToken
     ) internal returns (uint256 assets) {
+        require(shares <= maxMint(receiver), "MINT_EXCEEDS_MAX");
         _accrueYield();
         assets = previewMint(shares); // No need to check for rounding error, previewMint rounds up.
         _baseDeposit(assets, shares, depositor, receiver, asAToken);
@@ -548,6 +550,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         bool asAToken
     ) internal returns (uint256 shares) {
         _accrueYield();
+        require(assets <= maxWithdraw(owner), "WITHDRAW_EXCEEDS_MAX");
         shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
         _baseWithdraw(assets, shares, owner, receiver, allowanceTarget, asAToken);
     }
@@ -560,6 +563,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         bool asAToken
     ) internal returns (uint256 assets) {
         _accrueYield();
+        require(shares <= maxRedeem(owner), "REDEEM_EXCEEDS_MAX");
         assets = previewRedeem(shares);
         require(assets != 0, "ZERO_ASSETS"); // Check for rounding error since we round down in previewRedeem.
         _baseWithdraw(assets, shares, owner, receiver, allowanceTarget, asAToken);

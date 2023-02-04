@@ -14,8 +14,7 @@ import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvid
 import {MockAToken} from "./mocks/MockAToken.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockDAI} from "./mocks/MockDAI.sol";
-
-import "../src/libraries/Constants.sol";
+import "./mocks/MocksConstants.sol";
 
 contract ATokenVaultMocksTest is ATokenVaultBaseTest {
     MockAavePoolAddressesProvider poolAddrProvider;
@@ -23,34 +22,13 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
     MockAToken aDai;
     MockDAI dai;
 
-    uint256 internal constant IS_ACTIVE_START_BIT_POSITION = 56;
-    uint256 internal constant IS_FROZEN_START_BIT_POSITION = 57;
-    uint256 internal constant IS_PAUSED_START_BIT_POSITION = 60;
-    uint256 internal constant SUPPLY_CAP_UNSCALED = 420;
-
-    uint256 internal constant RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE = (0 & AAVE_ACTIVE_MASK) | (1 << IS_ACTIVE_START_BIT_POSITION);
-
-    uint256 internal constant RESERVE_CONFIG_MAP_CAPPED_ACTIVE =
-        (RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE & AAVE_SUPPLY_CAP_MASK) | (SUPPLY_CAP_UNSCALED << AAVE_SUPPLY_CAP_BIT_POSITION);
-
-    uint256 internal constant RESERVE_CONFIG_MAP_INACTIVE = (0 & AAVE_ACTIVE_MASK) | (0 << IS_ACTIVE_START_BIT_POSITION);
-
-    uint256 internal constant RESERVE_CONFIG_MAP_FROZEN =
-        (RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE & AAVE_FROZEN_MASK) | (1 << IS_FROZEN_START_BIT_POSITION);
-
-    uint256 internal constant RESERVE_CONFIG_MAP_PAUSED =
-        (RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE & AAVE_PAUSED_MASK) | (1 << IS_PAUSED_START_BIT_POSITION);
-
-    // Tested in fork tests - not needed in mock tests
-    address fakeIncentivesController = address(101010101);
-
     function setUp() public override {
         aDai = new MockAToken();
         pool = new MockAavePool(aDai);
         poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));
-
         dai = new MockDAI();
 
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
         _deploy(address(dai), address(poolAddrProvider));
     }
 

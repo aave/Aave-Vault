@@ -6,12 +6,16 @@ import "forge-std/console2.sol";
 import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";
+import {DataTypes} from "aave-core/protocol/libraries/types/DataTypes.sol";
 import {IAToken} from "aave-core/interfaces/IAToken.sol";
 import {ERC20} from "openzeppelin-non-upgradeable/token/ERC20/ERC20.sol";
 import {TransparentUpgradeableProxy} from "openzeppelin-non-upgradeable/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IPoolAddressesProvider} from "aave-core/interfaces/IPoolAddressesProvider.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "aave-core/interfaces/IPool.sol";
+import {MockAavePool} from "./mocks/MockAavePool.sol";
+import {MockAToken} from "./mocks/MockAToken.sol";
+import "./mocks/MocksConstants.sol";
 
 contract ATokenVaultForkTest is ATokenVaultBaseTest {
     // Forked tests using Polygon for Aave v3
@@ -419,6 +423,20 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vault.deposit(0, ALICE);
     }
 
+    function testDepositFailsWithExceedsMax() public {
+        // mock call to Aave Pool
+        MockAavePool mp = new MockAavePool(new MockAToken());
+        mp.setReserveConfigMap(RESERVE_CONFIG_MAP_INACTIVE);
+        vm.mockCall(
+            address(vault.AAVE_POOL()),
+            abi.encodeWithSelector(IPool.getReserveData.selector, address(dai)),
+            abi.encode(mp.getReserveData(address(dai)))
+        );
+        vm.prank(ALICE);
+        vm.expectRevert(ERR_DEPOSIT_EXCEEDS_MAX);
+        vault.deposit(ONE, ALICE);
+    }
+
     function testDepositSuppliesAave() public {
         _deployAndCheckProps();
 
@@ -486,6 +504,20 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.stopPrank();
 
         assertEq(vault.balanceOf(ALICE), amount + (amount / 2) - initialLockDeposit);
+    }
+
+    function testMintFailsWithExceedsMax() public {
+        // mock call to Aave Pool
+        MockAavePool mp = new MockAavePool(new MockAToken());
+        mp.setReserveConfigMap(RESERVE_CONFIG_MAP_INACTIVE);
+        vm.mockCall(
+            address(vault.AAVE_POOL()),
+            abi.encodeWithSelector(IPool.getReserveData.selector, address(dai)),
+            abi.encode(mp.getReserveData(address(dai)))
+        );
+        vm.prank(ALICE);
+        vm.expectRevert(ERR_MINT_EXCEEDS_MAX);
+        vault.mint(ONE, ALICE);
     }
 
     function testMintSuppliesAave() public {
@@ -560,6 +592,18 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
     /*//////////////////////////////////////////////////////////////
                             WITHDRAW AND REDEEM
     //////////////////////////////////////////////////////////////*/
+
+    function testWithdrawFailsWithExceedsMax() public {
+        uint256 amount = HUNDRED;
+        _deployAndCheckProps();
+
+        _depositFromUser(ALICE, amount);
+
+        vm.prank(ALICE);
+        uint256 maxWithdraw = vault.maxWithdraw(ALICE);
+        vm.expectRevert(ERR_WITHDRAW_EXCEEDS_MAX);
+        vault.withdraw(maxWithdraw + 1, ALICE, ALICE);
+    }
 
     function testWithdrawBasic() public {
         uint256 amount = HUNDRED;
@@ -638,6 +682,18 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.prank(ALICE);
         vm.expectRevert(ERR_ZERO_ASSETS);
         vault.redeem(0, ALICE, ALICE);
+    }
+
+    function testRedeemFailsWithExceedsMax() public {
+        uint256 amount = HUNDRED;
+        _deployAndCheckProps();
+
+        _depositFromUser(ALICE, amount);
+
+        vm.prank(ALICE);
+        uint256 maxRedeem = vault.maxRedeem(ALICE);
+        vm.expectRevert(ERR_REDEEM_EXCEEDS_MAX);
+        vault.redeem(maxRedeem + 1, ALICE, ALICE);
     }
 
     function testRedeemBasic() public {

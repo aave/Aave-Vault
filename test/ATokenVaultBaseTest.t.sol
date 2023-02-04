@@ -76,6 +76,10 @@ contract ATokenVaultBaseTest is Test {
     bytes constant ERR_INSUFFICIENT_FEES = bytes("INSUFFICIENT_FEES");
     bytes constant ERR_CANNOT_CLAIM_TO_ZERO_ADDRESS = bytes("CANNOT_CLAIM_TO_ZERO_ADDRESS");
     bytes constant SAFE_TRANSFER_ARITHMETIC = bytes("NH{q");
+    bytes constant ERR_DEPOSIT_EXCEEDS_MAX = bytes("DEPOSIT_EXCEEDS_MAX");
+    bytes constant ERR_MINT_EXCEEDS_MAX = bytes("MINT_EXCEEDS_MAX");
+    bytes constant ERR_WITHDRAW_EXCEEDS_MAX = bytes("WITHDRAW_EXCEEDS_MAX");
+    bytes constant ERR_REDEEM_EXCEEDS_MAX = bytes("REDEEM_EXCEEDS_MAX");
 
     // ERC4626 Events
     event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares);
