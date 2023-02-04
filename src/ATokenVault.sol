@@ -30,6 +30,7 @@ import "./libraries/Constants.sol";
  *
  * @notice An ERC-4626 vault for ERC20 assets supported by Aave v3, with a potential
  * vault fee on yield earned. Some alterations override the base implementation.
+ * Fees are accrued and claimable as aTokens.
  */
 contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeable, IATokenVaultEvents, IATokenVaultTypes {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -70,6 +71,24 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         ATOKEN = IAToken(aTokenAddress);
     }
 
+
+    /** 
+     * @notice Initializes the vault, setting the initial parameters and initializing inherited 
+     * contracts. This also requires an initial non-zero deposit to prevent a frontrunning attack.
+     * This deposit is done in underlying tokens, not aTokens.
+     *
+     * Note that care should be taken to provide a non-trivial amount, but this depends on the 
+     * underlying asset's decimals.
+     *
+     * Note that we do not initialize the OwnableUpgradeable contract to avoid setting the proxy
+     * admin as the owner.
+     *
+     * @param owner The owner to set
+     * @param initialFee The initial fee to set, expressed in wad, where 1e18 is 100%
+     * @param shareName The name to set for this vault
+     * @param shareSymbol The symbol to set for this vault
+     * @param initialLockDeposit The initial amount of underlying assets to deposit
+     */
     function initialize(
         address owner,
         uint256 initialFee,
@@ -77,10 +96,6 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         string memory shareSymbol,
         uint256 initialLockDeposit
     ) external initializer {
-        // Skipping ownable init to allow passing a custom owner address to prevent the proxy
-        // admin from ever being the Vault owner.
-        // Note that care should be taken to provide a non-trivial amount, but this depends
-        // on the asset's decimals.
         require(initialLockDeposit != 0, "ZERO_INITIAL_LOCK_DEPOSIT");
         _transferOwnership(owner);
         __ERC4626_init(UNDERLYING);
@@ -542,7 +557,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     /**
      * @notice Sets the fee the vault levies on yield earned, only callable by the owner.
      *
-     * @param newFee The new fee, as a fraction of 1e18.
+     * @param newFee The new fee to set, expressed in wad, where 1e18 is 100%
      */
     function setFee(uint256 newFee) public onlyOwner {
         _accrueYield();
@@ -554,7 +569,6 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
      *
      * @param to The address to receive the fees
      * @param amount The amount of fees to withdraw
-     *
      */
     function withdrawFees(address to, uint256 amount) public onlyOwner {
         uint256 claimableFees = getClaimableFees();
@@ -572,8 +586,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     /**
      * @notice Claims any additional Aave rewards earned from vault deposits. Only callable by the owner.
      *
-     * @param to The address to receive any rewards tokens.
-     *
+     * @param to The address to receive any rewards tokens
      */
     function claimRewards(address to) public onlyOwner {
         require(to != address(0), "CANNOT_CLAIM_TO_ZERO_ADDRESS");
@@ -591,10 +604,9 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
      * @notice Allows the owner to rescue any tokens other than the vault's aToken which may have accidentally
      * been transferred to this contract
      *
-     * @param token The address of the token to rescue.
-     * @param to The address to receive rescued tokens.
-     * @param amount The amount of tokens to transfer.
-     *
+     * @param token The address of the token to rescue
+     * @param to The address to receive rescued tokens
+     * @param amount The amount of tokens to transfer
      */
     function emergencyRescue(
         address token,
@@ -612,11 +624,21 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
                           VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Returns the total assets less claimable fees.
+     *
+     * @return The total assets less claimable fees
+     */
     function totalAssets() public view override returns (uint256) {
         // Report only the total assets net of fees, for vault share logic
         return ATOKEN.balanceOf(address(this)) - getClaimableFees();
     }
 
+    /**
+     * @notice Returns the claimable fees.
+     *
+     * @return The claimable fees
+     */
     function getClaimableFees() public view returns (uint256) {
         if (block.timestamp == _lastUpdated) {
             // Accumulated fees already up to date
@@ -631,18 +653,38 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         }
     }
 
+    /** 
+     * @notice Returns the signing nonce for meta-transactions for the given signer.
+     *
+     * @return The passed signer's nonce
+     */
     function getSigNonce(address signer) public view returns (uint256) {
         return _sigNonces[signer];
     }
 
+    /** 
+     * @notice Returns the latest timestamp where yield was accrued.
+     *
+     * @return The last update timestamp
+     */
     function getLastUpdated() public view returns (uint256) {
         return _lastUpdated;
     }
 
+    /** 
+     * @notice Returns the vault balance at the latest update timestamp.
+     *
+     * @return The latest vault balance
+     */
     function getLastVaultBalance() public view returns (uint256) {
         return _lastVaultBalance;
     }
 
+    /** 
+     * @notice Returns the current fee ratio.
+     *
+     * @return The current fee ratio, expressed in wad, where 1e18 is 100%
+     */
     function getFee() public view returns (uint256) {
         return _fee;
     }
@@ -661,7 +703,6 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     function _accrueYield() internal {
-        // Fees are accrued and claimable in aToken form
         if (block.timestamp != _lastUpdated) {
             uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
             uint256 newYield = newVaultBalance - _lastVaultBalance;
