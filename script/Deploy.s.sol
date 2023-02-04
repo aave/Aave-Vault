@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import "../src/ATokenVault.sol";
 
 import {ERC20} from "openzeppelin-non-upgradeable/token/ERC20/ERC20.sol";
-import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
+import {IPoolAddressesProvider} from "aave-core/interfaces/IPoolAddressesProvider.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 import {TransparentUpgradeableProxy} from "openzeppelin-non-upgradeable/proxy/transparent/TransparentUpgradeableProxy.sol";
 

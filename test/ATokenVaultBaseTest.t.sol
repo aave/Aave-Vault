@@ -9,7 +9,7 @@ import {ATokenVault, MathUpgradeable} from "../src/ATokenVault.sol";
 import {IERC20Upgradeable} from "openzeppelin/interfaces/IERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "openzeppelin/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import {ERC20} from "openzeppelin-non-upgradeable/token/ERC20/ERC20.sol";
-import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
+import {IPoolAddressesProvider} from "aave-core/interfaces/IPoolAddressesProvider.sol";
 
 contract ATokenVaultBaseTest is Test {
     using SafeERC20Upgradeable for IERC20Upgradeable;

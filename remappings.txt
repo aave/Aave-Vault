@@ -1,4 +1,4 @@
-aave=lib/aave-v3-core/contracts
+aave-core=lib/aave-v3-core/contracts
 aave-periphery/=lib/aave-v3-periphery/contracts/
 ds-test/=lib/solmate/lib/ds-test/src/
 erc4626-tests/=lib/erc4626-tests/

@@ -4,9 +4,9 @@ pragma solidity 0.8.10;
 import {IERC20Upgradeable} from "openzeppelin/interfaces/IERC20Upgradeable.sol";
 import {IERC4626Upgradeable} from "openzeppelin/interfaces/IERC4626Upgradeable.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
-import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
-import {IPool} from "aave/interfaces/IPool.sol";
-import {IAToken} from "aave/interfaces/IAToken.sol";
+import {IPoolAddressesProvider} from "aave-core/interfaces/IPoolAddressesProvider.sol";
+import {IPool} from "aave-core/interfaces/IPool.sol";
+import {IAToken} from "aave-core/interfaces/IAToken.sol";
 
 /**
  * @title IATokenVault

@@ -11,15 +11,15 @@ import {MathUpgradeable} from "openzeppelin/utils/math/MathUpgradeable.sol";
 import {ATokenVaultStorage} from "./ATokenVaultStorage.sol";
 
 // Interface
-import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
+import {IPoolAddressesProvider} from "aave-core/interfaces/IPoolAddressesProvider.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
-import {IPool} from "aave/interfaces/IPool.sol";
-import {IAToken} from "aave/interfaces/IAToken.sol";
+import {IPool} from "aave-core/interfaces/IPool.sol";
+import {IAToken} from "aave-core/interfaces/IAToken.sol";
 import {IATokenVault} from "./interfaces/IATokenVault.sol";
 
 // Libraries
-import {WadRayMath} from "aave/protocol/libraries/math/WadRayMath.sol";
-import {DataTypes as AaveDataTypes} from "aave/protocol/libraries/types/DataTypes.sol";
+import {WadRayMath} from "aave-core/protocol/libraries/math/WadRayMath.sol";
+import {DataTypes as AaveDataTypes} from "aave-core/protocol/libraries/types/DataTypes.sol";
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
 import "./libraries/Constants.sol";
 

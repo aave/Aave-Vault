@@ -6,9 +6,9 @@ import "erc4626-tests/ERC4626.test.sol";
 import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";
-import {IAToken} from "aave/interfaces/IAToken.sol";
+import {IAToken} from "aave-core/interfaces/IAToken.sol";
 import {ERC20} from "openzeppelin-non-upgradeable/token/ERC20/ERC20.sol";
-import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
+import {IPoolAddressesProvider} from "aave-core/interfaces/IPoolAddressesProvider.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 
 import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvider.sol";
