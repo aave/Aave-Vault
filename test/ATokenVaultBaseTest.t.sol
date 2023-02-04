@@ -6,14 +6,12 @@ import "forge-std/Test.sol";
 import {TransparentUpgradeableProxy} from "openzeppelin-non-upgradeable/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import {ATokenVault, MathUpgradeable} from "../src/ATokenVault.sol";
-import {IATokenVaultEvents} from "../src/interfaces/IATokenVaultEvents.sol";
-import {IATokenVaultTypes} from "../src/interfaces/IATokenVaultTypes.sol";
 import {IERC20Upgradeable} from "openzeppelin/interfaces/IERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "openzeppelin/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import {ERC20} from "openzeppelin-non-upgradeable/token/ERC20/ERC20.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 
-contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
+contract ATokenVaultBaseTest is Test {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using MathUpgradeable for uint256;
 
@@ -56,8 +54,7 @@ contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
     address vaultAssetAddress; // aDAI, must be set in every setUp
     uint256 initialLockDeposit; // Must be set in every setUp
 
-
-    //Initializer Errors
+    // Initializer Errors
     bytes constant ERR_INITIALIZED = bytes("Initializable: contract is already initialized");
 
     // Ownable Errors
@@ -83,6 +80,13 @@ contract ATokenVaultBaseTest is Test, IATokenVaultEvents, IATokenVaultTypes {
     // ERC4626 Events
     event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares);
     event Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares);
+
+    // ATokenVault Events
+    event FeeUpdated(uint256 oldFee, uint256 newFee);
+    event FeesWithdrawn(address indexed to, uint256 amount, uint256 newVaultBalance, uint256 newTotalFeesAccrued);
+    event YieldAccrued(uint256 accruedYield, uint256 newFeesFromYield, uint256 newVaultBalance);
+    event RewardsClaimed(address indexed to, address[] rewardsList, uint256[] claimedAmounts);
+    event EmergencyRescue(address indexed token, address indexed to, uint256 amount);
 
     function setUp() public virtual {}
 

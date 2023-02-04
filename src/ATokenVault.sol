@@ -15,16 +15,13 @@ import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
-import {IATokenVaultEvents} from "./interfaces/IATokenVaultEvents.sol";
-import {IATokenVaultTypes} from "./interfaces/IATokenVaultTypes.sol";
+import {IATokenVault} from "./interfaces/IATokenVault.sol";
 
 // Libraries
 import {WadRayMath} from "aave/protocol/libraries/math/WadRayMath.sol";
 import {DataTypes as AaveDataTypes} from "aave/protocol/libraries/types/DataTypes.sol";
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
 import "./libraries/Constants.sol";
-
-
 
 /**
  * @title ATokenVault
@@ -34,30 +31,23 @@ import "./libraries/Constants.sol";
  * vault fee on yield earned. Some alterations override the base implementation.
  * Fees are accrued and claimable as aTokens.
  */
-contract ATokenVault is
-    ERC4626Upgradeable,
-    OwnableUpgradeable,
-    EIP712Upgradeable,
-    ATokenVaultStorage,
-    IATokenVaultEvents,
-    IATokenVaultTypes
-{
+contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeable, ATokenVaultStorage, IATokenVault {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using MathUpgradeable for uint256;
 
-    // The Aave Pool AddressesProvider contract
+    /// @inheritdoc IATokenVault
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
 
-    // The Aave Pool contract
+    /// @inheritdoc IATokenVault
     IPool public immutable AAVE_POOL;
 
-    // The aToken contract
+    /// @inheritdoc IATokenVault
     IAToken public immutable ATOKEN;
 
-    // The underlying asset contract
+    /// @inheritdoc IATokenVault
     IERC20Upgradeable public immutable UNDERLYING;
 
-    // The Aave referral code
+    /// @inheritdoc IATokenVault
     uint16 public immutable REFERRAL_CODE;
 
     /**
@@ -111,7 +101,7 @@ contract ATokenVault is
         __ERC20_init(shareName, shareSymbol);
         __EIP712_init(shareName, "1");
         _setFee(initialFee);
-        
+
         UNDERLYING.safeApprove(address(AAVE_POOL), type(uint256).max);
 
         _handleDeposit(initialLockDeposit, address(this), msg.sender, false);
@@ -121,42 +111,21 @@ contract ATokenVault is
                         DEPOSIT/WITHDRAWAL LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Deposits a specified amount of assets into the vault, minting a corresponding amount of shares.
-     *
-     * @param assets The amount of underlying asset to deposit
-     * @param receiver The address to receive the shares
-     *
-     * @return shares The amount of shares minted to the receiver
-     */
-    function deposit(uint256 assets, address receiver) public override returns (uint256 shares) {
+    /// @inheritdoc IATokenVault
+    function deposit(uint256 assets, address receiver)
+        public
+        override(ERC4626Upgradeable, IATokenVault)
+        returns (uint256 shares)
+    {
         shares = _handleDeposit(assets, receiver, msg.sender, false);
     }
 
-    /**
-     * @notice Deposits a specified amount of aToken assets into the vault, minting a corresponding amount of
-     * shares.
-     *
-     * @param assets The amount of aToken assets to deposit
-     * @param receiver The address to receive the shares
-     *
-     * @return shares The amount of shares minted to the receiver
-     */
+    /// @inheritdoc IATokenVault
     function depositATokens(uint256 assets, address receiver) public returns (uint256 shares) {
         shares = _handleDeposit(assets, receiver, msg.sender, true);
     }
 
-    /**
-     * @notice Deposits a specified amount of assets into the vault, minting a corresponding amount of shares,
-     * using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
-     *
-     * @param assets The amount of underlying asset to deposit
-     * @param receiver The address to receive the shares
-     * @param depositor The address from which to pull the assets for the deposit
-     * @param sig An EIP712 signature from the depositor to allow this function to be called on their behalf
-     *
-     * @return shares The amount of shares minted to the receiver
-     */
+    /// @inheritdoc IATokenVault
     function depositWithSig(
         uint256 assets,
         address receiver,
@@ -185,17 +154,7 @@ contract ATokenVault is
         shares = _handleDeposit(assets, receiver, depositor, false);
     }
 
-    /**
-     * @notice Deposits a specified amount of aToken assets into the vault, minting a corresponding amount of
-     * shares, using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
-     *
-     * @param assets The amount of aToken assets to deposit
-     * @param receiver The address to receive the shares
-     * @param depositor The address from which to pull the aToken assets for the deposit
-     * @param sig An EIP712 signature from the depositor to allow this function to be called on their behalf
-     *
-     * @return shares The amount of shares minted to the receiver
-     */
+    /// @inheritdoc IATokenVault
     function depositATokensWithSig(
         uint256 assets,
         address receiver,
@@ -224,42 +183,17 @@ contract ATokenVault is
         shares = _handleDeposit(assets, receiver, depositor, true);
     }
 
-    /**
-     * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of assets.
-     *
-     * @param shares The amount of shares to mint
-     * @param receiver The address to receive the shares
-     *
-     * @return assets The amount of assets deposited by the caller
-     */
-    function mint(uint256 shares, address receiver) public override returns (uint256 assets) {
+    /// @inheritdoc IATokenVault
+    function mint(uint256 shares, address receiver) public override(ERC4626Upgradeable, IATokenVault) returns (uint256 assets) {
         assets = _handleMint(shares, receiver, msg.sender, false);
     }
 
-    /**
-     * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of aToken
-     * assets.
-     *
-     * @param shares The amount of shares to mint
-     * @param receiver The address to receive the shares
-     *
-     * @return assets The amount of aToken assets deposited by the caller
-     */
+    /// @inheritdoc IATokenVault
     function mintWithATokens(uint256 shares, address receiver) public returns (uint256 assets) {
         assets = _handleMint(shares, receiver, msg.sender, true);
     }
 
-    /**
-     * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of assets,
-     * using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
-     *
-     * @param shares The amount of shares to mint
-     * @param receiver The address to receive the shares
-     * @param depositor The address from which to pull the assets for the deposit
-     * @param sig An EIP712 signature from the depositor to allow this function to be called on their behalf
-     *
-     * @return assets The amount of assets deposited by the depositor
-     */
+    /// @inheritdoc IATokenVault
     function mintWithSig(
         uint256 shares,
         address receiver,
@@ -281,17 +215,7 @@ contract ATokenVault is
         assets = _handleMint(shares, receiver, depositor, false);
     }
 
-    /**
-     * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of aToken
-     * assets, using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
-     *
-     * @param shares The amount of shares to mint
-     * @param receiver The address to receive the shares
-     * @param depositor The address from which to pull the aToken assets for the deposit
-     * @param sig An EIP712 signature from the depositor to allow this function to be called on their behalf
-     *
-     * @return assets The amount of aToken assets deposited by the depositor
-     */
+    /// @inheritdoc IATokenVault
     function mintWithATokensWithSig(
         uint256 shares,
         address receiver,
@@ -320,33 +244,16 @@ contract ATokenVault is
         assets = _handleMint(shares, receiver, depositor, true);
     }
 
-    /**
-     * @notice Withdraws a specified amount of assets from the vault, burning the corresponding amount of shares.
-     *
-     * @param assets The amount of assets to withdraw
-     * @param receiver The address to receive the assets
-     * @param owner The address from which to pull the shares for the withdrawal
-     *
-     * @return shares The amount of shares burnt in the withdrawal process
-     */
+    /// @inheritdoc IATokenVault
     function withdraw(
         uint256 assets,
         address receiver,
         address owner
-    ) public override returns (uint256 shares) {
+    ) public override(ERC4626Upgradeable, IATokenVault) returns (uint256 shares) {
         shares = _handleWithdraw(assets, receiver, owner, msg.sender, false);
     }
 
-    /**
-     * @notice Withdraws a specified amount of aToken assets from the vault, burning the corresponding amount of
-     * shares.
-     *
-     * @param assets The amount of aToken assets to withdraw
-     * @param receiver The address to receive the aToken assets
-     * @param owner The address from which to pull the shares for the withdrawal
-     *
-     * @return shares The amount of shares burnt in the withdrawal process
-     */
+    /// @inheritdoc IATokenVault
     function withdrawATokens(
         uint256 assets,
         address receiver,
@@ -355,17 +262,7 @@ contract ATokenVault is
         shares = _handleWithdraw(assets, receiver, owner, msg.sender, true);
     }
 
-    /**
-     * @notice Withdraws a specified amount of assets from the vault, burning the corresponding amount of shares,
-     * using an EIP712 signature to enable a third-party to call this function on behalf of the owner.
-     *
-     * @param assets The amount of assets to withdraw
-     * @param receiver The address to receive the assets
-     * @param owner The address from which to pull the shares for the withdrawal
-     * @param sig An EIP712 signature from the owner to allow this function to be called on their behalf
-     *
-     * @return shares The amount of shares burnt in the withdrawal process
-     */
+    /// @inheritdoc IATokenVault
     function withdrawWithSig(
         uint256 assets,
         address receiver,
@@ -387,17 +284,7 @@ contract ATokenVault is
         shares = _handleWithdraw(assets, receiver, owner, owner, false);
     }
 
-    /**
-     * @notice Withdraws a specified amount of aToken assets from the vault, burning the corresponding amount of
-     * shares, using an EIP712 signature to enable a third-party to call this function on behalf of the owner.
-     *
-     * @param assets The amount of aToken assets to withdraw
-     * @param receiver The address to receive the aToken assets
-     * @param owner The address from which to pull the shares for the withdrawal
-     * @param sig An EIP712 signature from the owner to allow this function to be called on their behalf
-     *
-     * @return shares The amount of shares burnt in the withdrawal process
-     */
+    /// @inheritdoc IATokenVault
     function withdrawATokensWithSig(
         uint256 assets,
         address receiver,
@@ -426,33 +313,16 @@ contract ATokenVault is
         shares = _handleWithdraw(assets, receiver, owner, owner, true);
     }
 
-    /**
-     * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of assets.
-     *
-     * @param shares The amount of shares to burn
-     * @param receiver The address to receive the assets
-     * @param owner The address from which to pull the shares for the withdrawal
-     *
-     * @return assets The amount of assets withdrawn by the receiver
-     */
+    /// @inheritdoc IATokenVault
     function redeem(
         uint256 shares,
         address receiver,
         address owner
-    ) public override returns (uint256 assets) {
+    ) public override(ERC4626Upgradeable, IATokenVault) returns (uint256 assets) {
         assets = _handleRedeem(shares, receiver, owner, msg.sender, false);
     }
 
-    /**
-     * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of aToken
-     * assets.
-     *
-     * @param shares The amount of shares to burn
-     * @param receiver The address to receive the aToken assets
-     * @param owner The address from which to pull the shares for the withdrawal
-     *
-     * @return assets The amount of aToken assets withdrawn by the receiver
-     */
+    /// @inheritdoc IATokenVault
     function redeemAsATokens(
         uint256 shares,
         address receiver,
@@ -461,17 +331,7 @@ contract ATokenVault is
         assets = _handleRedeem(shares, receiver, owner, msg.sender, true);
     }
 
-    /**
-     * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of assets,
-     * using an EIP712 signature to enable a third-party to call this function on behalf of the owner.
-     *
-     * @param shares The amount of shares to burn
-     * @param receiver The address to receive the assets
-     * @param owner The address from which to pull the shares for the withdrawal
-     * @param sig An EIP712 signature from the owner to allow this function to be called on their behalf
-     *
-     * @return assets The amount of assets withdrawn by the receiver
-     */
+    /// @inheritdoc IATokenVault
     function redeemWithSig(
         uint256 shares,
         address receiver,
@@ -491,17 +351,7 @@ contract ATokenVault is
         assets = _handleRedeem(shares, receiver, owner, owner, false);
     }
 
-    /**
-     * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of aToken
-     * assets, using an EIP712 signature to enable a third-party to call this function on behalf of the owner.
-     *
-     * @param shares The amount of shares to burn
-     * @param receiver The address to receive the aToken assets
-     * @param owner The address from which to pull the shares for the withdrawal
-     * @param sig An EIP712 signature from the owner to allow this function to be called on their behalf
-     *
-     * @return assets The amount of aToken assets withdrawn by the receiver
-     */
+    /// @inheritdoc IATokenVault
     function redeemWithATokensWithSig(
         uint256 shares,
         address receiver,
@@ -530,31 +380,17 @@ contract ATokenVault is
         assets = _handleRedeem(shares, receiver, owner, owner, true);
     }
 
-    /**
-     * @notice Maximum amount of assets that can be deposited into the vault,
-     * given Aave market limitations.
-     *
-     * @return Maximum amount of assets that can be deposited into the vault
-     */
-    function maxDeposit(address) public view override returns (uint256) {
+    /// @inheritdoc IATokenVault
+    function maxDeposit(address) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256) {
         return _maxAssetsSuppliableToAave();
     }
 
-    /**
-     * @notice Maximum amount of shares that can be minted for the vault,
-     * given Aave market limitations.
-     *
-     * @return Maximum amount of shares that can be minted for the vault
-     */
-    function maxMint(address) public view override returns (uint256) {
+    /// @inheritdoc IATokenVault
+    function maxMint(address) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256) {
         return convertToShares(_maxAssetsSuppliableToAave());
     }
 
-    /**
-     * @notice returns the domain separator.
-     *
-     * @return Domain separator
-     */
+    /// @inheritdoc IATokenVault
     function domainSeparator() public view returns (bytes32) {
         return _domainSeparatorV4();
     }
@@ -563,22 +399,13 @@ contract ATokenVault is
                           ONLY OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Sets the fee the vault levies on yield earned, only callable by the owner.
-     *
-     * @param newFee The new fee to set, expressed in wad, where 1e18 is 100%
-     */
+    /// @inheritdoc IATokenVault
     function setFee(uint256 newFee) public onlyOwner {
         _accrueYield();
         _setFee(newFee);
     }
 
-    /**
-     * @notice Withdraws fees earned by the vault, in the form of aTokens, to a specified address. Only callable by the owner.
-     *
-     * @param to The address to receive the fees
-     * @param amount The amount of fees to withdraw
-     */
+    /// @inheritdoc IATokenVault
     function withdrawFees(address to, uint256 amount) public onlyOwner {
         uint256 claimableFees = getClaimableFees();
         require(amount <= claimableFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
@@ -592,11 +419,7 @@ contract ATokenVault is
         emit FeesWithdrawn(to, amount, _lastVaultBalance, _accumulatedFees);
     }
 
-    /**
-     * @notice Claims any additional Aave rewards earned from vault deposits. Only callable by the owner.
-     *
-     * @param to The address to receive any rewards tokens
-     */
+    /// @inheritdoc IATokenVault
     function claimRewards(address to) public onlyOwner {
         require(to != address(0), "CANNOT_CLAIM_TO_ZERO_ADDRESS");
 
@@ -609,14 +432,7 @@ contract ATokenVault is
         emit RewardsClaimed(to, rewardsList, claimedAmounts);
     }
 
-    /**
-     * @notice Allows the owner to rescue any tokens other than the vault's aToken which may have accidentally
-     * been transferred to this contract
-     *
-     * @param token The address of the token to rescue
-     * @param to The address to receive rescued tokens
-     * @param amount The amount of tokens to transfer
-     */
+    /// @inheritdoc IATokenVault
     function emergencyRescue(
         address token,
         address to,
@@ -633,21 +449,13 @@ contract ATokenVault is
                           VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Returns the total assets less claimable fees.
-     *
-     * @return The total assets less claimable fees
-     */
-    function totalAssets() public view override returns (uint256) {
+    /// @inheritdoc IATokenVault
+    function totalAssets() public view override(ERC4626Upgradeable, IATokenVault) returns (uint256) {
         // Report only the total assets net of fees, for vault share logic
         return ATOKEN.balanceOf(address(this)) - getClaimableFees();
     }
 
-    /**
-     * @notice Returns the claimable fees.
-     *
-     * @return The claimable fees
-     */
+    /// @inheritdoc IATokenVault
     function getClaimableFees() public view returns (uint256) {
         if (block.timestamp == _lastUpdated) {
             // Accumulated fees already up to date
@@ -662,38 +470,22 @@ contract ATokenVault is
         }
     }
 
-    /**
-     * @notice Returns the signing nonce for meta-transactions for the given signer.
-     *
-     * @return The passed signer's nonce
-     */
+    /// @inheritdoc IATokenVault
     function getSigNonce(address signer) public view returns (uint256) {
         return _sigNonces[signer];
     }
 
-    /**
-     * @notice Returns the latest timestamp where yield was accrued.
-     *
-     * @return The last update timestamp
-     */
+    /// @inheritdoc IATokenVault
     function getLastUpdated() public view returns (uint256) {
         return _lastUpdated;
     }
 
-    /**
-     * @notice Returns the vault balance at the latest update timestamp.
-     *
-     * @return The latest vault balance
-     */
+    /// @inheritdoc IATokenVault
     function getLastVaultBalance() public view returns (uint256) {
         return _lastVaultBalance;
     }
 
-    /**
-     * @notice Returns the current fee ratio.
-     *
-     * @return The current fee ratio, expressed in wad, where 1e18 is 100%
-     */
+    /// @inheritdoc IATokenVault
     function getFee() public view returns (uint256) {
         return _fee;
     }

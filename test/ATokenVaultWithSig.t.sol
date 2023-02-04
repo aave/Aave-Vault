@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";
+import {IATokenVault} from "../src/interfaces/IATokenVault.sol";
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 
@@ -103,7 +104,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -131,7 +132,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -155,7 +156,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -181,7 +182,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -207,7 +208,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -233,7 +234,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -259,7 +260,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -285,7 +286,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -314,7 +315,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -342,7 +343,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             )
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -376,7 +377,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -406,7 +407,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -436,7 +437,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -465,7 +466,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -494,7 +495,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -523,7 +524,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -552,7 +553,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -581,7 +582,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -613,7 +614,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -644,7 +645,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             )
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -673,7 +674,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -699,7 +700,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert();
@@ -721,7 +722,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -743,7 +744,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -765,7 +766,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -787,7 +788,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -809,7 +810,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -831,7 +832,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
@@ -856,7 +857,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -880,7 +881,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             )
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -910,7 +911,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.prank(BOB);
         vault.mintWithATokensWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
@@ -938,7 +939,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert();
@@ -966,7 +967,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -994,7 +995,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1022,7 +1023,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1050,7 +1051,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1078,7 +1079,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1106,7 +1107,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
@@ -1137,7 +1138,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1167,7 +1168,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             )
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1196,7 +1197,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         });
 
         // No approval needed because Alice is receiver
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1225,7 +1226,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.prank(ALICE);
         vault.approve(BOB, amount);
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1254,7 +1255,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1276,7 +1277,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1298,7 +1299,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1320,7 +1321,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1342,7 +1343,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1364,7 +1365,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
@@ -1389,7 +1390,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1413,7 +1414,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ) // Withdraw not WithdrawWithSig
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1438,7 +1439,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         });
 
         // No approval needed because Alice is receiver
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1467,7 +1468,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.prank(ALICE);
         vault.approve(BOB, amount);
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1496,7 +1497,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1518,7 +1519,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1540,7 +1541,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1562,7 +1563,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1584,7 +1585,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1606,7 +1607,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
@@ -1631,7 +1632,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1655,7 +1656,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             )
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1683,7 +1684,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1713,7 +1714,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         });
 
         vm.prank(ALICE);
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1742,7 +1743,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1764,7 +1765,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1786,7 +1787,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1808,7 +1809,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1830,7 +1831,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1852,7 +1853,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
@@ -1877,7 +1878,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1899,7 +1900,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1923,7 +1924,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1951,7 +1952,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         });
 
         vm.prank(ALICE);
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1980,7 +1981,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -2002,7 +2003,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -2024,7 +2025,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -2046,7 +2047,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -2068,7 +2069,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -2090,7 +2091,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
@@ -2115,7 +2116,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -2137,7 +2138,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -2149,7 +2150,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
                                 TEST UTILS
     //////////////////////////////////////////////////////////////*/
 
-    function _createVaultSig(VaultSigParams memory params) internal returns (EIP712Signature memory sig) {
+    function _createVaultSig(VaultSigParams memory params) internal returns (IATokenVault.EIP712Signature memory sig) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             params.ownerPrivKey,
             keccak256(
@@ -2170,10 +2171,10 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             )
         );
 
-        sig = EIP712Signature({v: v, r: r, s: s, deadline: params.deadline});
+        sig = IATokenVault.EIP712Signature({v: v, r: r, s: s, deadline: params.deadline});
     }
 
-    function _createPermitSig(PermitSigParams memory params) internal returns (EIP712Signature memory sig) {
+    function _createPermitSig(PermitSigParams memory params) internal returns (IATokenVault.EIP712Signature memory sig) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             params.ownerPrivKey,
             keccak256(
@@ -2187,7 +2188,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             )
         );
 
-        sig = EIP712Signature({v: v, r: r, s: s, deadline: params.deadline});
+        sig = IATokenVault.EIP712Signature({v: v, r: r, s: s, deadline: params.deadline});
     }
 
     function _depositFromUser(address user, uint256 amount) public {
