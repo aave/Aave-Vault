@@ -3,13 +3,13 @@ pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
 
-import {TransparentUpgradeableProxy} from "openzeppelin-non-upgradeable/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import {ATokenVault, MathUpgradeable} from "../src/ATokenVault.sol";
-import {IERC20Upgradeable} from "openzeppelin/interfaces/IERC20Upgradeable.sol";
-import {SafeERC20Upgradeable} from "openzeppelin/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import {ERC20} from "openzeppelin-non-upgradeable/token/ERC20/ERC20.sol";
-import {IPoolAddressesProvider} from "aave-core/interfaces/IPoolAddressesProvider.sol";
+import {IERC20Upgradeable} from "@openzeppelin-upgradeable/interfaces/IERC20Upgradeable.sol";
+import {SafeERC20Upgradeable} from "@openzeppelin-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
+import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
 
 contract ATokenVaultBaseTest is Test {
     using SafeERC20Upgradeable for IERC20Upgradeable;

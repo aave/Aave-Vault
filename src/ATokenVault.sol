@@ -2,24 +2,24 @@
 pragma solidity 0.8.10;
 
 // Upgradeability
-import {ERC4626Upgradeable} from "openzeppelin/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {OwnableUpgradeable} from "openzeppelin/access/OwnableUpgradeable.sol";
-import {SafeERC20Upgradeable} from "openzeppelin/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import {IERC20Upgradeable} from "openzeppelin/interfaces/IERC20Upgradeable.sol";
-import {EIP712Upgradeable} from "openzeppelin/utils/cryptography/EIP712Upgradeable.sol";
-import {MathUpgradeable} from "openzeppelin/utils/math/MathUpgradeable.sol";
+import {ERC4626Upgradeable} from "@openzeppelin-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin-upgradeable/access/OwnableUpgradeable.sol";
+import {SafeERC20Upgradeable} from "@openzeppelin-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {IERC20Upgradeable} from "@openzeppelin-upgradeable/interfaces/IERC20Upgradeable.sol";
+import {EIP712Upgradeable} from "@openzeppelin-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import {MathUpgradeable} from "@openzeppelin-upgradeable/utils/math/MathUpgradeable.sol";
 import {ATokenVaultStorage} from "./ATokenVaultStorage.sol";
 
 // Interface
-import {IPoolAddressesProvider} from "aave-core/interfaces/IPoolAddressesProvider.sol";
-import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
-import {IPool} from "aave-core/interfaces/IPool.sol";
-import {IAToken} from "aave-core/interfaces/IAToken.sol";
+import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
+import {IRewardsController} from "@aave-v3-periphery/rewards/interfaces/IRewardsController.sol";
+import {IPool} from "@aave-v3-core/interfaces/IPool.sol";
+import {IAToken} from "@aave-v3-core/interfaces/IAToken.sol";
 import {IATokenVault} from "./interfaces/IATokenVault.sol";
 
 // Libraries
-import {WadRayMath} from "aave-core/protocol/libraries/math/WadRayMath.sol";
-import {DataTypes as AaveDataTypes} from "aave-core/protocol/libraries/types/DataTypes.sol";
+import {WadRayMath} from "@aave-v3-core/protocol/libraries/math/WadRayMath.sol";
+import {DataTypes as AaveDataTypes} from "@aave-v3-core/protocol/libraries/types/DataTypes.sol";
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
 import "./libraries/Constants.sol";
 

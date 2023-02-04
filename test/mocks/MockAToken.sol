@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
-import {ERC20} from "openzeppelin-non-upgradeable/token/ERC20/ERC20.sol";
+import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
 
 contract MockAToken is ERC20 {
     constructor() ERC20("Mock aToken", "MAT") {}

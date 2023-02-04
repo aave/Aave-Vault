@@ -1,8 +1,8 @@
-aave-core=lib/aave-v3-core/contracts
-aave-periphery/=lib/aave-v3-periphery/contracts/
+@aave-v3-core=lib/aave-v3-core/contracts
+@aave-v3-periphery/=lib/aave-v3-periphery/contracts/
 ds-test/=lib/solmate/lib/ds-test/src/
 erc4626-tests/=lib/erc4626-tests/
 forge-std/=lib/forge-std/src/
 solmate/=lib/solmate/src/
-openzeppelin/=lib/openzeppelin-contracts-upgradeable/contracts/
-openzeppelin-non-upgradeable/=lib/openzeppelin-contracts/contracts
+@openzeppelin-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+@openzeppelin/=lib/openzeppelin-contracts/contracts

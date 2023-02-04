@@ -6,8 +6,8 @@ import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";
 import {IATokenVault} from "../src/interfaces/IATokenVault.sol";
-import {IPoolAddressesProvider} from "aave-core/interfaces/IPoolAddressesProvider.sol";
-import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
+import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
+import {IRewardsController} from "@aave-v3-periphery/rewards/interfaces/IRewardsController.sol";
 
 import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvider.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
