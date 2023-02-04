@@ -3,7 +3,6 @@ pragma solidity 0.8.10;
 
 import {IERC1271} from "@openzeppelin/interfaces/IERC1271.sol";
 import {IATokenVault} from "../interfaces/IATokenVault.sol";
-
 import "./Constants.sol";
 
 /**

@@ -21,10 +21,7 @@ import {ATokenVaultStorage} from "./ATokenVaultStorage.sol";
 /**
  * @title ATokenVault
  * @author Aave Protocol
- *
- * @notice An ERC-4626 vault for ERC20 assets supported by Aave v3, with a potential
- * vault fee on yield earned. Some alterations override the base implementation.
- * Fees are accrued and claimable as aTokens.
+ * @notice An ERC-4626 vault for Aave V3, with support to add a fee on yield earned.
  */
 contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeable, ATokenVaultStorage, IATokenVault {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -46,6 +43,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     uint16 public immutable REFERRAL_CODE;
 
     /**
+     * @dev Constructor,
      * @param underlying The underlying ERC20 asset which can be supplied to Aave
      * @param referralCode The Aave referral code to use for deposits from this vault
      * @param poolAddressesProvider The address of the Aave v3 Pool Addresses Provider
@@ -67,16 +65,10 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     /**
-     * @notice Initializes the vault, setting the initial parameters and initializing inherited
-     * contracts. This also requires an initial non-zero deposit to prevent a frontrunning attack.
-     * This deposit is done in underlying tokens, not aTokens.
-     *
-     * Note that care should be taken to provide a non-trivial amount, but this depends on the
-     * underlying asset's decimals.
-     *
-     * Note that we do not initialize the OwnableUpgradeable contract to avoid setting the proxy
-     * admin as the owner.
-     *
+     * @notice Initializes the vault, setting the initial parameters and initializing inherited contracts.
+     * @dev It requires an initial non-zero deposit to prevent a frontrunning attack (in underlying atokens). Note
+     * that care should be taken to provide a non-trivial amount, but this depends on the underlying asset's decimals.
+     * @dev It does not initialize the OwnableUpgradeable contract to avoid setting the proxy admin as the owner.
      * @param owner The owner to set
      * @param initialFee The initial fee to set, expressed in wad, where 1e18 is 100%
      * @param shareName The name to set for this vault

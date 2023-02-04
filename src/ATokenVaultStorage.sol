@@ -4,11 +4,9 @@ pragma solidity 0.8.10;
 /**
  * @title ATokenVaultStorage
  * @author Aave Protocol
- *
  * @notice Contains storage variables for the ATokenVault.
  */
 abstract contract ATokenVaultStorage {
-    
     mapping(address => uint256) internal _sigNonces;
 
     // timestamp of last accrueYield action
