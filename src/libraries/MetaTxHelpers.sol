@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
-import {IEIP1271Implementer} from "../interfaces/IEIP1271Implementer.sol";
+import {IERC1271} from "openzeppelin-non-upgradeable/interfaces/IERC1271.sol";
 import {IATokenVault} from "../interfaces/IATokenVault.sol";
 
 import "./Constants.sol";
@@ -25,10 +25,7 @@ library MetaTxHelpers {
         // If the expected address is a contract, check the signature there.
         if (recoveredAddress.code.length != 0) {
             bytes memory concatenatedSig = abi.encodePacked(sig.r, sig.s, sig.v);
-            require(
-                IEIP1271Implementer(expectedAddress).isValidSignature(digest, concatenatedSig) == EIP1271_MAGIC_VALUE,
-                "SIG_INVALID"
-            );
+            require(IERC1271(expectedAddress).isValidSignature(digest, concatenatedSig) == EIP1271_MAGIC_VALUE, "SIG_INVALID");
         } else {
             recoveredAddress = ecrecover(digest, sig.v, sig.r, sig.s);
 
