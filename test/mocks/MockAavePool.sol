@@ -28,7 +28,7 @@ contract MockAavePool {
         reserveConfigMap = _reserveConfigMap;
     }
 
-    function getReserveData(address _reserve) public view returns (DataTypes.ReserveData memory) {
+    function getReserveData(address) public view returns (DataTypes.ReserveData memory) {
         return DataTypes.ReserveData({
             //stores the reserve configuration
             configuration: DataTypes.ReserveConfigurationMap({data: reserveConfigMap}),
@@ -63,7 +63,7 @@ contract MockAavePool {
         });
     }
 
-    function supply(address _asset, uint256 _amount, address _onBehalfOf, uint16 _referralCode) public {
+    function supply(address _asset, uint256 _amount, address _onBehalfOf, uint16) public {
         ERC20(_asset).transferFrom(msg.sender, address(this), _amount);
         aToken.mint(_onBehalfOf, _amount);
     }
