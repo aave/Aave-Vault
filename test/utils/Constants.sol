@@ -8,6 +8,10 @@ uint256 constant AAVE_SUPPLY_CAP_BIT_POSITION = 116;
 
 bytes4 constant EIP1271_MAGIC_VALUE = 0x1626ba7e;
 
+bytes32 constant PERMIT_TYPEHASH = keccak256(
+    "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+);
+
 bytes32 constant DEPOSIT_WITH_SIG_TYPEHASH = keccak256(
     "DepositWithSig(uint256 assets,address receiver,address depositor,uint256 nonce,uint256 deadline)"
 );

@@ -9,7 +9,7 @@ import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesPro
 import {IPool} from "@aave-v3-core/interfaces/IPool.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
-import "./mocks/MocksConstants.sol";
+import "./utils/Constants.sol";
 import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";

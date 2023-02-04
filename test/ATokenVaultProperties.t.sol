@@ -7,7 +7,7 @@ import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvid
 import {MockAToken} from "./mocks/MockAToken.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockDAI} from "./mocks/MockDAI.sol";
-import "./mocks/MocksConstants.sol";
+import "./utils/Constants.sol";
 import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";

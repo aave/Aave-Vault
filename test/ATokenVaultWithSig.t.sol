@@ -6,34 +6,12 @@ import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvid
 import {MockAToken} from "./mocks/MockAToken.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockDAI} from "./mocks/MockDAI.sol";
-import "./mocks/MocksConstants.sol";
+import "./utils/Constants.sol";
+import {PermitSigHelper} from "./utils/PermitSigHelper.sol";
 import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";
 import {IATokenVault} from "../src/interfaces/IATokenVault.sol";
-
-struct VaultSigParams {
-    address assetOwner; // where the shares/assets are flowing from
-    uint256 ownerPrivKey; // private key of above address
-    uint256 amount; // amount of assets/shares
-    address receiver;
-    uint256 nonce;
-    uint256 deadline;
-    bytes32 functionTypehash;
-}
-
-struct PermitSigParams {
-    address owner;
-    uint256 ownerPrivKey;
-    address spender;
-    uint256 value;
-    uint256 nonce;
-    uint256 deadline;
-}
-
-bytes32 constant PERMIT_TYPEHASH = keccak256(
-    "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-);
 
 contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
     bytes32 VAULT_DOMAIN_SEPARATOR;
@@ -42,6 +20,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
     MockAavePool pool;
     MockAToken aDai;
     MockDAI dai;
+    PermitSigHelper permitSigHelper;
 
     function setUp() public override {
         aDai = new MockAToken();
@@ -57,6 +36,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         _deploy(address(dai), address(poolAddrProvider));
 
         VAULT_DOMAIN_SEPARATOR = vault.domainSeparator();
+        permitSigHelper = new PermitSigHelper();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -69,7 +49,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -79,7 +59,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -97,7 +77,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -107,7 +87,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -121,7 +101,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: BOB,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -131,7 +111,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -147,7 +127,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: BOB_PRIV_KEY,
             amount: amount,
@@ -157,7 +137,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -173,7 +153,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -183,7 +163,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -199,7 +179,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount + 1,
@@ -209,7 +189,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -225,7 +205,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -235,7 +215,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -251,7 +231,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -261,7 +241,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -280,7 +260,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Change domain separator
         VAULT_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -290,7 +270,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -306,7 +286,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -318,7 +298,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             )
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -342,7 +322,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -352,7 +332,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -372,7 +352,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -382,7 +362,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -402,7 +382,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: BOB,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -412,7 +392,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -431,7 +411,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: BOB_PRIV_KEY,
             amount: amount,
@@ -441,7 +421,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -460,7 +440,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -470,7 +450,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -489,7 +469,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount + 1,
@@ -499,7 +479,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -518,7 +498,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -528,7 +508,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -547,7 +527,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -557,7 +537,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -579,7 +559,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Change domain separator
         VAULT_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -589,7 +569,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -608,7 +588,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -620,7 +600,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             )
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         // Bob calls depositWithSig on Alice's behalf, passing in Alice's sig
         vm.startPrank(BOB);
@@ -639,7 +619,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -649,7 +629,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.prank(ALICE);
         dai.approve(address(vault), amount);
@@ -665,7 +645,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -675,7 +655,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert();
@@ -687,7 +667,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: BOB,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -697,7 +677,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -709,7 +689,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: BOB_PRIV_KEY,
             amount: amount,
@@ -719,7 +699,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -731,7 +711,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -741,7 +721,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -753,7 +733,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -763,7 +743,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -775,7 +755,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -785,7 +765,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -797,7 +777,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -807,7 +787,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
@@ -822,7 +802,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Change domain separator
         VAULT_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -832,7 +812,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -844,7 +824,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         deal(address(dai), ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -856,7 +836,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             )
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -876,7 +856,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -886,7 +866,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.prank(BOB);
         vault.mintWithATokensWithSig({shares: amount, receiver: ALICE, depositor: ALICE, sig: sig});
@@ -904,7 +884,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -914,7 +894,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert();
@@ -932,7 +912,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: BOB,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -942,7 +922,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -960,7 +940,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: BOB_PRIV_KEY,
             amount: amount,
@@ -970,7 +950,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -988,7 +968,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -998,7 +978,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1016,7 +996,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1026,7 +1006,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1044,7 +1024,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1054,7 +1034,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1072,7 +1052,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1082,7 +1062,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
@@ -1103,7 +1083,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Change domain separator
         VAULT_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1113,7 +1093,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1131,7 +1111,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         pool.supply(address(dai), amount, ALICE, 0);
         vm.stopPrank();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1143,7 +1123,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             )
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1161,7 +1141,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1172,7 +1152,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         });
 
         // No approval needed because Alice is receiver
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1189,7 +1169,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1201,7 +1181,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.prank(ALICE);
         vault.approve(BOB, amount);
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1220,7 +1200,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: BOB,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1230,7 +1210,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1242,7 +1222,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: BOB_PRIV_KEY,
             amount: amount,
@@ -1252,7 +1232,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1264,7 +1244,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1274,7 +1254,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1286,7 +1266,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount + 1,
@@ -1296,7 +1276,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1308,7 +1288,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1318,7 +1298,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1330,7 +1310,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1340,7 +1320,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
@@ -1355,7 +1335,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Change domain separator
         VAULT_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1365,7 +1345,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1377,7 +1357,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1389,7 +1369,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             ) // Withdraw not WithdrawWithSig
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1403,7 +1383,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1414,7 +1394,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         });
 
         // No approval needed because Alice is receiver
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1431,7 +1411,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1443,7 +1423,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
 
         vm.prank(ALICE);
         vault.approve(BOB, amount);
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1462,7 +1442,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: BOB,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1472,7 +1452,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1484,7 +1464,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: BOB_PRIV_KEY,
             amount: amount,
@@ -1494,7 +1474,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1506,7 +1486,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1516,7 +1496,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1528,7 +1508,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount + 1,
@@ -1538,7 +1518,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1550,7 +1530,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1560,7 +1540,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1572,7 +1552,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1582,7 +1562,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
@@ -1597,7 +1577,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Change domain separator
         VAULT_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1607,7 +1587,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1619,7 +1599,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1631,7 +1611,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             )
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1649,7 +1629,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1659,7 +1639,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1678,7 +1658,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1689,7 +1669,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         });
 
         vm.prank(ALICE);
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1708,7 +1688,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1718,7 +1698,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1730,7 +1710,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: BOB_PRIV_KEY,
             amount: amount,
@@ -1740,7 +1720,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1752,7 +1732,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1762,7 +1742,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1774,7 +1754,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount + 1,
@@ -1784,7 +1764,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1796,7 +1776,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1806,7 +1786,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1818,7 +1798,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1828,7 +1808,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
@@ -1843,7 +1823,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Change domain separator
         VAULT_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1853,7 +1833,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1865,7 +1845,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1875,7 +1855,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1889,7 +1869,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1899,7 +1879,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1916,7 +1896,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1927,7 +1907,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         });
 
         vm.prank(ALICE);
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         assertEq(aDai.balanceOf(address(vault)), amount + initialLockDeposit);
 
@@ -1946,7 +1926,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -1956,7 +1936,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1968,7 +1948,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: BOB_PRIV_KEY,
             amount: amount,
@@ -1978,7 +1958,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -1990,7 +1970,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -2000,7 +1980,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -2012,7 +1992,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount + 1,
@@ -2022,7 +2002,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -2034,7 +2014,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -2044,7 +2024,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -2056,7 +2036,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -2066,7 +2046,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_EXPIRED);
@@ -2081,7 +2061,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         // Change domain separator
         VAULT_DOMAIN_SEPARATOR = dai.DOMAIN_SEPARATOR();
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -2091,7 +2071,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -2103,7 +2083,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount);
 
-        VaultSigParams memory params = VaultSigParams({
+        PermitSigHelper.VaultSigParams memory params = PermitSigHelper.VaultSigParams({
             assetOwner: ALICE,
             ownerPrivKey: ALICE_PRIV_KEY,
             amount: amount,
@@ -2113,7 +2093,7 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
             functionTypehash: DEPOSIT_WITH_SIG_TYPEHASH
         });
 
-        IATokenVault.EIP712Signature memory sig = _createVaultSig(params);
+        IATokenVault.EIP712Signature memory sig = permitSigHelper.createVaultSig(VAULT_DOMAIN_SEPARATOR, params);
 
         vm.startPrank(BOB);
         vm.expectRevert(ERR_SIG_INVALID);
@@ -2124,47 +2104,6 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
     /*//////////////////////////////////////////////////////////////
                                 TEST UTILS
     //////////////////////////////////////////////////////////////*/
-
-    function _createVaultSig(VaultSigParams memory params) internal returns (IATokenVault.EIP712Signature memory sig) {
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            params.ownerPrivKey,
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    VAULT_DOMAIN_SEPARATOR,
-                    keccak256(
-                        abi.encode(
-                            params.functionTypehash,
-                            params.amount,
-                            params.receiver,
-                            params.assetOwner,
-                            params.nonce,
-                            params.deadline
-                        )
-                    )
-                )
-            )
-        );
-
-        sig = IATokenVault.EIP712Signature({v: v, r: r, s: s, deadline: params.deadline});
-    }
-
-    function _createPermitSig(PermitSigParams memory params) internal returns (IATokenVault.EIP712Signature memory sig) {
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            params.ownerPrivKey,
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    dai.DOMAIN_SEPARATOR(),
-                    keccak256(
-                        abi.encode(PERMIT_TYPEHASH, params.owner, params.spender, params.value, params.nonce, params.deadline)
-                    )
-                )
-            )
-        );
-
-        sig = IATokenVault.EIP712Signature({v: v, r: r, s: s, deadline: params.deadline});
-    }
 
     function _depositFromUser(address user, uint256 amount) public {
         deal(address(dai), user, amount);

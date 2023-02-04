@@ -14,15 +14,19 @@ contract ATokenVaultBaseTest is Test {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using MathUpgradeable for uint256;
 
-    bytes32 constant PERMIT_TYPEHASH =
-        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-
     // Fork tests using Polygon for Aave v3
     address constant POLYGON_DAI = 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063;
     address constant POLYGON_ADAI = 0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE;
     address constant POLYGON_AAVE_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
     address constant POLYGON_POOL_ADDRESSES_PROVIDER = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
     address constant POLYGON_REWARDS_CONTROLLER = 0x929EC64c34a17401F460460D4B9390518E5B473e;
+
+    // Fork tests using Avalanche for Aave v3
+    address constant AVALANCHE_USDC = 0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E;
+    address constant AVALANCHE_AUSDC = 0x625E7708f30cA75bfd92586e17077590C60eb4cD;
+    address constant AVALANCHE_WAVAX = 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7;
+    address constant AVALANCHE_POOL_ADDRESSES_PROVIDER = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
+    address constant AVALANCHE_REWARDS_CONTROLLER = 0x929EC64c34a17401F460460D4B9390518E5B473e;
 
     uint256 constant SCALE = 1e18;
     uint256 constant ONE = 1e18;
@@ -106,12 +110,6 @@ contract ATokenVaultBaseTest is Test {
     }
 
     function _deploy(address underlying, address addressesProvider) internal {
-        // vm.startPrank(OWNER);
-        // vault = new ATokenVault(underlying, referralCode, IPoolAddressesProvider(addressesProvider));
-        // bytes memory data = abi.encodeWithSelector(ATokenVault.initialize.selector, OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 0);
-        // TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
-        // vault = ATokenVault(address(proxy));
-        // vm.stopPrank();
         _baseDeploy(underlying, addressesProvider, 18);
     }
 
