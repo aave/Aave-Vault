@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
+/**
+ * @title IATokenVaultEvents
+ * @author Aave Protocol
+ *
+ * @notice Defines the events for the ATokenVault.
+ */
 interface IATokenVaultEvents {
     event FeeUpdated(uint256 oldFee, uint256 newFee);
     event FeeTaken(uint256 shares);

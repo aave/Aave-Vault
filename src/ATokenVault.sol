@@ -8,21 +8,23 @@ import {SafeERC20Upgradeable} from "openzeppelin/token/ERC20/utils/SafeERC20Upgr
 import {IERC20Upgradeable} from "openzeppelin/interfaces/IERC20Upgradeable.sol";
 import {EIP712Upgradeable} from "openzeppelin/utils/cryptography/EIP712Upgradeable.sol";
 import {MathUpgradeable} from "openzeppelin/utils/math/MathUpgradeable.sol";
+import {ATokenVaultStorage} from "./ATokenVaultStorage.sol";
 
-import {WadRayMath} from "aave/protocol/libraries/math/WadRayMath.sol";
-import {DataTypes as AaveDataTypes} from "aave/protocol/libraries/types/DataTypes.sol";
+// Interface
 import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
 import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "aave/interfaces/IPool.sol";
 import {IAToken} from "aave/interfaces/IAToken.sol";
-
-// Interface
 import {IATokenVaultEvents} from "./interfaces/IATokenVaultEvents.sol";
 import {IATokenVaultTypes} from "./interfaces/IATokenVaultTypes.sol";
 
 // Libraries
+import {WadRayMath} from "aave/protocol/libraries/math/WadRayMath.sol";
+import {DataTypes as AaveDataTypes} from "aave/protocol/libraries/types/DataTypes.sol";
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
 import "./libraries/Constants.sol";
+
+
 
 /**
  * @title ATokenVault
@@ -32,23 +34,31 @@ import "./libraries/Constants.sol";
  * vault fee on yield earned. Some alterations override the base implementation.
  * Fees are accrued and claimable as aTokens.
  */
-contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeable, IATokenVaultEvents, IATokenVaultTypes {
+contract ATokenVault is
+    ERC4626Upgradeable,
+    OwnableUpgradeable,
+    EIP712Upgradeable,
+    ATokenVaultStorage,
+    IATokenVaultEvents,
+    IATokenVaultTypes
+{
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using MathUpgradeable for uint256;
-    // using FixedPointMathLib for uint256;
 
+    // The Aave Pool AddressesProvider contract
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
+
+    // The Aave Pool contract
     IPool public immutable AAVE_POOL;
+
+    // The aToken contract
     IAToken public immutable ATOKEN;
+
+    // The underlying asset contract
     IERC20Upgradeable public immutable UNDERLYING;
+
+    // The Aave referral code
     uint16 public immutable REFERRAL_CODE;
-
-    mapping(address => uint256) internal _sigNonces;
-
-    uint256 internal _lastUpdated; // timestamp of last accrueYield action
-    uint256 internal _lastVaultBalance; // total aToken incl. fees
-    uint256 internal _fee; // as a fraction of 1e18
-    uint256 internal _accumulatedFees; // fees accrued since last updated
 
     /**
      * @param underlying The underlying ERC20 asset which can be supplied to Aave
@@ -71,13 +81,12 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         ATOKEN = IAToken(aTokenAddress);
     }
 
-
-    /** 
-     * @notice Initializes the vault, setting the initial parameters and initializing inherited 
+    /**
+     * @notice Initializes the vault, setting the initial parameters and initializing inherited
      * contracts. This also requires an initial non-zero deposit to prevent a frontrunning attack.
      * This deposit is done in underlying tokens, not aTokens.
      *
-     * Note that care should be taken to provide a non-trivial amount, but this depends on the 
+     * Note that care should be taken to provide a non-trivial amount, but this depends on the
      * underlying asset's decimals.
      *
      * Note that we do not initialize the OwnableUpgradeable contract to avoid setting the proxy
@@ -102,9 +111,9 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         __ERC20_init(shareName, shareSymbol);
         __EIP712_init(shareName, "1");
         _setFee(initialFee);
+        
         UNDERLYING.safeApprove(address(AAVE_POOL), type(uint256).max);
 
-        // Execute initial deposit and burn to prevent frontrun attack.
         _handleDeposit(initialLockDeposit, address(this), msg.sender, false);
     }
 
@@ -574,9 +583,9 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         uint256 claimableFees = getClaimableFees();
         require(amount <= claimableFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
 
-        _accumulatedFees = claimableFees - amount;
-        _lastVaultBalance = ATOKEN.balanceOf(address(this)) - amount;
-        _lastUpdated = block.timestamp;
+        _accumulatedFees = uint128(claimableFees - amount);
+        _lastVaultBalance = uint128(ATOKEN.balanceOf(address(this)) - amount);
+        _lastUpdated = uint40(block.timestamp);
 
         ATOKEN.transfer(to, amount);
 
@@ -653,7 +662,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         }
     }
 
-    /** 
+    /**
      * @notice Returns the signing nonce for meta-transactions for the given signer.
      *
      * @return The passed signer's nonce
@@ -662,7 +671,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         return _sigNonces[signer];
     }
 
-    /** 
+    /**
      * @notice Returns the latest timestamp where yield was accrued.
      *
      * @return The last update timestamp
@@ -671,7 +680,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         return _lastUpdated;
     }
 
-    /** 
+    /**
      * @notice Returns the vault balance at the latest update timestamp.
      *
      * @return The latest vault balance
@@ -680,7 +689,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         return _lastVaultBalance;
     }
 
-    /** 
+    /**
      * @notice Returns the current fee ratio.
      *
      * @return The current fee ratio, expressed in wad, where 1e18 is 100%
@@ -697,7 +706,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         require(newFee <= SCALE, "FEE_TOO_HIGH");
 
         uint256 oldFee = _fee;
-        _fee = newFee;
+        _fee = uint64(newFee);
 
         emit FeeUpdated(oldFee, newFee);
     }
@@ -708,9 +717,9 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
             uint256 newYield = newVaultBalance - _lastVaultBalance;
             uint256 newFeesEarned = newYield.mulDiv(_fee, SCALE, MathUpgradeable.Rounding.Down);
 
-            _accumulatedFees += newFeesEarned;
-            _lastVaultBalance = newVaultBalance;
-            _lastUpdated = block.timestamp;
+            _accumulatedFees += uint128(newFeesEarned);
+            _lastVaultBalance = uint128(newVaultBalance);
+            _lastUpdated = uint40(block.timestamp);
 
             emit YieldAccrued(newYield, newFeesEarned, newVaultBalance);
         }
@@ -810,7 +819,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
             AAVE_POOL.supply(address(UNDERLYING), assets, address(this), REFERRAL_CODE);
         }
 
-        _lastVaultBalance += assets;
+        _lastVaultBalance += uint128(assets);
         _mint(receiver, shares);
 
         emit Deposit(depositor, receiver, assets, shares);
@@ -828,7 +837,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
             _spendAllowance(owner, allowanceTarget, shares);
         }
 
-        _lastVaultBalance -= assets;
+        _lastVaultBalance -= uint128(assets);
         _burn(owner, shares);
 
         // Withdraw assets from Aave v3 and send to receiver

@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
+/**
+ * @title IATokenVaultTypes
+ * @author Aave Protocol
+ *
+ * @notice Defines the types for the ATokenVault.
+ */
 interface IATokenVaultTypes {
     /**
      * @notice A struct containing the necessary information to reconstruct an EIP-712 typed data signature.
