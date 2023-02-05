@@ -7,6 +7,7 @@ import {SafeERC20Upgradeable} from "@openzeppelin-upgradeable/token/ERC20/utils/
 import {IERC20Upgradeable} from "@openzeppelin-upgradeable/interfaces/IERC20Upgradeable.sol";
 import {EIP712Upgradeable} from "@openzeppelin-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import {MathUpgradeable} from "@openzeppelin-upgradeable/utils/math/MathUpgradeable.sol";
+import {IncentivizedERC20} from "@aave-v3-core/protocol/tokenization/base/IncentivizedERC20.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
 import {IPool} from "@aave-v3-core/interfaces/IPool.sol";
 import {IAToken} from "@aave-v3-core/interfaces/IAToken.sol";
@@ -413,7 +414,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         address[] memory assets = new address[](1);
         assets[0] = address(ATOKEN);
         (address[] memory rewardsList, uint256[] memory claimedAmounts) = IRewardsController(
-            POOL_ADDRESSES_PROVIDER.getAddress(REWARDS_CONTROLLER_ID)
+            address(IncentivizedERC20(address(ATOKEN)).getIncentivesController())
         ).claimAllRewards(assets, to);
 
         emit RewardsClaimed(to, rewardsList, claimedAmounts);
