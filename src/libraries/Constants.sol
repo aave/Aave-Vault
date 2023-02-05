@@ -41,4 +41,3 @@ bytes32 constant REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH = keccak256(
 );
 
 uint256 constant SCALE = 1e18;
-bytes32 constant REWARDS_CONTROLLER_ID = keccak256("INCENTIVES_CONTROLLER");
