@@ -18,7 +18,9 @@ abstract contract ATokenVaultStorage {
         uint40 lastUpdated;
         // as a fraction of 1e18
         uint64 fee;
+        // Reserved storage space to allow for layout changes in the future
+        uint256[50] __gap;
     }
-    
+
     Storage internal _s;
 }
