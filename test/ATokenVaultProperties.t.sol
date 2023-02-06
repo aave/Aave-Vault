@@ -3,18 +3,14 @@ pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
 import "erc4626-tests/ERC4626.test.sol";
-import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
-
-import {ATokenVault} from "../src/ATokenVault.sol";
-import {IAToken} from "aave/interfaces/IAToken.sol";
-import {ERC20} from "solmate/tokens/ERC20.sol";
-import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
-import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
-
 import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvider.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockDAI} from "./mocks/MockDAI.sol";
+import "./utils/Constants.sol";
+import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
+
+import {ATokenVault} from "../src/ATokenVault.sol";
 
 contract ATokenVaultPropertiesTest is ERC4626Test, ATokenVaultBaseTest {
     MockAavePoolAddressesProvider poolAddrProvider;
@@ -22,24 +18,15 @@ contract ATokenVaultPropertiesTest is ERC4626Test, ATokenVaultBaseTest {
     MockAToken aDai;
     MockDAI dai;
 
-    // Tested in fork tests - not needed in mock tests
-    address fakeIncentivesController = address(101010101);
-
-    function setUp() public override (ERC4626Test, ATokenVaultBaseTest) {
+    function setUp() public override(ERC4626Test, ATokenVaultBaseTest) {
         aDai = new MockAToken();
         pool = new MockAavePool(aDai);
         poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));
 
         dai = new MockDAI();
 
-        vault = new ATokenVault(
-            dai,
-            SHARE_NAME,
-            SHARE_SYMBOL,
-            fee,
-            IPoolAddressesProvider(address(poolAddrProvider)),
-            IRewardsController(fakeIncentivesController)
-        );
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
+        _deploy(address(dai), address(poolAddrProvider));
 
         _underlying_ = address(dai);
         _vault_ = address(vault);

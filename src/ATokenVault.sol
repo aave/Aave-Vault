@@ -1,118 +1,124 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
-import {ERC4626, SafeTransferLib, FixedPointMathLib} from "solmate/mixins/ERC4626.sol";
-import {ERC20} from "solmate/tokens/ERC20.sol";
-import {Ownable} from "openzeppelin/access/Ownable.sol";
-import {WadRayMath} from "aave/protocol/libraries/math/WadRayMath.sol";
-import {DataTypes as AaveDataTypes} from "aave/protocol/libraries/types/DataTypes.sol";
-import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
-import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
-import {IPool} from "aave/interfaces/IPool.sol";
-import {IAToken} from "aave/interfaces/IAToken.sol";
-
-// Libraries
+import {ERC4626Upgradeable} from "@openzeppelin-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin-upgradeable/access/OwnableUpgradeable.sol";
+import {SafeERC20Upgradeable} from "@openzeppelin-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {IERC20Upgradeable} from "@openzeppelin-upgradeable/interfaces/IERC20Upgradeable.sol";
+import {EIP712Upgradeable} from "@openzeppelin-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import {MathUpgradeable} from "@openzeppelin-upgradeable/utils/math/MathUpgradeable.sol";
+import {IncentivizedERC20} from "@aave-v3-core/protocol/tokenization/base/IncentivizedERC20.sol";
+import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
+import {IPool} from "@aave-v3-core/interfaces/IPool.sol";
+import {IAToken} from "@aave-v3-core/interfaces/IAToken.sol";
+import {DataTypes as AaveDataTypes} from "@aave-v3-core/protocol/libraries/types/DataTypes.sol";
+import {WadRayMath} from "@aave-v3-core/protocol/libraries/math/WadRayMath.sol";
+import {IRewardsController} from "@aave-v3-periphery/rewards/interfaces/IRewardsController.sol";
+import {IATokenVault} from "./interfaces/IATokenVault.sol";
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
-import {DataTypes} from "./libraries/DataTypes.sol";
-import {Events} from "./libraries/Events.sol";
 import "./libraries/Constants.sol";
+import {ATokenVaultStorage} from "./ATokenVaultStorage.sol";
 
 /**
  * @title ATokenVault
  * @author Aave Protocol
- *
- * @notice An ERC-4626 vault for ERC20 assets supported by Aave v3,
- * with a potential vault fee on yield earned.
+ * @notice An ERC-4626 vault for Aave V3, with support to add a fee on yield earned.
  */
-contract ATokenVault is ERC4626, Ownable {
-    using SafeTransferLib for ERC20;
-    using FixedPointMathLib for uint256;
+contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeable, ATokenVaultStorage, IATokenVault {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using MathUpgradeable for uint256;
 
-    uint256 internal constant SCALE = 1e18;
-    uint256 internal constant RAY = 1e27;
-    uint256 internal constant HALF_RAY = 0.5e27;
-
+    /// @inheritdoc IATokenVault
     IPoolAddressesProvider public immutable POOL_ADDRESSES_PROVIDER;
-    IRewardsController public immutable REWARDS_CONTROLLER;
+
+    /// @inheritdoc IATokenVault
     IPool public immutable AAVE_POOL;
-    IAToken public immutable A_TOKEN;
-    uint8 public immutable DECIMALS;
 
-    mapping(address => uint256) internal _sigNonces;
+    /// @inheritdoc IATokenVault
+    IAToken public immutable ATOKEN;
 
-    uint256 internal _lastUpdated; // timestamp of last accrueYield action
-    uint256 internal _lastVaultBalance; // total aToken incl. fees
-    uint256 internal _fee; // as a fraction of 1e18
-    uint256 internal _accumulatedFees; // fees accrued since last updated
+    /// @inheritdoc IATokenVault
+    IERC20Upgradeable public immutable UNDERLYING;
+
+    /// @inheritdoc IATokenVault
+    uint16 public immutable REFERRAL_CODE;
 
     /**
+     * @dev Constructor,
      * @param underlying The underlying ERC20 asset which can be supplied to Aave
-     * @param shareName The name of the share token for this vault
-     * @param shareSymbol The symbol of the share token for this vault
-     * @param initialFee The fee taken on yield earned, as a fraction of 1e18
+     * @param referralCode The Aave referral code to use for deposits from this vault
      * @param poolAddressesProvider The address of the Aave v3 Pool Addresses Provider
-     * @param rewardsController The address of the Aave v3 Rewards Controller
      */
     constructor(
-        ERC20 underlying,
-        string memory shareName,
-        string memory shareSymbol,
-        uint256 initialFee,
-        IPoolAddressesProvider poolAddressesProvider,
-        IRewardsController rewardsController
-    ) ERC4626(underlying, shareName, shareSymbol) {
-        require(initialFee <= SCALE, "FEE_TOO_HIGH");
-
+        address underlying,
+        uint16 referralCode,
+        IPoolAddressesProvider poolAddressesProvider
+    ) {
+        _disableInitializers();
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
-        REWARDS_CONTROLLER = rewardsController;
-
         AAVE_POOL = IPool(poolAddressesProvider.getPool());
+        REFERRAL_CODE = referralCode;
+        UNDERLYING = IERC20Upgradeable(underlying);
+
         address aTokenAddress = AAVE_POOL.getReserveData(address(underlying)).aTokenAddress;
         require(aTokenAddress != address(0), "ASSET_NOT_SUPPORTED");
-        A_TOKEN = IAToken(aTokenAddress);
-        DECIMALS = underlying.decimals();
+        ATOKEN = IAToken(aTokenAddress);
+    }
 
-        asset.approve(address(AAVE_POOL), type(uint256).max);
+    /**
+     * @notice Initializes the vault, setting the initial parameters and initializing inherited contracts.
+     * @dev It requires an initial non-zero deposit to prevent a frontrunning attack (in underlying atokens). Note
+     * that care should be taken to provide a non-trivial amount, but this depends on the underlying asset's decimals.
+     * @dev It does not initialize the OwnableUpgradeable contract to avoid setting the proxy admin as the owner.
+     * @param owner The owner to set
+     * @param initialFee The initial fee to set, expressed in wad, where 1e18 is 100%
+     * @param shareName The name to set for this vault
+     * @param shareSymbol The symbol to set for this vault
+     * @param initialLockDeposit The initial amount of underlying assets to deposit
+     */
+    function initialize(
+        address owner,
+        uint256 initialFee,
+        string memory shareName,
+        string memory shareSymbol,
+        uint256 initialLockDeposit
+    ) external initializer {
+        require(initialLockDeposit != 0, "ZERO_INITIAL_LOCK_DEPOSIT");
+        _transferOwnership(owner);
+        __ERC4626_init(UNDERLYING);
+        __ERC20_init(shareName, shareSymbol);
+        __EIP712_init(shareName, "1");
+        _setFee(initialFee);
 
-        _fee = initialFee;
+        UNDERLYING.safeApprove(address(AAVE_POOL), type(uint256).max);
 
-        _lastUpdated = block.timestamp;
-
-        emit Events.FeeUpdated(0, initialFee);
+        _handleDeposit(initialLockDeposit, address(this), msg.sender, false);
     }
 
     /*//////////////////////////////////////////////////////////////
                         DEPOSIT/WITHDRAWAL LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Deposits a specified amount of assets into the vault, minting a corresponding amount of shares.
-     *
-     * @param assets The amount of underlying asset to deposit
-     * @param receiver The address to receive the shares
-     *
-     * @return shares The amount of shares minted to the receiver
-     */
-    function deposit(uint256 assets, address receiver) public override returns (uint256 shares) {
-        shares = _handleDeposit(assets, receiver, msg.sender);
+    /// @inheritdoc IATokenVault
+    function deposit(uint256 assets, address receiver)
+        public
+        override(ERC4626Upgradeable, IATokenVault)
+        returns (uint256 shares)
+    {
+        shares = _handleDeposit(assets, receiver, msg.sender, false);
     }
 
-    /**
-     * @notice Deposits a specified amount of assets into the vault, minting a corresponding amount of shares,
-     * using an EIP721 signature to enable a third-party to call this function on behalf of the depositor.
-     *
-     * @param assets The amount of underlying asset to deposit
-     * @param receiver The address to receive the shares
-     * @param depositor The address from which to pull the assets for the deposit
-     * @param depositSig An EIP721 signature from the depositor to allow this function to be called on their behalf
-     *
-     * @return shares The amount of shares minted to the receiver
-     */
+    /// @inheritdoc IATokenVault
+    function depositATokens(uint256 assets, address receiver) public returns (uint256 shares) {
+        shares = _handleDeposit(assets, receiver, msg.sender, true);
+    }
+
+    /// @inheritdoc IATokenVault
     function depositWithSig(
         uint256 assets,
         address receiver,
         address depositor,
-        DataTypes.EIP712Signature calldata depositSig
+        EIP712Signature calldata sig
     ) public returns (uint256 shares) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
@@ -124,435 +130,431 @@ contract ATokenVault is ERC4626, Ownable {
                             receiver,
                             depositor,
                             _sigNonces[depositor]++,
-                            depositSig.deadline
+                            sig.deadline
                         )
                     ),
-                    DOMAIN_SEPARATOR()
+                    _domainSeparatorV4()
                 ),
                 depositor,
-                depositSig
+                sig
             );
         }
-        shares = _handleDeposit(assets, receiver, depositor);
+        shares = _handleDeposit(assets, receiver, depositor, false);
     }
 
-    /**
-     * @notice Deposits a specified amount of assets into the vault, minting a corresponding amount of shares,
-     * using an EIP721 signature to enable a third-party to call this function on behalf of the depositor.
-     *
-     * @param assets The amount of underlying asset to deposit
-     * @param receiver The address to receive the shares
-     * @param depositor The address from which to pull the assets for the deposit
-     * @param permitSig An EIP721 signature to increase depositor's allowance for vault
-     * @param depositSig An EIP721 signature from the depositor to allow this function to be called on their behalf
-     *
-     * @return shares The amount of shares minted to the receiver
-     */
-    function permitAndDepositWithSig(
+    /// @inheritdoc IATokenVault
+    function depositATokensWithSig(
         uint256 assets,
         address receiver,
         address depositor,
-        DataTypes.EIP712Signature calldata permitSig,
-        DataTypes.EIP712Signature calldata depositSig
+        EIP712Signature calldata sig
     ) public returns (uint256 shares) {
-        asset.permit(depositor, address(this), assets, permitSig.deadline, permitSig.v, permitSig.r, permitSig.s);
-
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
                     keccak256(
                         abi.encode(
-                            DEPOSIT_WITH_SIG_TYPEHASH,
+                            DEPOSIT_ATOKENS_WITH_SIG_TYPEHASH,
                             assets,
                             receiver,
                             depositor,
                             _sigNonces[depositor]++,
-                            depositSig.deadline
+                            sig.deadline
                         )
                     ),
-                    DOMAIN_SEPARATOR()
+                    _domainSeparatorV4()
                 ),
                 depositor,
-                depositSig
+                sig
             );
         }
-        shares = _handleDeposit(assets, receiver, depositor);
+        shares = _handleDeposit(assets, receiver, depositor, true);
     }
 
-    /**
-     * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of assets.
-     *
-     * @param shares The amount of shares to mint
-     * @param receiver The address to receive the shares
-     *
-     * @return assets The amount of assets deposited by the receiver
-     */
-    function mint(uint256 shares, address receiver) public override returns (uint256 assets) {
-        assets = _handleMint(shares, receiver, msg.sender);
+    /// @inheritdoc IATokenVault
+    function mint(uint256 shares, address receiver) public override(ERC4626Upgradeable, IATokenVault) returns (uint256 assets) {
+        assets = _handleMint(shares, receiver, msg.sender, false);
     }
 
-    /**
-     * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of assets,
-     * using an EIP721 signature to enable a third-party to call this function on behalf of the depositor.
-     *
-     * @param shares The amount of shares to mint
-     * @param receiver The address to receive the shares
-     * @param depositor The address from which to pull the assets for the deposit
-     * @param mintSig An EIP721 signature from the depositor to allow this function to be called on their behalf
-     *
-     * @return assets The amount of assets deposited by the receiver
-     */
+    /// @inheritdoc IATokenVault
+    function mintWithATokens(uint256 shares, address receiver) public returns (uint256 assets) {
+        assets = _handleMint(shares, receiver, msg.sender, true);
+    }
+
+    /// @inheritdoc IATokenVault
     function mintWithSig(
         uint256 shares,
         address receiver,
         address depositor,
-        DataTypes.EIP712Signature calldata mintSig
+        EIP712Signature calldata sig
+    ) public returns (uint256 assets) {
+        unchecked {
+            MetaTxHelpers._validateRecoveredAddress(
+                MetaTxHelpers._calculateDigest(
+                    keccak256(
+                        abi.encode(MINT_WITH_SIG_TYPEHASH, shares, receiver, depositor, _sigNonces[depositor]++, sig.deadline)
+                    ),
+                    _domainSeparatorV4()
+                ),
+                depositor,
+                sig
+            );
+        }
+        assets = _handleMint(shares, receiver, depositor, false);
+    }
+
+    /// @inheritdoc IATokenVault
+    function mintWithATokensWithSig(
+        uint256 shares,
+        address receiver,
+        address depositor,
+        EIP712Signature calldata sig
     ) public returns (uint256 assets) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
                     keccak256(
                         abi.encode(
-                            MINT_WITH_SIG_TYPEHASH,
+                            MINT_WITH_ATOKENS_WITH_SIG_TYPEHASH,
                             shares,
                             receiver,
                             depositor,
                             _sigNonces[depositor]++,
-                            mintSig.deadline
+                            sig.deadline
                         )
                     ),
-                    DOMAIN_SEPARATOR()
+                    _domainSeparatorV4()
                 ),
                 depositor,
-                mintSig
+                sig
             );
         }
-        assets = _handleMint(shares, receiver, depositor);
+        assets = _handleMint(shares, receiver, depositor, true);
     }
 
-    /**
-     * @notice Withdraws a specified amount of assets from the vault, burning the corresponding amount of shares.
-     *
-     * @param assets The amount of assets to withdraw
-     * @param receiver The address to receive the assets
-     * @param owner The address from which to pull the shares for the withdrawal
-     *
-     * @return shares The amount of shares burnt in the withdrawal process
-     */
-    function withdraw(uint256 assets, address receiver, address owner) public override returns (uint256 shares) {
-        shares = _handleWithdraw(assets, receiver, owner, msg.sender);
+    /// @inheritdoc IATokenVault
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public override(ERC4626Upgradeable, IATokenVault) returns (uint256 shares) {
+        shares = _handleWithdraw(assets, receiver, owner, msg.sender, false);
     }
 
-    /**
-     * @notice Withdraws a specified amount of assets from the vault, burning the corresponding amount of shares,
-     * using an EIP721 signature to enable a third-party to call this function on behalf of the owner.
-     *
-     * @param assets The amount of assets to withdraw
-     * @param receiver The address to receive the assets
-     * @param owner The address from which to pull the shares for the withdrawal
-     * @param sig An EIP721 signature from the owner to allow this function to be called on their behalf
-     *
-     * @return shares The amount of shares burnt in the withdrawal process
-     */
-    function withdrawWithSig(uint256 assets, address receiver, address owner, DataTypes.EIP712Signature calldata sig)
-        public
-        returns (uint256 shares)
-    {
+    /// @inheritdoc IATokenVault
+    function withdrawATokens(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public returns (uint256 shares) {
+        shares = _handleWithdraw(assets, receiver, owner, msg.sender, true);
+    }
+
+    /// @inheritdoc IATokenVault
+    function withdrawWithSig(
+        uint256 assets,
+        address receiver,
+        address owner,
+        EIP712Signature calldata sig
+    ) public returns (uint256 shares) {
+        unchecked {
+            MetaTxHelpers._validateRecoveredAddress(
+                MetaTxHelpers._calculateDigest(
+                    keccak256(
+                        abi.encode(WITHDRAW_WITH_SIG_TYPEHASH, assets, receiver, owner, _sigNonces[owner]++, sig.deadline)
+                    ),
+                    _domainSeparatorV4()
+                ),
+                owner,
+                sig
+            );
+        }
+        shares = _handleWithdraw(assets, receiver, owner, owner, false);
+    }
+
+    /// @inheritdoc IATokenVault
+    function withdrawATokensWithSig(
+        uint256 assets,
+        address receiver,
+        address owner,
+        EIP712Signature calldata sig
+    ) public returns (uint256 shares) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
                     keccak256(
                         abi.encode(
-                            WITHDRAW_WITH_SIG_TYPEHASH, assets, receiver, owner, _sigNonces[owner]++, sig.deadline
+                            WITHDRAW_ATOKENS_WITH_SIG_TYPEHASH,
+                            assets,
+                            receiver,
+                            owner,
+                            _sigNonces[owner]++,
+                            sig.deadline
                         )
                     ),
-                    DOMAIN_SEPARATOR()
+                    _domainSeparatorV4()
                 ),
                 owner,
                 sig
             );
         }
-        shares = _handleWithdraw(assets, receiver, owner, receiver);
+        shares = _handleWithdraw(assets, receiver, owner, owner, true);
     }
 
-    /**
-     * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of assets.
-     *
-     * @param shares The amount of shares to burn
-     * @param receiver The address to receive the assets
-     * @param owner The address from which to pull the shares for the withdrawal
-     *
-     * @return assets The amount of assets withdrawn by the receiver
-     */
-    function redeem(uint256 shares, address receiver, address owner) public override returns (uint256 assets) {
-        assets = _handleRedeem(shares, receiver, owner, msg.sender);
+    /// @inheritdoc IATokenVault
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) public override(ERC4626Upgradeable, IATokenVault) returns (uint256 assets) {
+        assets = _handleRedeem(shares, receiver, owner, msg.sender, false);
     }
 
-    /**
-     * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of assets,
-     * using an EIP721 signature to enable a third-party to call this function on behalf of the owner.
-     *
-     * @param shares The amount of shares to burn
-     * @param receiver The address to receive the assets
-     * @param owner The address from which to pull the shares for the withdrawal
-     * @param sig An EIP721 signature from the owner to allow this function to be called on their behalf
-     *
-     * @return assets The amount of assets withdrawn by the receiver
-     */
-    function redeemWithSig(uint256 shares, address receiver, address owner, DataTypes.EIP712Signature calldata sig)
-        public
-        returns (uint256 assets)
-    {
+    /// @inheritdoc IATokenVault
+    function redeemAsATokens(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) public returns (uint256 assets) {
+        assets = _handleRedeem(shares, receiver, owner, msg.sender, true);
+    }
+
+    /// @inheritdoc IATokenVault
+    function redeemWithSig(
+        uint256 shares,
+        address receiver,
+        address owner,
+        EIP712Signature calldata sig
+    ) public returns (uint256 assets) {
+        unchecked {
+            MetaTxHelpers._validateRecoveredAddress(
+                MetaTxHelpers._calculateDigest(
+                    keccak256(abi.encode(REDEEM_WITH_SIG_TYPEHASH, shares, receiver, owner, _sigNonces[owner]++, sig.deadline)),
+                    _domainSeparatorV4()
+                ),
+                owner,
+                sig
+            );
+        }
+        assets = _handleRedeem(shares, receiver, owner, owner, false);
+    }
+
+    /// @inheritdoc IATokenVault
+    function redeemWithATokensWithSig(
+        uint256 shares,
+        address receiver,
+        address owner,
+        EIP712Signature calldata sig
+    ) public returns (uint256 assets) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
                     keccak256(
-                        abi.encode(REDEEM_WITH_SIG_TYPEHASH, shares, receiver, owner, _sigNonces[owner]++, sig.deadline)
+                        abi.encode(
+                            REDEEM_WITH_ATOKENS_WITH_SIG_TYPEHASH,
+                            shares,
+                            receiver,
+                            owner,
+                            _sigNonces[owner]++,
+                            sig.deadline
+                        )
                     ),
-                    DOMAIN_SEPARATOR()
+                    _domainSeparatorV4()
                 ),
                 owner,
                 sig
             );
         }
-        assets = _handleRedeem(shares, receiver, owner, receiver);
+        assets = _handleRedeem(shares, receiver, owner, owner, true);
     }
 
-    /**
-     * @notice Maximum amount of assets that can be deposited into the vault,
-     * given Aave market limitations.
-     *
-     * @return Maximum amount of assets that can be deposited into the vault
-     */
-    function maxDeposit(address) public view override returns (uint256) {
+    /// @inheritdoc IATokenVault
+    function maxDeposit(address) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256) {
         return _maxAssetsSuppliableToAave();
     }
 
-    /**
-     * @notice Maximum amount of shares that can be minted for the vault,
-     * given Aave market limitations.
-     *
-     * @return Maximum amount of shares that can be minted for the vault
-     */
-    function maxMint(address) public view override returns (uint256) {
+    /// @inheritdoc IATokenVault
+    function maxMint(address) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256) {
         return convertToShares(_maxAssetsSuppliableToAave());
+    }
+
+    /// @inheritdoc IATokenVault
+    function domainSeparator() public view returns (bytes32) {
+        return _domainSeparatorV4();
     }
 
     /*//////////////////////////////////////////////////////////////
                           ONLY OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Sets the fee the vault levies on yield earned, only callable by the owner.
-     *
-     * @param newFee The new fee, as a fraction of 1e18.
-     */
+    /// @inheritdoc IATokenVault
     function setFee(uint256 newFee) public onlyOwner {
-        require(newFee <= SCALE, "FEE_TOO_HIGH");
-
-        uint256 oldFee = _fee;
-        _fee = newFee;
-
-        emit Events.FeeUpdated(oldFee, newFee);
+        _accrueYield();
+        _setFee(newFee);
     }
 
-    /**
-     * @notice Withdraws fees earned by the vault, in the form of aTokens, to a specified address. Only callable by the owner.
-     *
-     * @param to The address to receive the fees
-     * @param amount The amount of fees to withdraw
-     *
-     */
+    /// @inheritdoc IATokenVault
     function withdrawFees(address to, uint256 amount) public onlyOwner {
-        uint256 currentFees = getCurrentFees();
-        require(amount <= currentFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
+        uint256 claimableFees = getClaimableFees();
+        require(amount <= claimableFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
 
-        _accumulatedFees = currentFees - amount;
-        _lastVaultBalance = A_TOKEN.balanceOf(address(this)) - amount;
-        _lastUpdated = block.timestamp;
+        _s.accumulatedFees = uint128(claimableFees - amount);
+        _s.lastVaultBalance = uint128(ATOKEN.balanceOf(address(this)) - amount);
+        _s.lastUpdated = uint40(block.timestamp);
 
-        A_TOKEN.transfer(to, amount);
+        ATOKEN.transfer(to, amount);
 
-        emit Events.FeesWithdrawn(to, amount, _lastVaultBalance, _accumulatedFees);
+        emit FeesWithdrawn(to, amount, _s.lastVaultBalance, _s.accumulatedFees);
     }
 
-    /**
-     * @notice Claims any additional Aave rewards earned from vault deposits. Only callable by the owner.
-     *
-     * @param to The address to receive any rewards tokens.
-     *
-     */
-    function claimAllAaveRewards(address to) public onlyOwner {
+    /// @inheritdoc IATokenVault
+    function claimRewards(address to) public onlyOwner {
         require(to != address(0), "CANNOT_CLAIM_TO_ZERO_ADDRESS");
 
         address[] memory assets = new address[](1);
-        assets[0] = address(A_TOKEN);
+        assets[0] = address(ATOKEN);
+        (address[] memory rewardsList, uint256[] memory claimedAmounts) = IRewardsController(
+            address(IncentivizedERC20(address(ATOKEN)).getIncentivesController())
+        ).claimAllRewards(assets, to);
 
-        (address[] memory rewardsList, uint256[] memory claimedAmounts) = REWARDS_CONTROLLER.claimAllRewards(assets, to);
-
-        emit Events.AaveRewardsClaimed(to, rewardsList, claimedAmounts);
+        emit RewardsClaimed(to, rewardsList, claimedAmounts);
     }
 
-    /**
-     * @notice Allows the owner to rescue any tokens other than the vault's aToken which may have accidentally
-     * been transferred to this contract
-     *
-     * @param token The address of the token to rescue.
-     * @param to The address to receive rescued tokens.
-     * @param amount The amount of tokens to transfer.
-     *
-     */
-    function emergencyRescue(address token, address to, uint256 amount) public onlyOwner {
-        require(token != address(A_TOKEN), "CANNOT_RESCUE_ATOKEN");
+    /// @inheritdoc IATokenVault
+    function emergencyRescue(
+        address token,
+        address to,
+        uint256 amount
+    ) public onlyOwner {
+        require(token != address(ATOKEN), "CANNOT_RESCUE_ATOKEN");
 
-        ERC20(token).safeTransfer(to, amount);
+        IERC20Upgradeable(token).safeTransfer(to, amount);
 
-        emit Events.EmergencyRescue(token, to, amount);
+        emit EmergencyRescue(token, to, amount);
     }
 
     /*//////////////////////////////////////////////////////////////
                           VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function totalAssets() public view override returns (uint256) {
+    /// @inheritdoc IATokenVault
+    function totalAssets() public view override(ERC4626Upgradeable, IATokenVault) returns (uint256) {
         // Report only the total assets net of fees, for vault share logic
-        return A_TOKEN.balanceOf(address(this)) - getCurrentFees();
+        return ATOKEN.balanceOf(address(this)) - getClaimableFees();
     }
 
-    function getCurrentFees() public view returns (uint256) {
-        if (block.timestamp == _lastUpdated) {
+    /// @inheritdoc IATokenVault
+    function getClaimableFees() public view returns (uint256) {
+        if (block.timestamp == _s.lastUpdated) {
             // Accumulated fees already up to date
-            return _accumulatedFees;
+            return _s.accumulatedFees;
         } else {
             // Calculate new fees since last accrueYield
-            uint256 newVaultBalance = A_TOKEN.balanceOf(address(this));
-            uint256 newYield = newVaultBalance - _lastVaultBalance;
-            uint256 newFees = newYield.mulDivDown(_fee, SCALE);
+            uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
+            uint256 newYield = newVaultBalance - _s.lastVaultBalance;
+            uint256 newFees = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
 
-            return _accumulatedFees + newFees;
+            return _s.accumulatedFees + newFees;
         }
     }
 
+    /// @inheritdoc IATokenVault
     function getSigNonce(address signer) public view returns (uint256) {
         return _sigNonces[signer];
     }
 
+    /// @inheritdoc IATokenVault
     function getLastUpdated() public view returns (uint256) {
-        return _lastUpdated;
+        return _s.lastUpdated;
     }
 
+    /// @inheritdoc IATokenVault
     function getLastVaultBalance() public view returns (uint256) {
-        return _lastVaultBalance;
+        return _s.lastVaultBalance;
     }
 
+    /// @inheritdoc IATokenVault
     function getFee() public view returns (uint256) {
-        return _fee;
+        return _s.fee;
     }
 
     /*//////////////////////////////////////////////////////////////
                           INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    function _setFee(uint256 newFee) internal {
+        require(newFee <= SCALE, "FEE_TOO_HIGH");
+
+        uint256 oldFee = _s.fee;
+        _s.fee = uint64(newFee);
+
+        emit FeeUpdated(oldFee, newFee);
+    }
+
     function _accrueYield() internal {
-        // Fees are accrued and claimable in aToken form
-        if (block.timestamp != _lastUpdated) {
-            uint256 newVaultBalance = A_TOKEN.balanceOf(address(this));
-            uint256 newYield = newVaultBalance - _lastVaultBalance;
-            uint256 newFeesEarned = newYield.mulDivDown(_fee, SCALE);
+        if (block.timestamp != _s.lastUpdated) {
+            uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
+            uint256 newYield = newVaultBalance - _s.lastVaultBalance;
+            uint256 newFeesEarned = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
 
-            _accumulatedFees += newFeesEarned;
+            _s.accumulatedFees += uint128(newFeesEarned);
+            _s.lastVaultBalance = uint128(newVaultBalance);
+            _s.lastUpdated = uint40(block.timestamp);
 
-            _lastVaultBalance = newVaultBalance;
-            _lastUpdated = block.timestamp;
-
-            emit Events.YieldAccrued(newYield, newFeesEarned, newVaultBalance);
+            emit YieldAccrued(newYield, newFeesEarned, newVaultBalance);
         }
     }
 
-    function _handleDeposit(uint256 assets, address receiver, address depositor) internal returns (uint256 shares) {
+    function _handleDeposit(
+        uint256 assets,
+        address receiver,
+        address depositor,
+        bool asAToken
+    ) internal returns (uint256 shares) {
+        require(assets <= maxDeposit(receiver), "DEPOSIT_EXCEEDS_MAX");
         _accrueYield();
-
-        require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
-
-        // Need to transfer before minting or ERC777s could reenter.
-        asset.safeTransferFrom(depositor, address(this), assets);
-
-        // Deposit the received underlying into Aave v3
-        AAVE_POOL.supply(address(asset), assets, address(this), 0);
-
-        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
-
-        _mint(receiver, shares);
-
-        emit Deposit(msg.sender, receiver, assets, shares);
+        shares = previewDeposit(assets);
+        require(shares != 0, "ZERO_SHARES"); // Check for rounding error since we round down in previewDeposit.
+        _baseDeposit(assets, shares, depositor, receiver, asAToken);
     }
 
-    function _handleMint(uint256 shares, address receiver, address depositor) internal returns (uint256 assets) {
+    function _handleMint(
+        uint256 shares,
+        address receiver,
+        address depositor,
+        bool asAToken
+    ) internal returns (uint256 assets) {
+        require(shares <= maxMint(receiver), "MINT_EXCEEDS_MAX");
         _accrueYield();
-
-        assets = previewMint(shares);
-
-        // Need to transfer before minting or ERC777s could reenter.
-        asset.safeTransferFrom(depositor, address(this), assets);
-
-        // Deposit the received underlying into Aave v3
-        AAVE_POOL.supply(address(asset), assets, address(this), 0);
-
-        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
-
-        _mint(receiver, shares);
-
-        emit Deposit(msg.sender, receiver, assets, shares);
+        assets = previewMint(shares); // No need to check for rounding error, previewMint rounds up.
+        _baseDeposit(assets, shares, depositor, receiver, asAToken);
     }
 
-    function _handleWithdraw(uint256 assets, address receiver, address owner, address allowanceTarget)
-        internal
-        returns (uint256 shares)
-    {
+    function _handleWithdraw(
+        uint256 assets,
+        address receiver,
+        address owner,
+        address allowanceTarget,
+        bool asAToken
+    ) internal returns (uint256 shares) {
         _accrueYield();
-
+        require(assets <= maxWithdraw(owner), "WITHDRAW_EXCEEDS_MAX");
         shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
-
-        // Check caller has allowance if not with sig
-        // Check receiver has allowance if with sig
-        if (allowanceTarget != owner) {
-            uint256 allowed = allowance[owner][allowanceTarget]; // Saves gas for limited approvals.
-
-            if (allowed != type(uint256).max) allowance[owner][allowanceTarget] = allowed - shares;
-        }
-
-        _burn(owner, shares);
-
-        emit Withdraw(msg.sender, receiver, owner, assets, shares);
-
-        // Withdraw assets from Aave v3 and send to receiver
-        AAVE_POOL.withdraw(address(asset), assets, receiver);
-        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
+        _baseWithdraw(assets, shares, owner, receiver, allowanceTarget, asAToken);
     }
 
-    function _handleRedeem(uint256 shares, address receiver, address owner, address allowanceTarget)
-        internal
-        returns (uint256 assets)
-    {
+    function _handleRedeem(
+        uint256 shares,
+        address receiver,
+        address owner,
+        address allowanceTarget,
+        bool asAToken
+    ) internal returns (uint256 assets) {
         _accrueYield();
-
-        // Check caller has allowance if not with sig
-        // Check receiver has allowance if with sig
-        if (allowanceTarget != owner) {
-            uint256 allowed = allowance[owner][allowanceTarget];
-
-            if (allowed != type(uint256).max) allowance[owner][allowanceTarget] = allowed - shares;
-        }
-
-        require((assets = previewRedeem(shares)) != 0, "ZERO_ASSETS");
-
-        _burn(owner, shares);
-
-        emit Withdraw(msg.sender, receiver, owner, assets, shares);
-
-        // Withdraw assets from Aave v3 and send to receiver
-        AAVE_POOL.withdraw(address(asset), assets, receiver);
-        _lastVaultBalance = A_TOKEN.balanceOf(address(this));
+        require(shares <= maxRedeem(owner), "REDEEM_EXCEEDS_MAX");
+        assets = previewRedeem(shares);
+        require(assets != 0, "ZERO_ASSETS"); // Check for rounding error since we round down in previewRedeem.
+        _baseWithdraw(assets, shares, owner, receiver, allowanceTarget, asAToken);
     }
 
     function _maxAssetsSuppliableToAave() internal view returns (uint256) {
@@ -560,15 +562,15 @@ contract ATokenVault is ERC4626, Ownable {
         // returns max uint256 value if supply cap is 0 (not capped)
         // returns supply cap - current amount supplied as max suppliable if there is a supply cap for this reserve
 
-        AaveDataTypes.ReserveData memory reserveData = AAVE_POOL.getReserveData(address(asset));
+        AaveDataTypes.ReserveData memory reserveData = AAVE_POOL.getReserveData(address(UNDERLYING));
 
         uint256 reserveConfigMap = reserveData.configuration.data;
         uint256 supplyCap = (reserveConfigMap & ~AAVE_SUPPLY_CAP_MASK) >> AAVE_SUPPLY_CAP_BIT_POSITION;
-        supplyCap = supplyCap * 10 ** DECIMALS; // scale supply cap by asset's decimals
 
         if (
-            (reserveConfigMap & ~AAVE_ACTIVE_MASK == 0) || (reserveConfigMap & ~AAVE_FROZEN_MASK != 0)
-                || (reserveConfigMap & ~AAVE_PAUSED_MASK != 0)
+            (reserveConfigMap & ~AAVE_ACTIVE_MASK == 0) ||
+            (reserveConfigMap & ~AAVE_FROZEN_MASK != 0) ||
+            (reserveConfigMap & ~AAVE_PAUSED_MASK != 0)
         ) {
             return 0;
         } else if (supplyCap == 0) {
@@ -576,11 +578,59 @@ contract ATokenVault is ERC4626, Ownable {
         } else {
             // Reserve's supply cap - current amount supplied
             // See similar logic in Aave v3 ValidationLogic library, in the validateSupply function
-            // https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/ValidationLogic.sol#L71-L78
-            return supplyCap
-                - WadRayMath.rayMul(
-                    (A_TOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)), reserveData.liquidityIndex
+            // https://github.com/aave/aave-v3-core/blob/a00f28e3ad7c0e4a369d8e06e0ac9fd0acabcab7/contracts/protocol/libraries/logic/ValidationLogic.sol#L71-L78
+            return
+                (supplyCap * 10**decimals()) -
+                WadRayMath.rayMul(
+                    (ATOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)),
+                    reserveData.liquidityIndex
                 );
         }
+    }
+
+    function _baseDeposit(
+        uint256 assets,
+        uint256 shares,
+        address depositor,
+        address receiver,
+        bool asAToken
+    ) private {
+        // Need to transfer before minting or ERC777s could reenter.
+        if (asAToken) {
+            ATOKEN.transferFrom(depositor, address(this), assets);
+        } else {
+            UNDERLYING.safeTransferFrom(depositor, address(this), assets);
+            AAVE_POOL.supply(address(UNDERLYING), assets, address(this), REFERRAL_CODE);
+        }
+
+        _s.lastVaultBalance += uint128(assets);
+        _mint(receiver, shares);
+
+        emit Deposit(depositor, receiver, assets, shares);
+    }
+
+    function _baseWithdraw(
+        uint256 assets,
+        uint256 shares,
+        address owner,
+        address receiver,
+        address allowanceTarget,
+        bool asAToken
+    ) private {
+        if (allowanceTarget != owner) {
+            _spendAllowance(owner, allowanceTarget, shares);
+        }
+
+        _s.lastVaultBalance -= uint128(assets);
+        _burn(owner, shares);
+
+        // Withdraw assets from Aave v3 and send to receiver
+        if (asAToken) {
+            ATOKEN.transfer(receiver, assets);
+        } else {
+            AAVE_POOL.withdraw(address(UNDERLYING), assets, receiver);
+        }
+
+        emit Withdraw(allowanceTarget, receiver, owner, assets, shares);
     }
 }

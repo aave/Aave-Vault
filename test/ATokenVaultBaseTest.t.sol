@@ -2,19 +2,17 @@
 pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
+import {IERC20Upgradeable} from "@openzeppelin-upgradeable/interfaces/IERC20Upgradeable.sol";
+import {SafeERC20Upgradeable} from "@openzeppelin-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
+import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import {ATokenVault, FixedPointMathLib} from "../src/ATokenVault.sol";
-import {ERC20} from "solmate/tokens/ERC20.sol";
+import {ATokenVault, MathUpgradeable} from "../src/ATokenVault.sol";
 
-import {DataTypes} from "../src/libraries/DataTypes.sol";
-import {Events} from "../src/libraries/Events.sol";
-
-// Inheritting from IATokenVault to access events for tests
 contract ATokenVaultBaseTest is Test {
-    using FixedPointMathLib for uint256;
-
-    bytes32 constant PERMIT_TYPEHASH =
-        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using MathUpgradeable for uint256;
 
     // Fork tests using Polygon for Aave v3
     address constant POLYGON_DAI = 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063;
@@ -23,6 +21,13 @@ contract ATokenVaultBaseTest is Test {
     address constant POLYGON_POOL_ADDRESSES_PROVIDER = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
     address constant POLYGON_REWARDS_CONTROLLER = 0x929EC64c34a17401F460460D4B9390518E5B473e;
 
+    // Fork tests using Avalanche for Aave v3
+    address constant AVALANCHE_USDC = 0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E;
+    address constant AVALANCHE_AUSDC = 0x625E7708f30cA75bfd92586e17077590C60eb4cD;
+    address constant AVALANCHE_WAVAX = 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7;
+    address constant AVALANCHE_POOL_ADDRESSES_PROVIDER = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
+    address constant AVALANCHE_REWARDS_CONTROLLER = 0x929EC64c34a17401F460460D4B9390518E5B473e;
+
     uint256 constant SCALE = 1e18;
     uint256 constant ONE = 1e18;
     uint256 constant TEN = 10e18;
@@ -30,11 +35,13 @@ contract ATokenVaultBaseTest is Test {
     uint256 constant ONE_PERCENT = 0.01e18;
     uint256 constant ONE_BPS = 0.0001e18;
 
+    uint256 constant PROXY_ADMIN_PRIV_KEY = 4546;
     uint256 constant OWNER_PRIV_KEY = 11111;
     uint256 constant ALICE_PRIV_KEY = 12345;
     uint256 constant BOB_PRIV_KEY = 54321;
     uint256 constant CHAD_PRIV_KEY = 98765;
 
+    address PROXY_ADMIN = vm.addr(PROXY_ADMIN_PRIV_KEY);
     address OWNER = vm.addr(OWNER_PRIV_KEY);
     address ALICE = vm.addr(ALICE_PRIV_KEY);
     address BOB = vm.addr(BOB_PRIV_KEY);
@@ -44,9 +51,14 @@ contract ATokenVaultBaseTest is Test {
     string constant SHARE_SYMBOL = "waDAI";
 
     uint256 fee = 0.2e18; // 20%
+    uint16 referralCode = 4546;
 
     ATokenVault vault;
     address vaultAssetAddress; // aDAI, must be set in every setUp
+    uint256 initialLockDeposit; // Must be set in every setUp
+
+    // Initializer Errors
+    bytes constant ERR_INITIALIZED = bytes("Initializable: contract is already initialized");
 
     // Ownable Errors
     bytes constant ERR_NOT_OWNER = bytes("Ownable: caller is not the owner");
@@ -66,6 +78,22 @@ contract ATokenVaultBaseTest is Test {
     bytes constant ERR_ASSET_NOT_SUPPORTED = bytes("ASSET_NOT_SUPPORTED");
     bytes constant ERR_INSUFFICIENT_FEES = bytes("INSUFFICIENT_FEES");
     bytes constant ERR_CANNOT_CLAIM_TO_ZERO_ADDRESS = bytes("CANNOT_CLAIM_TO_ZERO_ADDRESS");
+    bytes constant SAFE_TRANSFER_ARITHMETIC = bytes("NH{q");
+    bytes constant ERR_DEPOSIT_EXCEEDS_MAX = bytes("DEPOSIT_EXCEEDS_MAX");
+    bytes constant ERR_MINT_EXCEEDS_MAX = bytes("MINT_EXCEEDS_MAX");
+    bytes constant ERR_WITHDRAW_EXCEEDS_MAX = bytes("WITHDRAW_EXCEEDS_MAX");
+    bytes constant ERR_REDEEM_EXCEEDS_MAX = bytes("REDEEM_EXCEEDS_MAX");
+
+    // ERC4626 Events
+    event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares);
+    event Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares);
+
+    // ATokenVault Events
+    event FeeUpdated(uint256 oldFee, uint256 newFee);
+    event FeesWithdrawn(address indexed to, uint256 amount, uint256 newVaultBalance, uint256 newTotalFeesAccrued);
+    event YieldAccrued(uint256 accruedYield, uint256 newFeesFromYield, uint256 newVaultBalance);
+    event RewardsClaimed(address indexed to, address[] rewardsList, uint256[] claimedAmounts);
+    event EmergencyRescue(address indexed token, address indexed to, uint256 amount);
 
     function setUp() public virtual {}
 
@@ -74,10 +102,49 @@ contract ATokenVaultBaseTest is Test {
         console.log("\n", label);
         console.log("ERC20 Assets\t\t\t", ERC20(vaultAssetAddress).balanceOf(address(vault)));
         console.log("totalAssets()\t\t\t", vault.totalAssets());
-        console.log("lastVaulBalance()\t\t", vault.getLastVaultBalance());
+        console.log("lastVaultBalance()\t\t", vault.getLastVaultBalance());
         console.log("User Withdrawable\t\t", vault.maxWithdraw(user));
-        console.log("current fees\t\t", vault.getCurrentFees());
+        console.log("claimable fees\t\t", vault.getClaimableFees());
         console.log("lastUpdated\t\t\t", vault.getLastUpdated());
         console.log("current time\t\t\t", block.timestamp);
+    }
+
+    function _deploy(address underlying, address addressesProvider) internal {
+        _baseDeploy(underlying, addressesProvider, 18);
+    }
+
+    function _deploy(
+        address underlying,
+        address addressesProvider,
+        uint256 decimals
+    ) internal {
+        _baseDeploy(underlying, addressesProvider, decimals);
+    }
+
+    function _baseDeploy(
+        address underlying,
+        address addressesProvider,
+        uint256 decimals
+    ) internal {
+        uint256 amount = 10**decimals;
+        initialLockDeposit = amount;
+        vault = new ATokenVault(underlying, referralCode, IPoolAddressesProvider(addressesProvider));
+
+        bytes memory data = abi.encodeWithSelector(
+            ATokenVault.initialize.selector,
+            OWNER,
+            fee,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            amount
+        );
+        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)));
+
+        deal(underlying, address(this), amount);
+        IERC20Upgradeable(underlying).safeApprove(address(proxyAddr), amount);
+
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
+
+        vault = ATokenVault(address(proxy));
     }
 }

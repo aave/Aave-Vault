@@ -2,11 +2,10 @@
 pragma solidity 0.8.10;
 
 import "forge-std/Script.sol";
-import "../src/ATokenVault.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
 
-import {ERC20} from "solmate/tokens/ERC20.sol";
-import {IPoolAddressesProvider} from "aave/interfaces/IPoolAddressesProvider.sol";
-import {IRewardsController} from "aave-periphery/rewards/interfaces/IRewardsController.sol";
+import "../src/ATokenVault.sol";
 
 contract Deploy is Script {
     // MUMBAI TESTNET ADDRESSES
@@ -23,10 +22,13 @@ contract Deploy is Script {
     // ===================================================
     address underlyingAsset = DAI_MUMBAI; // An ERC20 address, must have an Aave v3 market
     address aavePoolAddressProvider = POOL_ADDRESS_PROVIDER_MUMBAI;
-    address aaveRewardsController = REWARDS_CONTROLLER_MUMBAI;
-    string vaultShareName = "Wrapped aDAI";
-    string vaultShareSymbol = "waDAI";
+    address proxyAdmin = address(1);
+    address owner = address(2);
+    string shareName = "Wrapped aDAI";
+    string shareSymbol = "waDAI";
     uint256 fee = 0.1e18; // 10%
+    uint256 initialDeposit = 0;
+    uint16 referralCode = 4546;
     // ===================================================
 
     ATokenVault public vault;
@@ -39,19 +41,25 @@ contract Deploy is Script {
         console.log("Deployer balance: ", deployerAddress.balance);
         console.log("Deploying vault...");
 
+        require(
+            initialDeposit != 0,
+            "Initial deposit not set. This prevents a frontrunning attack, please set a non-trivial initial deposit."
+        );
+
         vm.startBroadcast(deployerPrivateKey);
 
-        vault = new ATokenVault(
-            ERC20(underlyingAsset),
-            vaultShareName,
-            vaultShareSymbol,
-            fee,
-            IPoolAddressesProvider(aavePoolAddressProvider),
-            IRewardsController(aaveRewardsController)
-        );
+        // Deploy the implementation, which disables initializers on construction
+        vault = new ATokenVault(underlyingAsset, referralCode, IPoolAddressesProvider(aavePoolAddressProvider));
+
+        // Encode the initializer call
+        bytes memory data = abi.encodeWithSelector(ATokenVault.initialize.selector, owner, fee, shareName, shareSymbol, 0);
+
+        // Deploy and initialize the proxy
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), proxyAdmin, data);
 
         vm.stopBroadcast();
 
-        console.log("Vault deployed at: ", address(vault));
+        console.log("Vault impl deployed at: ", address(vault));
+        console.log("Vault proxy deployed and initialized at: ", address(proxy));
     }
 }
