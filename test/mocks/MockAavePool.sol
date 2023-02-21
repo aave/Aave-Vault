@@ -65,12 +65,12 @@ contract MockAavePool {
 
     function supply(address _asset, uint256 _amount, address _onBehalfOf, uint16) public {
         ERC20(_asset).transferFrom(msg.sender, address(this), _amount);
-        aToken.mint(_onBehalfOf, _amount);
+        aToken.mint(address(this), _onBehalfOf, _amount, 0);
+        ERC20(_asset).transfer(address(aToken), _amount);
     }
 
     function withdraw(address _asset, uint256 _amount, address _receiver) public returns (uint256) {
-        aToken.burn(msg.sender, _amount);
-        ERC20(_asset).transfer(_receiver, _amount);
+        aToken.burn(msg.sender, _receiver, _amount, 0);
         return _amount;
     }
 
@@ -80,6 +80,7 @@ contract MockAavePool {
     function simulateYield(address _recipient, uint256 _yield) public {
         uint256 balanceBefore = aToken.balanceOf(_recipient);
         uint256 balanceAfter = (balanceBefore * _yield) / SCALE;
-        aToken.mint(_recipient, balanceAfter - balanceBefore);
+
+        aToken.mint(address(this), _recipient, balanceAfter - balanceBefore, 0);
     }
 }

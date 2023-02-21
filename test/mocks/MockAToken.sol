@@ -4,14 +4,22 @@ pragma solidity 0.8.10;
 import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
 
 contract MockAToken is ERC20 {
-    constructor() ERC20("Mock aToken", "MAT") {}
+    address internal _underlyingAsset;
 
-    function mint(address _recipient, uint256 _amount) public {
-        _mint(_recipient, _amount);
+    constructor(address underlyingAsset) ERC20("Mock aToken", "MAT") {
+        _underlyingAsset = underlyingAsset;
     }
 
-    function burn(address _recipient, uint256 _amount) public {
-        _burn(_recipient, _amount);
+    function mint(address caller, address onBehalfOf, uint256 amount, uint256 index) external returns (bool) {
+        _mint(onBehalfOf, amount);
+        return true;
+    }
+
+    function burn(address from, address receiverOfUnderlying, uint256 amount, uint256 index) external {
+        _burn(from, amount);
+        if (receiverOfUnderlying != address(this)) {
+            ERC20(_underlyingAsset).transfer(receiverOfUnderlying, amount);
+        }
     }
 
     function scaledTotalSupply() public view returns (uint256) {
