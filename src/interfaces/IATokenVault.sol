@@ -106,7 +106,7 @@ interface IATokenVault is IERC4626Upgradeable {
      * @param receiver The address to receive the shares
      * @return shares The amount of shares minted to the receiver
      */
-    function deposit(uint256 assets, address receiver) external returns (uint256 shares);
+    function deposit(uint256 assets, address receiver) external override returns (uint256 shares);
 
     /**
      * @notice Deposits a specified amount of aToken assets into the vault, minting a corresponding amount of shares.
