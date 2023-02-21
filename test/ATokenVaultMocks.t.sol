@@ -94,4 +94,168 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         uint256 maxMint = vault.maxMint(ALICE);
         assertEq(maxMint, 0);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                                MAX WITHDRAW
+    //////////////////////////////////////////////////////////////*/
+
+    function testMaxWithdrawAaveMoreThanEnoughLiquidity() public {
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
+
+        // ALICE deposit ONE
+        deal(address(dai), ALICE, ONE);
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), ONE);
+        vault.deposit(ONE, ALICE);
+        vm.stopPrank();
+
+        // Pool utilization is 2*ONE
+        vm.mockCall(address(dai), abi.encodeWithSelector(dai.balanceOf.selector, address(aDai)), abi.encode(2 * ONE));
+
+        uint256 maxWithdraw = vault.maxWithdraw(ALICE);
+        assertEq(maxWithdraw, ONE);
+    }
+
+    function testMaxWithdrawAaveEnoughLiquidity() public {
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
+
+        // ALICE deposit ONE
+        deal(address(dai), ALICE, ONE);
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), ONE);
+        vault.deposit(ONE, ALICE);
+        vm.stopPrank();
+
+        // Pool utilization is ONE
+        vm.mockCall(address(dai), abi.encodeWithSelector(dai.balanceOf.selector, address(aDai)), abi.encode(ONE));
+
+        uint256 maxWithdraw = vault.maxWithdraw(ALICE);
+        assertEq(maxWithdraw, ONE);
+    }
+
+    function testMaxWithdrawAaveNotEnoughLiquidity() public {
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
+
+        // ALICE deposit ONE
+        deal(address(dai), ALICE, ONE);
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), ONE);
+        vault.deposit(ONE, ALICE);
+        vm.stopPrank();
+
+        // Pool utilization is ONE - 1
+        vm.mockCall(address(dai), abi.encodeWithSelector(dai.balanceOf.selector, address(aDai)), abi.encode(ONE - 1));
+
+        uint256 maxWithdraw = vault.maxWithdraw(ALICE);
+        assertEq(maxWithdraw, ONE - 1);
+    }
+
+    function testMaxWithdrawAaveNoLiquidity() public {
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
+
+        // ALICE deposit ONE
+        deal(address(dai), ALICE, ONE);
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), ONE);
+        vault.deposit(ONE, ALICE);
+        vm.stopPrank();
+
+        // Pool utilization is 0
+        vm.mockCall(address(dai), abi.encodeWithSelector(dai.balanceOf.selector, address(aDai)), abi.encode(0));
+
+        uint256 maxWithdraw = vault.maxWithdraw(ALICE);
+        assertEq(maxWithdraw, 0);
+    }
+
+    function testMaxWithdrawAaveInactive() public {
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_INACTIVE);
+        uint256 maxWithdraw = vault.maxWithdraw(ALICE);
+        assertEq(maxWithdraw, 0);
+    }
+
+    function testMaxWithdrawAavePaused() public {
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_PAUSED);
+        uint256 maxWithdraw = vault.maxWithdraw(ALICE);
+        assertEq(maxWithdraw, 0);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                MAX REDEEM
+    //////////////////////////////////////////////////////////////*/
+
+    function testMaxRedeemAaveMoreThanEnoughLiquidity() public {
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
+
+        // ALICE deposit ONE
+        deal(address(dai), ALICE, ONE);
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), ONE);
+        vault.deposit(ONE, ALICE);
+        vm.stopPrank();
+
+        // Pool utilization is 2*ONE
+        vm.mockCall(address(dai), abi.encodeWithSelector(dai.balanceOf.selector, address(aDai)), abi.encode(2 * ONE));
+        uint256 maxRedeem = vault.maxRedeem(ALICE);
+        assertEq(maxRedeem, vault.convertToShares(ONE));
+    }
+
+    function testMaxRedeemAaveEnoughLiquidity() public {
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
+
+        // ALICE deposit ONE
+        deal(address(dai), ALICE, ONE);
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), ONE);
+        vault.deposit(ONE, ALICE);
+        vm.stopPrank();
+
+        // Pool utilization is ONE
+        vm.mockCall(address(dai), abi.encodeWithSelector(dai.balanceOf.selector, address(aDai)), abi.encode(ONE));
+        uint256 maxRedeem = vault.maxRedeem(ALICE);
+        assertEq(maxRedeem, vault.convertToShares(ONE));
+    }
+
+    function testMaxRedeemAaveNotEnoughLiquidity() public {
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
+
+        // ALICE deposit ONE
+        deal(address(dai), ALICE, ONE);
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), ONE);
+        vault.deposit(ONE, ALICE);
+        vm.stopPrank();
+
+        // Pool utilization is ONE - 1
+        vm.mockCall(address(dai), abi.encodeWithSelector(dai.balanceOf.selector, address(aDai)), abi.encode(ONE - 1));
+        uint256 maxRedeem = vault.maxRedeem(ALICE);
+        assertEq(maxRedeem, vault.convertToShares(ONE - 1));
+    }
+
+    function testMaxRedeemAaveNoLiquidity() public {
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
+
+        // ALICE deposit ONE
+        deal(address(dai), ALICE, ONE);
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), ONE);
+        vault.deposit(ONE, ALICE);
+        vm.stopPrank();
+
+        // Pool utilization is 0
+        vm.mockCall(address(dai), abi.encodeWithSelector(dai.balanceOf.selector, address(aDai)), abi.encode(0));
+        uint256 maxRedeem = vault.maxRedeem(ALICE);
+        assertEq(maxRedeem, 0);
+    }
+
+    function testMaxRedeemAaveInactive() public {
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_INACTIVE);
+        uint256 maxRedeem = vault.maxRedeem(ALICE);
+        assertEq(maxRedeem, 0);
+    }
+
+    function testMaxRedeemAavePaused() public {
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_PAUSED);
+        uint256 maxRedeem = vault.maxRedeem(ALICE);
+        assertEq(maxRedeem, 0);
+    }
 }
