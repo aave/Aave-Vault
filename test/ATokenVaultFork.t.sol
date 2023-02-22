@@ -207,7 +207,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
     function testDeployEmitsFeeEvent() public {
         // no indexed fields, just data check (4th param)
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, false, true);
         emit FeeUpdated(0, fee);
         _deploy(POLYGON_DAI, POLYGON_POOL_ADDRESSES_PROVIDER);
     }
@@ -240,7 +240,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertGt(feesAccrued, feesAmount);
 
         vm.startPrank(OWNER);
-        vm.expectEmit(true, false, false, true, address(vault));
+        vm.expectEmit(true, true, false, true, address(vault));
         emit FeesWithdrawn(OWNER, feesAccrued, vaultADaiBalanceBefore - feesAccrued, 0);
         vault.withdrawFees(OWNER, feesAccrued);
         vm.stopPrank();
@@ -266,7 +266,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertFalse(newFee == vault.getFee()); // new fee must be different
 
         vm.startPrank(OWNER);
-        vm.expectEmit(false, false, false, true, address(vault));
+        vm.expectEmit(true, true, false, true, address(vault));
         emit FeeUpdated(vault.getFee(), newFee);
         vault.setFee(newFee);
         vm.stopPrank();

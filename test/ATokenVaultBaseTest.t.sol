@@ -89,8 +89,8 @@ contract ATokenVaultBaseTest is Test {
     event Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares);
 
     // ATokenVault Events
-    event FeeUpdated(uint256 oldFee, uint256 newFee);
-    event FeesWithdrawn(address indexed to, uint256 amount, uint256 newVaultBalance, uint256 newTotalFeesAccrued);
+    event FeeUpdated(uint256 indexed oldFee, uint256 indexed newFee);
+    event FeesWithdrawn(address indexed to, uint256 indexed amount, uint256 newVaultBalance, uint256 newTotalFeesAccrued);
     event YieldAccrued(uint256 accruedYield, uint256 newFeesFromYield, uint256 newVaultBalance);
     event RewardsClaimed(address indexed to, address[] rewardsList, uint256[] claimedAmounts);
     event EmergencyRescue(address indexed token, address indexed to, uint256 amount);
