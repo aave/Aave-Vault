@@ -529,7 +529,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         _accrueYield();
         shares = previewDeposit(assets);
         require(shares != 0, "ZERO_SHARES"); // Check for rounding error since we round down in previewDeposit.
-        _baseDeposit(assets, shares, depositor, receiver, asAToken);
+        _baseDeposit(_convertToAssets(shares, MathUpgradeable.Rounding.Up), shares, depositor, receiver, asAToken);
     }
 
     function _handleMint(
