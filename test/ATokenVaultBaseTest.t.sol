@@ -113,20 +113,12 @@ contract ATokenVaultBaseTest is Test {
         _baseDeploy(underlying, addressesProvider, 18);
     }
 
-    function _deploy(
-        address underlying,
-        address addressesProvider,
-        uint256 decimals
-    ) internal {
+    function _deploy(address underlying, address addressesProvider, uint256 decimals) internal {
         _baseDeploy(underlying, addressesProvider, decimals);
     }
 
-    function _baseDeploy(
-        address underlying,
-        address addressesProvider,
-        uint256 decimals
-    ) internal {
-        uint256 amount = 10**decimals;
+    function _baseDeploy(address underlying, address addressesProvider, uint256 decimals) internal {
+        uint256 amount = 10 ** decimals;
         initialLockDeposit = amount;
         vault = new ATokenVault(underlying, referralCode, IPoolAddressesProvider(addressesProvider));
 

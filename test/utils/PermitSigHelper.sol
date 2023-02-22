@@ -25,10 +25,10 @@ contract PermitSigHelper is Test {
         uint256 deadline;
     }
 
-    function createVaultSig(bytes32 vaultDomainSeparator, VaultSigParams memory params)
-        external
-        returns (IATokenVault.EIP712Signature memory sig)
-    {
+    function createVaultSig(
+        bytes32 vaultDomainSeparator,
+        VaultSigParams memory params
+    ) external returns (IATokenVault.EIP712Signature memory sig) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             params.ownerPrivKey,
             keccak256(
