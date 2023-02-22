@@ -9,6 +9,8 @@ import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesPro
 import {IPool} from "@aave-v3-core/interfaces/IPool.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
+import {MockDAI} from "./mocks/MockDAI.sol";
+
 import "./utils/Constants.sol";
 import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 
@@ -422,7 +424,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
     function testDepositFailsWithExceedsMax() public {
         // mock call to Aave Pool
-        MockAavePool mp = new MockAavePool(new MockAToken());
+        MockAavePool mp = new MockAavePool(new MockAToken(address(dai)));
         mp.setReserveConfigMap(RESERVE_CONFIG_MAP_INACTIVE);
         vm.mockCall(
             address(vault.AAVE_POOL()),
@@ -505,7 +507,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
 
     function testMintFailsWithExceedsMax() public {
         // mock call to Aave Pool
-        MockAavePool mp = new MockAavePool(new MockAToken());
+        MockAavePool mp = new MockAavePool(new MockAToken(address(dai)));
         mp.setReserveConfigMap(RESERVE_CONFIG_MAP_INACTIVE);
         vm.mockCall(
             address(vault.AAVE_POOL()),
