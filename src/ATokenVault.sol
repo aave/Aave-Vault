@@ -44,7 +44,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     uint16 public immutable REFERRAL_CODE;
 
     /**
-     * @dev Constructor,
+     * @dev Constructor.
      * @param underlying The underlying ERC20 asset which can be supplied to Aave
      * @param referralCode The Aave referral code to use for deposits from this vault
      * @param poolAddressesProvider The address of the Aave v3 Pool Addresses Provider
@@ -67,7 +67,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
 
     /**
      * @notice Initializes the vault, setting the initial parameters and initializing inherited contracts.
-     * @dev It requires an initial non-zero deposit to prevent a frontrunning attack (in underlying atokens). Note
+     * @dev It requires an initial non-zero deposit to prevent a frontrunning attack (in underlying tokens). Note
      * that care should be taken to provide a non-trivial amount, but this depends on the underlying asset's decimals.
      * @dev It does not initialize the OwnableUpgradeable contract to avoid setting the proxy admin as the owner.
      * @param owner The owner to set
