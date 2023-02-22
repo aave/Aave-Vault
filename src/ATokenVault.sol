@@ -375,7 +375,21 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
 
     /// @inheritdoc IATokenVault
     function maxMint(address) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256) {
-        return convertToShares(_maxAssetsSuppliableToAave());
+        return _convertToShares(_maxAssetsSuppliableToAave(), MathUpgradeable.Rounding.Down);
+    }
+
+    /// @inheritdoc IATokenVault
+    function maxWithdraw(address owner) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256) {
+        uint256 maxWithdrawable = _maxAssetsWithdrawableFromAave();
+        return
+            maxWithdrawable == 0 ? 0 : maxWithdrawable.min(_convertToAssets(balanceOf(owner), MathUpgradeable.Rounding.Down));
+    }
+
+    /// @inheritdoc IATokenVault
+    function maxRedeem(address owner) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256) {
+        uint256 maxWithdrawable = _maxAssetsWithdrawableFromAave();
+        return
+            maxWithdrawable == 0 ? 0 : _convertToShares(maxWithdrawable, MathUpgradeable.Rounding.Down).min(balanceOf(owner));
     }
 
     /// @inheritdoc IATokenVault
@@ -585,6 +599,21 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
                     (ATOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)),
                     reserveData.liquidityIndex
                 );
+        }
+    }
+
+    function _maxAssetsWithdrawableFromAave() internal view returns (uint256) {
+        // returns 0 if reserve is not active, or paused
+        // otherwise, returns available liquidity
+
+        AaveDataTypes.ReserveData memory reserveData = AAVE_POOL.getReserveData(address(UNDERLYING));
+
+        uint256 reserveConfigMap = reserveData.configuration.data;
+
+        if ((reserveConfigMap & ~AAVE_ACTIVE_MASK == 0) || (reserveConfigMap & ~AAVE_PAUSED_MASK != 0)) {
+            return 0;
+        } else {
+            return UNDERLYING.balanceOf(address(ATOKEN));
         }
     }
 
