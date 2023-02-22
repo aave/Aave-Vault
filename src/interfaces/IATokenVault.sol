@@ -35,7 +35,7 @@ interface IATokenVault is IERC4626Upgradeable {
      * @param oldFee The old value of the fee
      * @param newFee The new value of the fee
      */
-    event FeeUpdated(uint256 oldFee, uint256 newFee);
+    event FeeUpdated(uint256 indexed oldFee, uint256 indexed newFee);
 
     /**
      * @dev Emitted when fees are withdrawn
@@ -44,7 +44,7 @@ interface IATokenVault is IERC4626Upgradeable {
      * @param newVaultBalance The new balance of the vault, in aTokens
      * @param newTotalFeesAccrued The total amount of fees accrued outstanding after the withdraw, in aTokens
      */
-    event FeesWithdrawn(address indexed to, uint256 amount, uint256 newVaultBalance, uint256 newTotalFeesAccrued);
+    event FeesWithdrawn(address indexed to, uint256 indexed amount, uint256 newVaultBalance, uint256 newTotalFeesAccrued);
 
     /**
      * @dev Emitted when Aave yield is accrued
