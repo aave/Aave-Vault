@@ -29,38 +29,39 @@ contract MockAavePool {
     }
 
     function getReserveData(address) public view returns (DataTypes.ReserveData memory) {
-        return DataTypes.ReserveData({
-            //stores the reserve configuration
-            configuration: DataTypes.ReserveConfigurationMap({data: reserveConfigMap}),
-            //the liquidity index. Expressed in ray
-            liquidityIndex: 0,
-            //the current supply rate. Expressed in ray
-            currentLiquidityRate: 0,
-            //variable borrow index. Expressed in ray
-            variableBorrowIndex: 0,
-            //the current variable borrow rate. Expressed in ray
-            currentVariableBorrowRate: 0,
-            //the current stable borrow rate. Expressed in ray
-            currentStableBorrowRate: 0,
-            //timestamp of last update
-            lastUpdateTimestamp: 0,
-            //the id of the reserve. Represents the position in the list of the active reserves
-            id: 0,
-            //aToken address
-            aTokenAddress: address(aToken),
-            //stableDebtToken address
-            stableDebtTokenAddress: address(0),
-            //variableDebtToken address
-            variableDebtTokenAddress: address(0),
-            //address of the interest rate strategy
-            interestRateStrategyAddress: address(0),
-            //the current treasury balance, scaled
-            accruedToTreasury: 0,
-            //the outstanding unbacked aTokens minted through the bridging feature
-            unbacked: 0,
-            //the outstanding debt borrowed against this asset in isolation mode
-            isolationModeTotalDebt: 0
-        });
+        return
+            DataTypes.ReserveData({
+                //stores the reserve configuration
+                configuration: DataTypes.ReserveConfigurationMap({data: reserveConfigMap}),
+                //the liquidity index. Expressed in ray
+                liquidityIndex: 0,
+                //the current supply rate. Expressed in ray
+                currentLiquidityRate: 0,
+                //variable borrow index. Expressed in ray
+                variableBorrowIndex: 0,
+                //the current variable borrow rate. Expressed in ray
+                currentVariableBorrowRate: 0,
+                //the current stable borrow rate. Expressed in ray
+                currentStableBorrowRate: 0,
+                //timestamp of last update
+                lastUpdateTimestamp: 0,
+                //the id of the reserve. Represents the position in the list of the active reserves
+                id: 0,
+                //aToken address
+                aTokenAddress: address(aToken),
+                //stableDebtToken address
+                stableDebtTokenAddress: address(0),
+                //variableDebtToken address
+                variableDebtTokenAddress: address(0),
+                //address of the interest rate strategy
+                interestRateStrategyAddress: address(0),
+                //the current treasury balance, scaled
+                accruedToTreasury: 0,
+                //the outstanding unbacked aTokens minted through the bridging feature
+                unbacked: 0,
+                //the outstanding debt borrowed against this asset in isolation mode
+                isolationModeTotalDebt: 0
+            });
     }
 
     function supply(address _asset, uint256 _amount, address _onBehalfOf, uint16) public {

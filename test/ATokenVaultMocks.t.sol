@@ -40,7 +40,7 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
     function testMaxDepositAaveCappedSupply() public {
         pool.setReserveConfigMap(RESERVE_CONFIG_MAP_CAPPED_ACTIVE);
         uint256 maxDeposit = vault.maxDeposit(ALICE);
-        assertEq(maxDeposit, SUPPLY_CAP_UNSCALED * 10**dai.decimals());
+        assertEq(maxDeposit, SUPPLY_CAP_UNSCALED * 10 ** dai.decimals());
     }
 
     function testMaxDepositAaveInactive() public {
@@ -74,7 +74,7 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
     function testMaxMintAaveCappedSupply() public {
         pool.setReserveConfigMap(RESERVE_CONFIG_MAP_CAPPED_ACTIVE);
         uint256 maxMint = vault.maxMint(ALICE);
-        assertEq(maxMint, SUPPLY_CAP_UNSCALED * 10**dai.decimals());
+        assertEq(maxMint, SUPPLY_CAP_UNSCALED * 10 ** dai.decimals());
     }
 
     function testMaxMintAaveInactive() public {

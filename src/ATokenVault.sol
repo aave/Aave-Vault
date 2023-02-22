@@ -49,11 +49,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
      * @param referralCode The Aave referral code to use for deposits from this vault
      * @param poolAddressesProvider The address of the Aave v3 Pool Addresses Provider
      */
-    constructor(
-        address underlying,
-        uint16 referralCode,
-        IPoolAddressesProvider poolAddressesProvider
-    ) {
+    constructor(address underlying, uint16 referralCode, IPoolAddressesProvider poolAddressesProvider) {
         _disableInitializers();
         POOL_ADDRESSES_PROVIDER = poolAddressesProvider;
         AAVE_POOL = IPool(poolAddressesProvider.getPool());
@@ -100,11 +96,10 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IATokenVault
-    function deposit(uint256 assets, address receiver)
-        public
-        override(ERC4626Upgradeable, IATokenVault)
-        returns (uint256 shares)
-    {
+    function deposit(
+        uint256 assets,
+        address receiver
+    ) public override(ERC4626Upgradeable, IATokenVault) returns (uint256 shares) {
         shares = _handleDeposit(assets, receiver, msg.sender, false);
     }
 
@@ -242,11 +237,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     /// @inheritdoc IATokenVault
-    function withdrawATokens(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) public override returns (uint256 shares) {
+    function withdrawATokens(uint256 assets, address receiver, address owner) public override returns (uint256 shares) {
         shares = _handleWithdraw(assets, receiver, owner, msg.sender, true);
     }
 
@@ -311,11 +302,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     /// @inheritdoc IATokenVault
-    function redeemAsATokens(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) public override returns (uint256 assets) {
+    function redeemAsATokens(uint256 shares, address receiver, address owner) public override returns (uint256 assets) {
         assets = _handleRedeem(shares, receiver, owner, msg.sender, true);
     }
 
@@ -435,11 +422,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     /// @inheritdoc IATokenVault
-    function emergencyRescue(
-        address token,
-        address to,
-        uint256 amount
-    ) public override onlyOwner {
+    function emergencyRescue(address token, address to, uint256 amount) public override onlyOwner {
         require(token != address(ATOKEN), "CANNOT_RESCUE_ATOKEN");
 
         IERC20Upgradeable(token).safeTransfer(to, amount);
@@ -532,12 +515,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         _baseDeposit(_convertToAssets(shares, MathUpgradeable.Rounding.Up), shares, depositor, receiver, asAToken);
     }
 
-    function _handleMint(
-        uint256 shares,
-        address receiver,
-        address depositor,
-        bool asAToken
-    ) internal returns (uint256 assets) {
+    function _handleMint(uint256 shares, address receiver, address depositor, bool asAToken) internal returns (uint256 assets) {
         require(shares <= maxMint(receiver), "MINT_EXCEEDS_MAX");
         _accrueYield();
         assets = previewMint(shares); // No need to check for rounding error, previewMint rounds up.
@@ -594,7 +572,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
             // See similar logic in Aave v3 ValidationLogic library, in the validateSupply function
             // https://github.com/aave/aave-v3-core/blob/a00f28e3ad7c0e4a369d8e06e0ac9fd0acabcab7/contracts/protocol/libraries/logic/ValidationLogic.sol#L71-L78
             return
-                (supplyCap * 10**decimals()) -
+                (supplyCap * 10 ** decimals()) -
                 WadRayMath.rayMul(
                     (ATOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)),
                     reserveData.liquidityIndex
@@ -617,13 +595,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         }
     }
 
-    function _baseDeposit(
-        uint256 assets,
-        uint256 shares,
-        address depositor,
-        address receiver,
-        bool asAToken
-    ) private {
+    function _baseDeposit(uint256 assets, uint256 shares, address depositor, address receiver, bool asAToken) private {
         // Need to transfer before minting or ERC777s could reenter.
         if (asAToken) {
             ATOKEN.transferFrom(depositor, address(this), assets);
