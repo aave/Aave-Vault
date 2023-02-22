@@ -102,6 +102,7 @@ interface IATokenVault is IERC4626Upgradeable {
 
     /**
      * @notice Deposits a specified amount of assets into the vault, minting a corresponding amount of shares.
+     * @dev The assets transferred in could be lesser than the passed amount due to rounding issues
      * @param assets The amount of underlying asset to deposit
      * @param receiver The address to receive the shares
      * @return shares The amount of shares minted to the receiver
@@ -110,6 +111,7 @@ interface IATokenVault is IERC4626Upgradeable {
 
     /**
      * @notice Deposits a specified amount of aToken assets into the vault, minting a corresponding amount of shares.
+     * @dev The assets transferred in could be lesser than the passed amount due to rounding issues
      * @param assets The amount of aToken assets to deposit
      * @param receiver The address to receive the shares
      * @return shares The amount of shares minted to the receiver
@@ -120,6 +122,7 @@ interface IATokenVault is IERC4626Upgradeable {
      * @notice Deposits a specified amount of assets into the vault, minting a corresponding amount of shares,
      * using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
      * @dev The signer of the message must approve the appropriate amount of underlying tokens beforehand
+     * @dev The assets transferred in could be lesser than the passed amount due to rounding issues
      * @param assets The amount of underlying asset to deposit
      * @param receiver The address to receive the shares
      * @param depositor The address from which to pull the assets for the deposit
@@ -137,6 +140,7 @@ interface IATokenVault is IERC4626Upgradeable {
      * @notice Deposits a specified amount of aToken assets into the vault, minting a corresponding amount of
      * shares, using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
      * @dev The signer of the message must approve the appropriate amount of underlying aTokens beforehand
+     * @dev The assets transferred in could be lesser than the passed amount due to rounding issues
      * @param assets The amount of aToken assets to deposit
      * @param receiver The address to receive the shares
      * @param depositor The address from which to pull the aToken assets for the deposit
