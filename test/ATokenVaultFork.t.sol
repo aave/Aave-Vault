@@ -404,7 +404,7 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vm.startPrank(ALICE);
         dai.approve(address(vault), amount);
 
-        vm.expectEmit(true, true, false, true, address(vault));
+        vm.expectEmit(false, false, false, true, address(vault));
         emit YieldAccrued(expectedNewYield, expectedFeesFromYield, vaultBalanceAfter);
         vault.deposit(amount, ALICE);
         vm.stopPrank();

@@ -52,7 +52,7 @@ interface IATokenVault is IERC4626Upgradeable {
      * @param newFeesFromYield The amount of fees earned from the accrued yield, in aTokens
      * @param newVaultBalance The new balance of the vault, in aTokens
      */
-    event YieldAccrued(uint256 indexed accruedYield, uint256 indexed newFeesFromYield, uint256 newVaultBalance);
+    event YieldAccrued(uint256 accruedYield, uint256 newFeesFromYield, uint256 newVaultBalance);
 
     /**
      * @dev Emitted when Aave rewards are claimed
