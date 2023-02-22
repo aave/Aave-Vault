@@ -208,11 +208,7 @@ interface IATokenVault is IERC4626Upgradeable {
      * @param owner The address from which to pull the shares for the withdrawal
      * @return shares The amount of shares burnt in the withdrawal process
      */
-    function withdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) external override returns (uint256 shares);
+    function withdraw(uint256 assets, address receiver, address owner) external override returns (uint256 shares);
 
     /**
      * @notice Withdraws a specified amount of aToken assets from the vault, burning the corresponding amount of
@@ -222,11 +218,7 @@ interface IATokenVault is IERC4626Upgradeable {
      * @param owner The address from which to pull the shares for the withdrawal
      * @return shares The amount of shares burnt in the withdrawal process
      */
-    function withdrawATokens(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) external returns (uint256 shares);
+    function withdrawATokens(uint256 assets, address receiver, address owner) external returns (uint256 shares);
 
     /**
      * @notice Withdraws a specified amount of assets from the vault, burning the corresponding amount of shares,
@@ -267,11 +259,7 @@ interface IATokenVault is IERC4626Upgradeable {
      * @param owner The address from which to pull the shares for the withdrawal
      * @return assets The amount of assets withdrawn by the receiver
      */
-    function redeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) external override returns (uint256 assets);
+    function redeem(uint256 shares, address receiver, address owner) external override returns (uint256 assets);
 
     /**
      * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of aToken
@@ -281,11 +269,7 @@ interface IATokenVault is IERC4626Upgradeable {
      * @param owner The address from which to pull the shares for the withdrawal
      * @return assets The amount of aToken assets withdrawn by the receiver
      */
-    function redeemAsATokens(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) external returns (uint256 assets);
+    function redeemAsATokens(uint256 shares, address receiver, address owner) external returns (uint256 assets);
 
     /**
      * @notice Burns a specified amount of shares from the vault, withdrawing the corresponding amount of assets,
@@ -383,11 +367,7 @@ interface IATokenVault is IERC4626Upgradeable {
      * @param to The address to receive rescued tokens
      * @param amount The amount of tokens to transfer
      */
-    function emergencyRescue(
-        address token,
-        address to,
-        uint256 amount
-    ) external;
+    function emergencyRescue(address token, address to, uint256 amount) external;
 
     /**
      * @notice Returns the total assets less claimable fees.
