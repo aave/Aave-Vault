@@ -109,7 +109,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     /// @inheritdoc IATokenVault
-    function depositATokens(uint256 assets, address receiver) public returns (uint256 shares) {
+    function depositATokens(uint256 assets, address receiver) public override returns (uint256 shares) {
         shares = _handleDeposit(assets, receiver, msg.sender, true);
     }
 
@@ -119,7 +119,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         address receiver,
         address depositor,
         EIP712Signature calldata sig
-    ) public returns (uint256 shares) {
+    ) public override returns (uint256 shares) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
@@ -148,7 +148,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         address receiver,
         address depositor,
         EIP712Signature calldata sig
-    ) public returns (uint256 shares) {
+    ) public override returns (uint256 shares) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
@@ -177,7 +177,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     /// @inheritdoc IATokenVault
-    function mintWithATokens(uint256 shares, address receiver) public returns (uint256 assets) {
+    function mintWithATokens(uint256 shares, address receiver) public override returns (uint256 assets) {
         assets = _handleMint(shares, receiver, msg.sender, true);
     }
 
@@ -187,7 +187,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         address receiver,
         address depositor,
         EIP712Signature calldata sig
-    ) public returns (uint256 assets) {
+    ) public override returns (uint256 assets) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
@@ -209,7 +209,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         address receiver,
         address depositor,
         EIP712Signature calldata sig
-    ) public returns (uint256 assets) {
+    ) public override returns (uint256 assets) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
@@ -246,7 +246,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         uint256 assets,
         address receiver,
         address owner
-    ) public returns (uint256 shares) {
+    ) public override returns (uint256 shares) {
         shares = _handleWithdraw(assets, receiver, owner, msg.sender, true);
     }
 
@@ -256,7 +256,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         address receiver,
         address owner,
         EIP712Signature calldata sig
-    ) public returns (uint256 shares) {
+    ) public override returns (uint256 shares) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
@@ -278,7 +278,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         address receiver,
         address owner,
         EIP712Signature calldata sig
-    ) public returns (uint256 shares) {
+    ) public override returns (uint256 shares) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
@@ -315,7 +315,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         uint256 shares,
         address receiver,
         address owner
-    ) public returns (uint256 assets) {
+    ) public override returns (uint256 assets) {
         assets = _handleRedeem(shares, receiver, owner, msg.sender, true);
     }
 
@@ -325,7 +325,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         address receiver,
         address owner,
         EIP712Signature calldata sig
-    ) public returns (uint256 assets) {
+    ) public override returns (uint256 assets) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
@@ -345,7 +345,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         address receiver,
         address owner,
         EIP712Signature calldata sig
-    ) public returns (uint256 assets) {
+    ) public override returns (uint256 assets) {
         unchecked {
             MetaTxHelpers._validateRecoveredAddress(
                 MetaTxHelpers._calculateDigest(
@@ -393,7 +393,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     /// @inheritdoc IATokenVault
-    function domainSeparator() public view returns (bytes32) {
+    function domainSeparator() public view override returns (bytes32) {
         return _domainSeparatorV4();
     }
 
@@ -402,13 +402,13 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IATokenVault
-    function setFee(uint256 newFee) public onlyOwner {
+    function setFee(uint256 newFee) public override onlyOwner {
         _accrueYield();
         _setFee(newFee);
     }
 
     /// @inheritdoc IATokenVault
-    function withdrawFees(address to, uint256 amount) public onlyOwner {
+    function withdrawFees(address to, uint256 amount) public override onlyOwner {
         uint256 claimableFees = getClaimableFees();
         require(amount <= claimableFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
 
@@ -422,7 +422,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     /// @inheritdoc IATokenVault
-    function claimRewards(address to) public onlyOwner {
+    function claimRewards(address to) public override onlyOwner {
         require(to != address(0), "CANNOT_CLAIM_TO_ZERO_ADDRESS");
 
         address[] memory assets = new address[](1);
@@ -439,7 +439,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         address token,
         address to,
         uint256 amount
-    ) public onlyOwner {
+    ) public override onlyOwner {
         require(token != address(ATOKEN), "CANNOT_RESCUE_ATOKEN");
 
         IERC20Upgradeable(token).safeTransfer(to, amount);
@@ -458,7 +458,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     /// @inheritdoc IATokenVault
-    function getClaimableFees() public view returns (uint256) {
+    function getClaimableFees() public view override returns (uint256) {
         if (block.timestamp == _s.lastUpdated) {
             // Accumulated fees already up to date
             return _s.accumulatedFees;
@@ -473,22 +473,22 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     /// @inheritdoc IATokenVault
-    function getSigNonce(address signer) public view returns (uint256) {
+    function getSigNonce(address signer) public view override returns (uint256) {
         return _sigNonces[signer];
     }
 
     /// @inheritdoc IATokenVault
-    function getLastUpdated() public view returns (uint256) {
+    function getLastUpdated() public view override returns (uint256) {
         return _s.lastUpdated;
     }
 
     /// @inheritdoc IATokenVault
-    function getLastVaultBalance() public view returns (uint256) {
+    function getLastVaultBalance() public view override returns (uint256) {
         return _s.lastVaultBalance;
     }
 
     /// @inheritdoc IATokenVault
-    function getFee() public view returns (uint256) {
+    function getFee() public view override returns (uint256) {
         return _s.fee;
     }
 
