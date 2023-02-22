@@ -35,7 +35,7 @@ interface IATokenVault is IERC4626Upgradeable {
      * @param oldFee The old value of the fee
      * @param newFee The new value of the fee
      */
-    event FeeUpdated(uint256 oldFee, uint256 newFee);
+    event FeeUpdated(uint256 indexed oldFee, uint256 indexed newFee);
 
     /**
      * @dev Emitted when fees are withdrawn
@@ -44,7 +44,7 @@ interface IATokenVault is IERC4626Upgradeable {
      * @param newVaultBalance The new balance of the vault, in aTokens
      * @param newTotalFeesAccrued The total amount of fees accrued outstanding after the withdraw, in aTokens
      */
-    event FeesWithdrawn(address indexed to, uint256 amount, uint256 newVaultBalance, uint256 newTotalFeesAccrued);
+    event FeesWithdrawn(address indexed to, uint256 indexed amount, uint256 newVaultBalance, uint256 newTotalFeesAccrued);
 
     /**
      * @dev Emitted when Aave yield is accrued
@@ -119,6 +119,7 @@ interface IATokenVault is IERC4626Upgradeable {
     /**
      * @notice Deposits a specified amount of assets into the vault, minting a corresponding amount of shares,
      * using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
+     * @dev The signer of the message must approve the appropriate amount of underlying tokens beforehand
      * @param assets The amount of underlying asset to deposit
      * @param receiver The address to receive the shares
      * @param depositor The address from which to pull the assets for the deposit
@@ -135,6 +136,7 @@ interface IATokenVault is IERC4626Upgradeable {
     /**
      * @notice Deposits a specified amount of aToken assets into the vault, minting a corresponding amount of
      * shares, using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
+     * @dev The signer of the message must approve the appropriate amount of underlying aTokens beforehand
      * @param assets The amount of aToken assets to deposit
      * @param receiver The address to receive the shares
      * @param depositor The address from which to pull the aToken assets for the deposit
@@ -168,6 +170,7 @@ interface IATokenVault is IERC4626Upgradeable {
     /**
      * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of assets,
      * using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
+     * @dev The signer of the message must approve the appropriate amount of underlying tokens beforehand
      * @param shares The amount of shares to mint
      * @param receiver The address to receive the shares
      * @param depositor The address from which to pull the assets for the deposit
@@ -184,6 +187,7 @@ interface IATokenVault is IERC4626Upgradeable {
     /**
      * @notice Mints a specified amount of shares to the receiver, depositing the corresponding amount of aToken
      * assets, using an EIP712 signature to enable a third-party to call this function on behalf of the depositor.
+     * @dev The signer of the message must approve the appropriate amount of underlying aTokens beforehand
      * @param shares The amount of shares to mint
      * @param receiver The address to receive the shares
      * @param depositor The address from which to pull the aToken assets for the deposit
@@ -328,6 +332,20 @@ interface IATokenVault is IERC4626Upgradeable {
      * @return The maximum amount of shares that can be minted for the vault
      */
     function maxMint(address) external view override returns (uint256);
+
+    /**
+     * @notice Returns the maximum amount of assets that can be withdrawn from the owner balance in the vault.
+     * @dev It takes Aave Pool limitations into consideration
+     * @return The maximum amount of assets that can be withdrawn
+     */
+    function maxWithdraw(address owner) external view override returns (uint256);
+
+    /**
+     * @notice Returns the maximum amount of shares that can be redeemed from the owner balance in the vault.
+     * @dev It takes Aave Pool limitations into consideration
+     * @return The maximum amount of shares that can be redeemed
+     */
+    function maxRedeem(address owner) external view override returns (uint256);
 
     /**
      * @notice Returns the domain separator for the current chain.

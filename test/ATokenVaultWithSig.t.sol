@@ -23,12 +23,12 @@ contract ATokenVaultWithSigTest is ATokenVaultBaseTest {
     PermitSigHelper permitSigHelper;
 
     function setUp() public override {
-        aDai = new MockAToken();
-        pool = new MockAavePool(aDai);
-        poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));
-
         // NOTE: Real DAI has non-standard permit. These tests assume tokens with standard permit
         dai = new MockDAI();
+
+        aDai = new MockAToken(address(dai));
+        pool = new MockAavePool(aDai);
+        poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));
 
         vaultAssetAddress = address(aDai);
 
