@@ -380,6 +380,28 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     /// @inheritdoc IATokenVault
+    function previewDeposit(uint256 assets) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256 shares) {
+        shares = _convertToShares(_maxAssetsSuppliableToAave().min(assets), MathUpgradeable.Rounding.Down);
+    }
+
+    /// @inheritdoc IATokenVault
+    function previewMint(uint256 shares) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256 assets) {
+        assets = _convertToAssets(shares, MathUpgradeable.Rounding.Up).min(_maxAssetsSuppliableToAave());
+    }
+
+    /// @inheritdoc IATokenVault
+    function previewWithdraw(uint256 assets) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256 shares) {
+        uint256 maxWithdrawable = _maxAssetsWithdrawableFromAave();
+        shares = maxWithdrawable == 0 ? 0 : _convertToShares(maxWithdrawable.min(assets), MathUpgradeable.Rounding.Up);
+    }
+
+    /// @inheritdoc IATokenVault
+    function previewRedeem(uint256 shares) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256 assets) {
+        uint256 maxWithdrawable = _maxAssetsWithdrawableFromAave();
+        assets = maxWithdrawable == 0 ? 0 : _convertToAssets(shares, MathUpgradeable.Rounding.Down).min(maxWithdrawable);
+    }
+
+    /// @inheritdoc IATokenVault
     function domainSeparator() public view override returns (bytes32) {
         return _domainSeparatorV4();
     }
@@ -510,7 +532,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     ) internal returns (uint256 shares) {
         require(assets <= maxDeposit(receiver), "DEPOSIT_EXCEEDS_MAX");
         _accrueYield();
-        shares = previewDeposit(assets);
+        shares = super.previewDeposit(assets);
         require(shares != 0, "ZERO_SHARES"); // Check for rounding error since we round down in previewDeposit.
         _baseDeposit(_convertToAssets(shares, MathUpgradeable.Rounding.Up), shares, depositor, receiver, asAToken);
     }
@@ -518,7 +540,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     function _handleMint(uint256 shares, address receiver, address depositor, bool asAToken) internal returns (uint256 assets) {
         require(shares <= maxMint(receiver), "MINT_EXCEEDS_MAX");
         _accrueYield();
-        assets = previewMint(shares); // No need to check for rounding error, previewMint rounds up.
+        assets = super.previewMint(shares); // No need to check for rounding error, previewMint rounds up.
         _baseDeposit(assets, shares, depositor, receiver, asAToken);
     }
 
@@ -531,7 +553,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     ) internal returns (uint256 shares) {
         _accrueYield();
         require(assets <= maxWithdraw(owner), "WITHDRAW_EXCEEDS_MAX");
-        shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
+        shares = super.previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
         _baseWithdraw(assets, shares, owner, receiver, allowanceTarget, asAToken);
     }
 
@@ -544,7 +566,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     ) internal returns (uint256 assets) {
         _accrueYield();
         require(shares <= maxRedeem(owner), "REDEEM_EXCEEDS_MAX");
-        assets = previewRedeem(shares);
+        assets = super.previewRedeem(shares);
         require(assets != 0, "ZERO_ASSETS"); // Check for rounding error since we round down in previewRedeem.
         _baseWithdraw(assets, shares, owner, receiver, allowanceTarget, asAToken);
     }
