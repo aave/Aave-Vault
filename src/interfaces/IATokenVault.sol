@@ -336,6 +336,38 @@ interface IATokenVault is IERC4626Upgradeable {
     function maxRedeem(address owner) external view override returns (uint256 maxShares);
 
     /**
+     * @notice Allows a user to simulate a deposit at the current block, given current on-chain conditions.
+     * @dev It takes Aave Pool limitations into consideration
+     * @param assets The amount of assets the deposit simulation uses
+     * @return shares The amount of shares that would be minted to the receiver
+     */
+    function previewDeposit(uint256 assets) external view override returns (uint256 shares);
+
+    /**
+     * @notice Allows a user to simulate a mint at the current block, given current on-chain conditions.
+     * @dev It takes Aave Pool limitations into consideration
+     * @param shares The amount of shares the mint simulation uses
+     * @return assets The amount of assets that would be deposited by the caller
+     */
+    function previewMint(uint256 shares) external view override returns (uint256 assets);
+
+    /**
+     * @notice Allows a user to simulate a withdraw at the current block, given current on-chain conditions.
+     * @dev It takes Aave Pool limitations into consideration
+     * @param assets The amount of assets the withdraw simulation uses
+     * @return shares The amount of shares that would be burnt in the withdrawal process
+     */
+    function previewWithdraw(uint256 assets) external view override returns (uint256 shares);
+
+    /**
+     * @notice Allows a user to simulate a redeem at the current block, given current on-chain conditions.
+     * @dev It takes Aave Pool limitations into consideration
+     * @param shares The amount of shares the redeem simulation uses
+     * @return assets The amount of assets that would be withdrawn by the receiver
+     */
+    function previewRedeem(uint256 shares) external view override returns (uint256 assets);
+
+    /**
      * @notice Returns the domain separator for the current chain.
      * @return The domain separator
      */

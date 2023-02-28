@@ -382,6 +382,28 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     /// @inheritdoc IATokenVault
+    function previewDeposit(uint256 assets) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256 shares) {
+        shares = _convertToShares(_maxAssetsSuppliableToAave().min(assets), MathUpgradeable.Rounding.Down);
+    }
+
+    /// @inheritdoc IATokenVault
+    function previewMint(uint256 shares) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256 assets) {
+        assets = _convertToAssets(shares, MathUpgradeable.Rounding.Up).min(_maxAssetsSuppliableToAave());
+    }
+
+    /// @inheritdoc IATokenVault
+    function previewWithdraw(uint256 assets) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256 shares) {
+        uint256 maxWithdrawable = _maxAssetsWithdrawableFromAave();
+        shares = maxWithdrawable == 0 ? 0 : _convertToShares(maxWithdrawable.min(assets), MathUpgradeable.Rounding.Up);
+    }
+
+    /// @inheritdoc IATokenVault
+    function previewRedeem(uint256 shares) public view override(ERC4626Upgradeable, IATokenVault) returns (uint256 assets) {
+        uint256 maxWithdrawable = _maxAssetsWithdrawableFromAave();
+        assets = maxWithdrawable == 0 ? 0 : _convertToAssets(shares, MathUpgradeable.Rounding.Down).min(maxWithdrawable);
+    }
+
+    /// @inheritdoc IATokenVault
     function domainSeparator() public view override returns (bytes32) {
         return _domainSeparatorV4();
     }
@@ -507,7 +529,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     function _handleDeposit(uint256 assets, address receiver, address depositor, bool asAToken) internal returns (uint256) {
         require(assets <= maxDeposit(receiver), "DEPOSIT_EXCEEDS_MAX");
         _accrueYield();
-        uint256 shares = previewDeposit(assets);
+        uint256 shares = super.previewDeposit(assets);
         require(shares != 0, "ZERO_SHARES"); // Check for rounding error since we round down in previewDeposit.
         _baseDeposit(_convertToAssets(shares, MathUpgradeable.Rounding.Up), shares, depositor, receiver, asAToken);
         return shares;
