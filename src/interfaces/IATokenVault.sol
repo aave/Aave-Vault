@@ -368,6 +368,20 @@ interface IATokenVault is IERC4626Upgradeable {
     function previewRedeem(uint256 shares) external view override returns (uint256 assets);
 
     /**
+     * @notice Returns the maximum amount of assets that can be withdrawn from the owner balance in the vault.
+     * @dev It takes Aave Pool limitations into consideration
+     * @return The maximum amount of assets that can be withdrawn
+     */
+    function maxWithdraw(address owner) external view override returns (uint256);
+
+    /**
+     * @notice Returns the maximum amount of shares that can be redeemed from the owner balance in the vault.
+     * @dev It takes Aave Pool limitations into consideration
+     * @return The maximum amount of shares that can be redeemed
+     */
+    function maxRedeem(address owner) external view override returns (uint256);
+
+    /**
      * @notice Returns the domain separator for the current chain.
      * @return The domain separator
      */
