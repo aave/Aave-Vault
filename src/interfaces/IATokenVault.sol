@@ -310,30 +310,62 @@ interface IATokenVault is IERC4626Upgradeable {
     /**
      * @notice Returns the maximum amount of assets that can be deposited into the vault.
      * @dev It takes Aave Pool limitations into consideration
-     * @return The maximum amount of assets that can be deposited into the vault
+     * @return maxAssets The maximum amount of assets that can be deposited into the vault
      */
-    function maxDeposit(address) external view override returns (uint256);
+    function maxDeposit(address) external view override returns (uint256 maxAssets);
 
     /**
      * @notice Returns the maximum amount of shares that can be minted for the vault.
      * @dev It takes Aave Pool limitations into consideration
-     * @return The maximum amount of shares that can be minted for the vault
+     * @return maxShares The maximum amount of shares that can be minted for the vault
      */
-    function maxMint(address) external view override returns (uint256);
+    function maxMint(address) external view override returns (uint256 maxShares);
 
     /**
      * @notice Returns the maximum amount of assets that can be withdrawn from the owner balance in the vault.
      * @dev It takes Aave Pool limitations into consideration
-     * @return The maximum amount of assets that can be withdrawn
+     * @return maxAssets The maximum amount of assets that can be withdrawn
      */
-    function maxWithdraw(address owner) external view override returns (uint256);
+    function maxWithdraw(address owner) external view override returns (uint256 maxAssets);
 
     /**
      * @notice Returns the maximum amount of shares that can be redeemed from the owner balance in the vault.
      * @dev It takes Aave Pool limitations into consideration
-     * @return The maximum amount of shares that can be redeemed
+     * @return maxShares The maximum amount of shares that can be redeemed
      */
-    function maxRedeem(address owner) external view override returns (uint256);
+    function maxRedeem(address owner) external view override returns (uint256 maxShares);
+
+    /**
+     * @notice Allows a user to simulate a deposit at the current block, given current on-chain conditions.
+     * @dev It takes Aave Pool limitations into consideration
+     * @param assets The amount of assets the deposit simulation uses
+     * @return shares The amount of shares that would be minted to the receiver
+     */
+    function previewDeposit(uint256 assets) external view override returns (uint256 shares);
+
+    /**
+     * @notice Allows a user to simulate a mint at the current block, given current on-chain conditions.
+     * @dev It takes Aave Pool limitations into consideration
+     * @param shares The amount of shares the mint simulation uses
+     * @return assets The amount of assets that would be deposited by the caller
+     */
+    function previewMint(uint256 shares) external view override returns (uint256 assets);
+
+    /**
+     * @notice Allows a user to simulate a withdraw at the current block, given current on-chain conditions.
+     * @dev It takes Aave Pool limitations into consideration
+     * @param assets The amount of assets the withdraw simulation uses
+     * @return shares The amount of shares that would be burnt in the withdrawal process
+     */
+    function previewWithdraw(uint256 assets) external view override returns (uint256 shares);
+
+    /**
+     * @notice Allows a user to simulate a redeem at the current block, given current on-chain conditions.
+     * @dev It takes Aave Pool limitations into consideration
+     * @param shares The amount of shares the redeem simulation uses
+     * @return assets The amount of assets that would be withdrawn by the receiver
+     */
+    function previewRedeem(uint256 shares) external view override returns (uint256 assets);
 
     /**
      * @notice Returns the domain separator for the current chain.
@@ -375,9 +407,9 @@ interface IATokenVault is IERC4626Upgradeable {
 
     /**
      * @notice Returns the total assets less claimable fees.
-     * @return The total assets less claimable fees
+     * @return totalManagedAssets The total assets less claimable fees
      */
-    function totalAssets() external view override returns (uint256);
+    function totalAssets() external view override returns (uint256 totalManagedAssets);
 
     /**
      * @notice Returns the claimable fees.
