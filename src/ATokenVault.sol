@@ -510,7 +510,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     function _accrueYield() internal {
         if (block.timestamp != _s.lastUpdated) {
             uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
-            uint256 newYield = newVaultBalance - _s.lastVaultBalance;
+            uint256 newYield = newVaultBalance > _s.lastVaultBalance ? newVaultBalance - _s.lastVaultBalance : 0;
             uint256 newFeesEarned = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
 
             _s.accumulatedFees += uint128(newFeesEarned);
@@ -617,12 +617,14 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         // Need to transfer before minting or ERC777s could reenter.
         if (asAToken) {
             ATOKEN.transferFrom(depositor, address(this), assets);
+            _s.lastVaultBalance += uint128(assets);
         } else {
             UNDERLYING.safeTransferFrom(depositor, address(this), assets);
+            uint256 aTokenBalanceBefore = ATOKEN.balanceOf(address(this));
             AAVE_POOL.supply(address(UNDERLYING), assets, address(this), REFERRAL_CODE);
+            _s.lastVaultBalance += uint128(ATOKEN.balanceOf(address(this)) - aTokenBalanceBefore);
         }
 
-        _s.lastVaultBalance += uint128(assets);
         _mint(receiver, shares);
 
         emit Deposit(depositor, receiver, assets, shares);
@@ -640,15 +642,16 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
             _spendAllowance(owner, allowanceTarget, shares);
         }
 
-        _s.lastVaultBalance -= uint128(assets);
-        _burn(owner, shares);
-
         // Withdraw assets from Aave v3 and send to receiver
         if (asAToken) {
             ATOKEN.transfer(receiver, assets);
+            _s.lastVaultBalance -= uint128(assets);
         } else {
-            AAVE_POOL.withdraw(address(UNDERLYING), assets, receiver);
+            uint256 amountWithdrawn = AAVE_POOL.withdraw(address(UNDERLYING), assets, receiver);
+            _s.lastVaultBalance -= uint128(amountWithdrawn);
         }
+
+        _burn(owner, shares);
 
         emit Withdraw(allowanceTarget, receiver, owner, assets, shares);
     }
