@@ -1,42 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import "forge-std/Test.sol";
+import "./utils/Constants.sol";
 import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {IAToken} from "@aave-v3-core/interfaces/IAToken.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
 import {IPool} from "@aave-v3-core/interfaces/IPool.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
-import {MockDAI} from "./mocks/MockDAI.sol";
-
-import "./utils/Constants.sol";
-import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
-
+import {ATokenVaultForkBaseTest} from "./ATokenVaultForkBaseTest.t.sol";
 import {ATokenVault} from "../src/ATokenVault.sol";
 
-contract ATokenVaultForkTest is ATokenVaultBaseTest {
-    // Forked tests using Polygon for Aave v3
-    uint256 polygonFork;
-    uint256 POLYGON_FORK_BLOCK = 35486670;
-
-    ERC20 dai;
-    IAToken aDai;
-
-    function setUp() public override {
-        polygonFork = vm.createFork(vm.envString("POLYGON_RPC_URL"));
-        vm.selectFork(polygonFork);
-        vm.rollFork(POLYGON_FORK_BLOCK);
-
-        dai = ERC20(POLYGON_DAI);
-        aDai = IAToken(POLYGON_ADAI);
-
-        vaultAssetAddress = address(aDai);
-
-        _deploy(POLYGON_DAI, POLYGON_POOL_ADDRESSES_PROVIDER);
-    }
-
+contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
     /*//////////////////////////////////////////////////////////////
                         POLYGON FORK TESTS
     //////////////////////////////////////////////////////////////*/
@@ -878,6 +853,16 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         assertApproxEqRel(yieldBob, 3 * yieldChad, ONE_PERCENT);
         assertApproxEqRel(yieldAlice, 5 * yieldChad, ONE_PERCENT);
         assertGt(yieldAlice, yieldBob);
+    }
+
+    // Fuzzing
+    function test_fuzzDepositWithdrawSameAmount(uint256 amount) public {
+        vm.assume(amount > 1); // 0 reverts due to zero shares, 1 reverts due to -2 underflow
+        vm.assume(amount <= _maxDaiSuppliableToAave());
+        _depositFromUser(ALICE, amount);
+        _withdrawFromUser(ALICE, 0);
+        assertGt(dai.balanceOf(ALICE), amount - 2);
+        assertLt(dai.balanceOf(ALICE), amount + 2);
     }
 
     /*//////////////////////////////////////////////////////////////
