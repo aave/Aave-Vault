@@ -111,16 +111,11 @@ contract ATokenVaultBaseTest is Test {
     }
 
     function _deploy(address underlying, address addressesProvider) internal {
-        _baseDeploy(underlying, addressesProvider, 18);
+        _deploy(underlying, addressesProvider, 10e18);
     }
 
-    function _deploy(address underlying, address addressesProvider, uint256 decimals) internal {
-        _baseDeploy(underlying, addressesProvider, decimals);
-    }
-
-    function _baseDeploy(address underlying, address addressesProvider, uint256 decimals) internal {
-        uint256 amount = 10 ** decimals;
-        initialLockDeposit = amount;
+    function _deploy(address underlying, address addressesProvider, uint256 _initialLockDeposit) internal {
+        initialLockDeposit = _initialLockDeposit;
         vault = new ATokenVault(underlying, referralCode, IPoolAddressesProvider(addressesProvider));
 
         bytes memory data = abi.encodeWithSelector(
@@ -129,12 +124,12 @@ contract ATokenVaultBaseTest is Test {
             fee,
             SHARE_NAME,
             SHARE_SYMBOL,
-            amount
+            _initialLockDeposit
         );
         address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)));
 
-        deal(underlying, address(this), amount);
-        IERC20Upgradeable(underlying).safeApprove(address(proxyAddr), amount);
+        deal(underlying, address(this), _initialLockDeposit);
+        IERC20Upgradeable(underlying).safeApprove(address(proxyAddr), _initialLockDeposit);
 
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
 
