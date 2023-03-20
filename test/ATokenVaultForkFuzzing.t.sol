@@ -27,4 +27,22 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
     }
 
     // function test_fuzz
+    function test_fuzzDepositAfterTransferAndWithdrawSameAmount(uint256 transferAmount, uint256 amount) public {
+        // Transfer: Assume the transfer amount is greater than zero and less than or equal to the amount Aave can handle
+        // less the amount to deposit.
+        // Deposit: Assume the deposit is non-zero and less than the amount Aave can handle.
+        vm.assume(transferAmount > 0);
+        vm.assume(amount > 1);
+        vm.assume(amount <= _maxDaiSuppliableToAave());
+        vm.assume(transferAmount <= _maxDaiSuppliableToAave() - amount);
+        _transferFromUser(OWNER, transferAmount);
+
+        // Assume the deposit is greater than the amount needed for one share.
+        vm.assume(amount > vault.convertToAssets(1));
+
+        _depositFromUser(ALICE, amount);
+        _withdrawFromUser(ALICE, 0);
+        assertGt(dai.balanceOf(ALICE), amount - 2);
+        assertLt(dai.balanceOf(ALICE), amount + 2);
+    }
 }

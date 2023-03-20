@@ -44,6 +44,14 @@ contract ATokenVaultForkBaseTest is ATokenVaultBaseTest {
         assertEq(vault.owner(), OWNER);
     }
 
+    function _transferFromUser(address user, uint256 amount) public {
+        deal(address(dai), user, amount);
+        vm.startPrank(user);
+        dai.approve(POLYGON_AAVE_POOL, amount);
+        IPool(POLYGON_AAVE_POOL).supply(address(dai), amount, address(vault), 0);
+        vm.stopPrank();
+    }
+
     function _depositFromUser(address user, uint256 amount) public {
         deal(address(dai), user, amount);
 
