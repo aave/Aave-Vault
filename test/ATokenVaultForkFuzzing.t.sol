@@ -26,7 +26,6 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         assertLt(dai.balanceOf(ALICE), amount + 2);
     }
 
-    // function test_fuzz
     function test_fuzzDepositAfterTransferAndWithdrawSameAmount(uint256 transferAmount, uint256 amount) public {
         // Transfer: Assume the transfer amount is greater than zero and less than or equal to the amount Aave can handle
         // less the amount to deposit.
@@ -44,5 +43,14 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         _withdrawFromUser(ALICE, 0);
         assertGt(dai.balanceOf(ALICE), amount - 2);
         assertLt(dai.balanceOf(ALICE), amount + 2);
+    }
+
+    function test_fuzzDepositIncreasesTotalSupplyEqually(uint256 deposit) public {
+        vm.assume(deposit > 1);
+        vm.assume(deposit <= _maxDaiSuppliableToAave());
+        uint256 totalSupplyBefore = vault.totalSupply();
+        _depositFromUser(ALICE, deposit);
+        uint256 totalSupplyAfter = vault.totalSupply();
+        assertEq(totalSupplyAfter, totalSupplyBefore + deposit);
     }
 }
