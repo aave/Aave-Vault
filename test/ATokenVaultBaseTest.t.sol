@@ -70,6 +70,8 @@ contract ATokenVaultBaseTest is Test {
     bytes constant ERR_SIG_EXPIRED = bytes("SIG_EXPIRED");
 
     // Vault Errors
+    bytes constant ERR_ZERO_ADDRESS_NOT_VALID = bytes("ZERO_ADDRESS_NOT_VALID");
+    bytes constant ERR_ZERO_INITIAL_DEPOSIT = bytes("ZERO_INITIAL_LOCK_DEPOSIT");
     bytes constant ERR_ZERO_ASSETS = bytes("ZERO_ASSETS");
     bytes constant ERR_ZERO_SHARES = bytes("ZERO_SHARES");
     bytes constant ERR_TRANSFER_FROM_FAILED = bytes("TRANSFER_FROM_FAILED");
