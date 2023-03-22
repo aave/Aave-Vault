@@ -77,6 +77,24 @@ contract ATokenVaultForkTest is ATokenVaultBaseTest {
         vault.initialize(OWNER, fee, SHARE_NAME, SHARE_SYMBOL, 1);
     }
 
+    function testInitZeroOwner() public {
+        vault = new ATokenVault(address(dai), referralCode, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+
+        bytes memory data = abi.encodeWithSelector(ATokenVault.initialize.selector, address(0), 0, SHARE_NAME, SHARE_SYMBOL, 1);
+
+        vm.expectRevert(ERR_ZERO_ADDRESS_NOT_VALID);
+        new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
+    }
+
+    function testInitZeroInitialDeposit() public {
+        vault = new ATokenVault(address(dai), referralCode, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
+
+        bytes memory data = abi.encodeWithSelector(ATokenVault.initialize.selector, OWNER, 0, SHARE_NAME, SHARE_SYMBOL, 0);
+
+        vm.expectRevert(ERR_ZERO_INITIAL_DEPOSIT);
+        new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
+    }
+
     function testInitProxyRevertsFeeTooHigh() public {
         vault = new ATokenVault(address(dai), referralCode, IPoolAddressesProvider(POLYGON_POOL_ADDRESSES_PROVIDER));
 
