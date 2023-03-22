@@ -643,6 +643,8 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
             _spendAllowance(owner, allowanceTarget, shares);
         }
 
+        _burn(owner, shares);
+
         // Withdraw assets from Aave v3 and send to receiver
         if (asAToken) {
             ATOKEN.transfer(receiver, assets);
@@ -651,8 +653,6 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
             uint256 amountWithdrawn = AAVE_POOL.withdraw(address(UNDERLYING), assets, receiver);
             _s.lastVaultBalance -= uint128(amountWithdrawn);
         }
-
-        _burn(owner, shares);
 
         emit Withdraw(allowanceTarget, receiver, owner, assets, shares);
     }
