@@ -855,16 +855,11 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         assertGt(yieldAlice, yieldBob);
     }
 
-    // This test demonstrates a problematic scenario if the initial deposit is ignored.
+    // This test demonstrates a problematic scenario if the initial deposit is too little.
     function testLowInitialDepositLock() public {
         _deploy(POLYGON_DAI, POLYGON_POOL_ADDRESSES_PROVIDER, 1);
 
-        deal(address(dai), OWNER, 10);
-
-        vm.startPrank(OWNER);
-        dai.approve(POLYGON_AAVE_POOL, 2);
-        IPool(POLYGON_AAVE_POOL).supply(address(dai), 2, address(vault), 0);
-        vm.stopPrank();
+        _transferFromUser(OWNER, 2);
 
         _depositFromUser(ALICE, 201);
         assertEq(vault.balanceOf(ALICE), 67);
@@ -872,18 +867,48 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         _depositFromUser(BOB, 200);
         assertEq(vault.balanceOf(BOB), 66);
 
-        vm.startPrank(OWNER);
-        dai.approve(POLYGON_AAVE_POOL, 8);
-        IPool(POLYGON_AAVE_POOL).supply(address(dai), 8, address(vault), 0);
-        vm.stopPrank();
+        _transferFromUser(OWNER, 8);
 
         _redeemFromUser(ALICE, 67);
 
         vm.startPrank(BOB);
         vm.expectRevert(); // Arithmetic over/underflow errors are not caught properly.
-        // A portion (2) of Bob's shares are locked.
         vault.redeem(66, BOB, BOB);
+        vm.expectRevert(); // Arithmetic over/underflow errors are not caught properly.
+        vault.redeem(65, BOB, BOB);
+
+        
+        vault.redeem(64, BOB, BOB); // Redeem 64 passes, leading to 2 shares locked.
+        assertEq(vault.balanceOf(BOB), 2);
+        vm.stopPrank();
     }
 
-    //Todo: "stealing" exploit test with rate manipulation.
+    // function testLowInitialDepositExchangeRateManipulation() public {
+    //     _deploy(POLYGON_DAI, POLYGON_POOL_ADDRESSES_PROVIDER, 1);
+
+    //     // Alice deposits 1 DAI
+    //     _depositFromUser(ALICE, 1);
+
+    //     // Alice transfers in 9999 aDAI
+    //     _transferFromUser(ALICE, 9999);
+
+    //     // At this point, the pool has 2 shares, each worth 5000(.5) assets.
+    //     // Alice is down 4999(.5) DAI
+
+    //     // Bob deposits 10000 assets, but only gets 1 share.
+    //     _depositFromUser(BOB, 10000);
+    //     assertEq(vault.balanceOf(BOB), 1);
+
+    //     // Now, the pool has 3 shares and 20,001 assets, each share is now worth 6667 with
+    //     // Bob losing ~1/3rd of his deposit. Further deposits can be sniped from the mempool
+    //     assertEq(vault.convertToAssets(1), 6667);
+    //     // as follows:
+
+    //     // This is 2 shares - 1, or 6667*2 - 1 = 13,333.
+    //     _depositFromUser(BOB, 13333);
+    //     assertEq(vault.balanceOf(BOB), 2);
+
+    //     // The pool now has 4 shares and 33,334 assets. Each share is now worth 8333(.5)
+    //     assertEq(vault.convertToAssets(1), 8333);
+    // }
 }
