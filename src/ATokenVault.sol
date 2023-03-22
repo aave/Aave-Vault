@@ -79,6 +79,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         string memory shareSymbol,
         uint256 initialLockDeposit
     ) external initializer {
+        require(owner != address(0), "ZERO_ADDRESS_NOT_VALID");
         require(initialLockDeposit != 0, "ZERO_INITIAL_LOCK_DEPOSIT");
         _transferOwnership(owner);
         __ERC4626_init(UNDERLYING);
