@@ -22,7 +22,7 @@ POLYGON_RPC_URL=[Your favourite Polygon RPC URL]
 AVALANCHE_RPC_URL=[Your favourite Avalanche RPC URL]
 ```
 
-The fork tests all use Polygon, except tests for claiming Aave rewards, which use Avalanche. 
+The fork tests all use Polygon, except tests for claiming Aave rewards, which use Avalanche.
 
 This test suite also includes a16z's [ERC-4626 Property Tests](https://a16zcrypto.com/generalized-property-tests-for-erc4626-vaults/), which are in the `ATokenVaultProperties.t.sol` file. These tests do not use a forked network state but rather use mock contracts, found in the `test/mocks` folder.
 
@@ -57,6 +57,12 @@ Polygon Mainnet:
 forge script script/Deploy.s.sol:Deploy --rpc-url $POLYGON_RPC_URL --broadcast --verify --legacy -vvvv
 ```
 
+## Audits
+
+You can find all audit reports under the audits folder
+
+- [01-03-2023 OpenZeppelin](./audits/01-03-2023_OpenZeppelin_Wrapped_AToken_Vault.pdf)
+- [03-03-2023 PeckShield](./audits/03-03-2023_Peckshield_Wrapped_AToken_Vault.pdf)
 
 ## Vault Contract Details
 
@@ -101,7 +107,6 @@ However, in the `withdrawWithSig` and `redeemWithSig` functions, the allowance m
 ### Limitations to `maxDeposit` and `maxMint`
 
 The [ERC-4626 standard](https://eips.ethereum.org/EIPS/eip-4626) defines the `maxDeposit` and `maxMint` functions as follows:
-
 
 > maxDeposit: Maximum amount of the underlying asset that can be deposited into the Vault for the receiver, through a deposit call.
 
