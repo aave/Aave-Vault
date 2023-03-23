@@ -26,7 +26,7 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         assertLt(dai.balanceOf(ALICE), amount + 2);
     }
 
-    function test_fuzzDepositAfterTransferAndWithdrawSameAmount(uint256 transferAmount, uint256 amount) public {
+    function test_fuzzDepositAfterTransferAndRedeem(uint256 transferAmount, uint256 amount) public {
         // Transfer: Assume the transfer amount is greater than zero and less than or equal to the amount Aave can handle
         // less the amount to deposit.
         // Deposit: Assume the deposit is non-zero and less than the amount Aave can handle.
@@ -40,7 +40,9 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         vm.assume(amount > vault.convertToAssets(1));
 
         _depositFromUser(ALICE, amount);
-        _withdrawFromUser(ALICE, 0);
+        
+        // Explicitly redeem the entire balance.
+        _redeemFromUser(ALICE, vault.balanceOf(ALICE)); 
         assertGt(dai.balanceOf(ALICE), amount - 2);
         assertLt(dai.balanceOf(ALICE), amount + 2);
     }
@@ -54,7 +56,7 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         assertEq(totalSupplyAfter, totalSupplyBefore + deposit);
     }
 
-    function test_fuzzMultiDepositThenWithdraw(uint256 n, uint256[] memory amounts) public {
+    function test_fuzzMultiDepositThenRedeem(uint256 n, uint256[] memory amounts) public {
         vm.assume(n > 0);
         vm.assume(n <= 30);
         vm.assume(amounts.length >= n);
@@ -72,8 +74,7 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
             // Deposit the amount from the user.
             _depositFromUser(ALICE, amount);
         }
-
-        // Finally, redeem the balance from the user, we don't pass 0 since we want to explicityly redeem the balance.
+        // Explicitly redeem the entire balance.
         _redeemFromUser(ALICE, vault.balanceOf(ALICE));
     }
 }
