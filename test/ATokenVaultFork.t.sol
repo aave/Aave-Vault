@@ -640,14 +640,14 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         _depositFromUser(ALICE, adjustedAmount);
 
         // still 1:1 exchange rate
-        assertEq(vault.convertToShares(amount), amount);
-        assertEq(vault.balanceOf(ALICE), adjustedAmount);
+        assertEq(vault.convertToShares(amount), amount, "1");
+        assertEq(vault.balanceOf(ALICE), adjustedAmount, "2");
 
         // Increase share/asset exchange rate
         _accrueYieldInVault(amount);
 
         // Now 2:1 assets to shares exchange rate
-        assertEq(vault.convertToAssets(amount), amount * 2);
+        assertEq(vault.convertToAssets(amount), amount * 2 - expectedFees, "3");
 
         skip(1);
 
