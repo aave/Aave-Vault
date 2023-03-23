@@ -13,7 +13,7 @@ import {ATokenVault} from "../src/ATokenVault.sol";
 
 contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
     /*//////////////////////////////////////////////////////////////
-                        POLYGON FORK TESTS
+                        POLYGON FORK FUZZ TESTS
     //////////////////////////////////////////////////////////////*/
 
     // Fuzzing
@@ -52,5 +52,28 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         _depositFromUser(ALICE, deposit);
         uint256 totalSupplyAfter = vault.totalSupply();
         assertEq(totalSupplyAfter, totalSupplyBefore + deposit);
+    }
+
+    function test_fuzzMultiDepositThenWithdraw(uint256 n, uint256[] memory amounts) public {
+        vm.assume(n > 0);
+        vm.assume(n <= 30);
+        vm.assume(amounts.length >= n);
+
+        for (uint256 i = 0; i < n; ++i) {
+            // Deposit at least 1 share worth of DAI. Add one since the convertToAssets call rounds down.
+            uint256 baseAmount = 1 + vault.convertToAssets(1);
+
+            // Divide by 2 to prevent accidentally supplying too much and bricking.
+            uint256 rand = amounts[i] % (_maxDaiSuppliableToAave() / 2);
+            uint256 addAmount = rand > baseAmount ? rand - baseAmount : 0;
+
+            uint256 amount = baseAmount + addAmount;
+
+            // Deposit the amount from the user.
+            _depositFromUser(ALICE, amount);
+        }
+
+        // Finally, redeem the balance from the user, we don't pass 0 since we want to explicityly redeem the balance.
+        _redeemFromUser(ALICE, vault.balanceOf(ALICE));
     }
 }
