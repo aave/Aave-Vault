@@ -894,39 +894,9 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         vault.redeem(66, BOB, BOB);
         vm.expectRevert(); // Arithmetic over/underflow errors are not caught properly.
         vault.redeem(65, BOB, BOB);
-
         
         vault.redeem(64, BOB, BOB); // Redeem 64 passes, leading to 2 shares locked.
         assertEq(vault.balanceOf(BOB), 2);
         vm.stopPrank();
     }
-
-    // function testLowInitialDepositExchangeRateManipulation() public {
-    //     _deploy(POLYGON_DAI, POLYGON_POOL_ADDRESSES_PROVIDER, 1);
-
-    //     // Alice deposits 1 DAI
-    //     _depositFromUser(ALICE, 1);
-
-    //     // Alice transfers in 9999 aDAI
-    //     _transferFromUser(ALICE, 9999);
-
-    //     // At this point, the pool has 2 shares, each worth 5000(.5) assets.
-    //     // Alice is down 4999(.5) DAI
-
-    //     // Bob deposits 10000 assets, but only gets 1 share.
-    //     _depositFromUser(BOB, 10000);
-    //     assertEq(vault.balanceOf(BOB), 1);
-
-    //     // Now, the pool has 3 shares and 20,001 assets, each share is now worth 6667 with
-    //     // Bob losing ~1/3rd of his deposit. Further deposits can be sniped from the mempool
-    //     assertEq(vault.convertToAssets(1), 6667);
-    //     // as follows:
-
-    //     // This is 2 shares - 1, or 6667*2 - 1 = 13,333.
-    //     _depositFromUser(BOB, 13333);
-    //     assertEq(vault.balanceOf(BOB), 2);
-
-    //     // The pool now has 4 shares and 33,334 assets. Each share is now worth 8333(.5)
-    //     assertEq(vault.convertToAssets(1), 8333);
-    // }
 }
