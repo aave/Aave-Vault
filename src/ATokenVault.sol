@@ -509,9 +509,9 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     function _accrueYield() internal {
-        if (block.timestamp != _s.lastUpdated) {
-            uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
-            uint256 newYield = newVaultBalance > _s.lastVaultBalance ? newVaultBalance - _s.lastVaultBalance : 0;
+        uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
+        uint256 newYield = newVaultBalance > _s.lastVaultBalance ? newVaultBalance - _s.lastVaultBalance : 0;
+        if (newYield != 0) {
             uint256 newFeesEarned = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
 
             _s.accumulatedFees += uint128(newFeesEarned);
