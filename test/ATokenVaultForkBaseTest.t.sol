@@ -86,15 +86,12 @@ contract ATokenVaultForkBaseTest is ATokenVaultBaseTest {
     function _accrueYieldInVault(uint256 yieldAmountToAccrue) public {
         require(yieldAmountToAccrue > 0, "TEST: FEES ACCRUED MUST BE > 0");
 
-        deal(address(dai), OWNER, yieldAmountToAccrue);
+        // Decrement the amount to accrue by one to prevent a rounding error.
+        deal(address(dai), OWNER, yieldAmountToAccrue - 1);
 
         vm.startPrank(OWNER);
         dai.approve(POLYGON_AAVE_POOL, yieldAmountToAccrue);
-        IPool(POLYGON_AAVE_POOL).supply(address(dai), yieldAmountToAccrue, OWNER, 0);
-
-        // NOTE: reducing by 1 because final vault balance is over by 1 for some reason
-        yieldAmountToAccrue -= 1;
-        aDai.transfer(address(vault), yieldAmountToAccrue);
+        IPool(POLYGON_AAVE_POOL).supply(address(dai), yieldAmountToAccrue - 1, address(vault), 0);
         vm.stopPrank();
 
         assertGt(aDai.balanceOf(address(vault)), yieldAmountToAccrue);
