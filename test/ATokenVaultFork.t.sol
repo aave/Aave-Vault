@@ -348,36 +348,34 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         uint256 amount = HUNDRED;
         _deployAndCheckProps();
 
-        uint256 lastUpdated = vault.getLastUpdated();
         uint256 lastVaultBalance = vault.getLastVaultBalance();
 
         _depositFromUser(ALICE, amount);
         skip(1);
         _depositFromUser(ALICE, amount);
-        // only lastUpdated does NOT change if same timestamp
-        // lastVaultBalance is updated separately regardless of timestamp
+        // lastVaultBalance is updated regardless of timestamp
 
-        assertEq(vault.getLastUpdated(), lastUpdated + 1);
         assertApproxEqRel(vault.getLastVaultBalance(), lastVaultBalance + (2 * amount), ONE_BPS);
     }
 
-    function testAccrueYieldDoesNotUpdateOnSameTimestamp() public {
-        uint256 amount = HUNDRED;
-        _deployAndCheckProps();
+    // @note This is now an invalid test as we accrue yield on any balance change.
+    // function testAccrueYieldDoesNotUpdateOnSameTimestamp() public {
+    //     uint256 amount = HUNDRED;
+    //     _deployAndCheckProps();
 
-        uint256 prevTimestamp = block.timestamp;
-        uint256 lastUpdated = vault.getLastUpdated();
-        uint256 lastVaultBalance = vault.getLastVaultBalance();
+    //     uint256 prevTimestamp = block.timestamp;
+    //     // uint256 lastUpdated = vault.getLastUpdated();
+    //     uint256 lastVaultBalance = vault.getLastVaultBalance();
 
-        _depositFromUser(ALICE, amount);
-        _depositFromUser(ALICE, amount);
-        // only lastUpdated does NOT change if same timestamp
-        // lastVaultBalance is updated separately regardless of timestamp
+    //     _depositFromUser(ALICE, amount);
+    //     _depositFromUser(ALICE, amount);
+    //     // only lastUpdated does NOT change if same timestamp
+    //     // lastVaultBalance is updated separately regardless of timestamp
 
-        assertEq(block.timestamp, prevTimestamp);
-        assertEq(vault.getLastUpdated(), lastUpdated); // this should not have changed as timestamp is same
-        assertApproxEqAbs(vault.getLastVaultBalance(), lastVaultBalance + (2 * amount), 1); // This should change on deposit() anyway
-    }
+    //     assertEq(block.timestamp, prevTimestamp);
+    //     // assertEq(vault.getLastUpdated(), lastUpdated); // this should not have changed as timestamp is same
+    //     assertApproxEqAbs(vault.getLastVaultBalance(), lastVaultBalance + (2 * amount), 1); // This should change on deposit() anyway
+    // }
 
     function testAccrueYieldEmitsEvent() public {
         uint256 amount = HUNDRED;
@@ -484,18 +482,22 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         // Increase share/asset exchange rate
         _accrueYieldInVault(amount);
 
-        // Now 2:1 assets to shares exchange rate
-        assertEq(vault.convertToShares(amount), amount / 2);
+        // This is equivalent to amount * shares (which is still amount) / (totalAssets - fees)
+        uint256 expectedSharesMinted = (amount ** 2) / (amount * 2 - _getFeesOnAmount(amount));
+
+        // Now 2:1 assets to shares exchange rate less fees.
+        assertEq(vault.convertToShares(amount), expectedSharesMinted);
 
         vm.startPrank(ALICE);
         deal(address(dai), ALICE, amount);
         dai.approve(address(vault), amount);
+        // We expect the deposit -1 due to a rounding error.
         vm.expectEmit(true, true, false, true, address(vault));
-        emit Deposit(ALICE, ALICE, amount, amount / 2);
+        emit Deposit(ALICE, ALICE, amount - 1, expectedSharesMinted);
         vault.deposit(amount, ALICE);
         vm.stopPrank();
 
-        assertEq(vault.balanceOf(ALICE), amount + (amount / 2) - initialLockDeposit);
+        assertEq(vault.balanceOf(ALICE), amount + expectedSharesMinted - initialLockDeposit);
     }
 
     function testMintFailsWithExceedsMax() public {
@@ -567,18 +569,21 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         // Increase share/asset exchange rate
         _accrueYieldInVault(amount);
 
+        // This is equivalent to amount * shares (which is still amount) / (totalAssets - fees)
+        uint256 expectedSharesMinted = (amount ** 2) / (amount * 2 - _getFeesOnAmount(amount));
+
         // Now 2:1 assets to shares exchange rate
-        assertEq(vault.convertToShares(amount), amount / 2);
+        assertEq(vault.convertToShares(amount), expectedSharesMinted);
 
         vm.startPrank(ALICE);
         deal(address(dai), ALICE, amount);
         dai.approve(address(vault), amount);
         vm.expectEmit(true, true, false, true, address(vault));
-        emit Deposit(ALICE, ALICE, amount, amount / 2);
-        vault.mint(amount / 2, ALICE);
+        emit Deposit(ALICE, ALICE, amount - 1, expectedSharesMinted);
+        vault.mint(expectedSharesMinted, ALICE);
         vm.stopPrank();
 
-        assertEq(vault.balanceOf(ALICE), HUNDRED + (HUNDRED / 2) - initialLockDeposit);
+        assertEq(vault.balanceOf(ALICE), amount + expectedSharesMinted - initialLockDeposit);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -640,14 +645,14 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         _depositFromUser(ALICE, adjustedAmount);
 
         // still 1:1 exchange rate
-        assertEq(vault.convertToShares(amount), amount, "1");
-        assertEq(vault.balanceOf(ALICE), adjustedAmount, "2");
+        assertEq(vault.convertToShares(amount), amount);
+        assertEq(vault.balanceOf(ALICE), adjustedAmount);
 
         // Increase share/asset exchange rate
         _accrueYieldInVault(amount);
 
-        // Now 2:1 assets to shares exchange rate
-        assertEq(vault.convertToAssets(amount), amount * 2 - expectedFees, "3");
+        // Now 2:1 assets less fees to shares exchange rate
+        assertEq(vault.convertToAssets(amount), amount * 2 - expectedFees);
 
         skip(1);
 
@@ -726,8 +731,10 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
     function testRedeemAfterYieldEarned() public {
         uint256 amount = HUNDRED;
         uint256 adjustedAmount = amount - initialLockDeposit;
-        uint256 expectedAliceAmountEnd = adjustedAmount + adjustedAmount - _getFeesOnAmount(adjustedAmount);
         uint256 expectedFees = _getFeesOnAmount(amount);
+
+        // This is Alice's share of assets, equivalent to shareAmount * (totalAssets-fees) / totalShares
+        uint256 expectedAliceAmountEnd = (adjustedAmount * (amount * 2 - expectedFees)) / amount;
 
         _depositFromUser(ALICE, adjustedAmount);
 
@@ -738,8 +745,8 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         // Increase share/asset exchange rate
         _accrueYieldInVault(amount);
 
-        // Now 2:1 assets to shares exchange rate
-        assertEq(vault.convertToAssets(amount), amount * 2);
+        // Now 2:1 assets to shares exchange rate less fees.
+        assertEq(vault.convertToAssets(adjustedAmount), expectedAliceAmountEnd, "1");
 
         skip(1);
 
@@ -873,30 +880,33 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         assertGt(yieldAlice, yieldBob);
     }
 
-    // This test demonstrates a problematic scenario if the initial deposit is too little.
-    function testLowInitialDepositLock() public {
-        _deploy(POLYGON_DAI, POLYGON_POOL_ADDRESSES_PROVIDER, 1);
+    // @note This test demonstrates the reasoning for removing the timestamp check in favor of an aToken balance check.
+    // function testShareLock() public {
+    //     _deploy(POLYGON_DAI, POLYGON_POOL_ADDRESSES_PROVIDER, 1);
 
-        _transferFromUser(OWNER, 2);
+    //     _transferFromUser(OWNER, 2);
 
-        _depositFromUser(ALICE, 201);
-        assertEq(vault.balanceOf(ALICE), 67);
+    //     _depositFromUser(ALICE, 201);
+    //     assertEq(vault.balanceOf(ALICE), 67);
 
-        _depositFromUser(BOB, 200);
-        assertEq(vault.balanceOf(BOB), 66);
+    //     _depositFromUser(BOB, 200);
+    //     assertEq(vault.balanceOf(BOB), 66);
 
-        _transferFromUser(OWNER, 8);
+    //     _transferFromUser(OWNER, 8);
 
-        _redeemFromUser(ALICE, 67);
+    //     _redeemFromUser(ALICE, 67);
 
-        vm.startPrank(BOB);
-        vm.expectRevert(); // Arithmetic over/underflow errors are not caught properly.
-        vault.redeem(66, BOB, BOB);
-        vm.expectRevert(); // Arithmetic over/underflow errors are not caught properly.
-        vault.redeem(65, BOB, BOB);
-        
-        vault.redeem(64, BOB, BOB); // Redeem 64 passes, leading to 2 shares locked.
-        assertEq(vault.balanceOf(BOB), 2);
-        vm.stopPrank();
-    }
+    //     vm.startPrank(BOB);
+
+    //     vm.expectRevert(); // Arithmetic over/underflow errors are not caught properly.
+    //     vault.redeem(66, BOB, BOB);
+
+    //     vm.expectRevert(); // Arithmetic over/underflow errors are not caught properly.
+    //     vault.redeem(65, BOB, BOB);
+
+    //     vault.redeem(64, BOB, BOB); // Redeem 64 passes, leading to 2 shares locked.
+    //     assertEq(vault.balanceOf(BOB), 2);
+
+    //     vm.stopPrank();
+    // }
 }

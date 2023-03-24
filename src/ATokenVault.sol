@@ -16,8 +16,8 @@ import {WadRayMath} from "@aave-v3-core/protocol/libraries/math/WadRayMath.sol";
 import {IRewardsController} from "@aave-v3-periphery/rewards/interfaces/IRewardsController.sol";
 import {IATokenVault} from "./interfaces/IATokenVault.sol";
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
-import "./libraries/Constants.sol";
 import {ATokenVaultStorage} from "./ATokenVaultStorage.sol";
+import "./libraries/Constants.sol";
 
 /**
  * @title ATokenVault
@@ -421,7 +421,6 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
 
         _s.accumulatedFees = uint128(claimableFees - amount);
         _s.lastVaultBalance = uint128(ATOKEN.balanceOf(address(this)) - amount);
-        _s.lastUpdated = uint40(block.timestamp);
 
         ATOKEN.transfer(to, amount);
 
@@ -462,12 +461,13 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
 
     /// @inheritdoc IATokenVault
     function getClaimableFees() public view override returns (uint256) {
-        if (block.timestamp == _s.lastUpdated) {
+        uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
+        // We use >= here to handle 1 wei rounding errors from withdrawals
+        if (_s.lastVaultBalance >= newVaultBalance) {
             // Accumulated fees already up to date
             return _s.accumulatedFees;
         } else {
             // Calculate new fees since last accrueYield
-            uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
             uint256 newYield = newVaultBalance - _s.lastVaultBalance;
             uint256 newFees = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
 
@@ -478,11 +478,6 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     /// @inheritdoc IATokenVault
     function getSigNonce(address signer) public view override returns (uint256) {
         return _sigNonces[signer];
-    }
-
-    /// @inheritdoc IATokenVault
-    function getLastUpdated() public view override returns (uint256) {
-        return _s.lastUpdated;
     }
 
     /// @inheritdoc IATokenVault
@@ -516,7 +511,6 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
 
             _s.accumulatedFees += uint128(newFeesEarned);
             _s.lastVaultBalance = uint128(newVaultBalance);
-            _s.lastUpdated = uint40(block.timestamp);
 
             emit YieldAccrued(newYield, newFeesEarned, newVaultBalance);
         }

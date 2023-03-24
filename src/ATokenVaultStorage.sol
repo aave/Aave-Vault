@@ -14,8 +14,6 @@ abstract contract ATokenVaultStorage {
         uint128 lastVaultBalance;
         // fees accrued since last updated
         uint128 accumulatedFees;
-        // timestamp of last accrueYield action
-        uint40 lastUpdated;
         // as a fraction of 1e18
         uint64 fee;
         // Reserved storage space to allow for layout changes in the future
