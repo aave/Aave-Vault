@@ -1,4 +1,6 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENSED
+// All rights Reserved © AaveCo
+
 pragma solidity ^0.8.10;
 
 import {IERC1271} from "@openzeppelin/interfaces/IERC1271.sol";
