@@ -891,7 +891,9 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
 
         vm.startPrank(BOB);
         vm.expectRevert(); // Arithmetic over/underflow errors are not caught properly.
+
         vault.redeem(66, BOB, BOB);
+        
         vm.expectRevert(); // Arithmetic over/underflow errors are not caught properly.
         vault.redeem(65, BOB, BOB);
         
