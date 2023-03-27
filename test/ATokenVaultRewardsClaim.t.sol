@@ -29,7 +29,7 @@ contract ATokenVaultRewardsClaimTest is ATokenVaultBaseTest {
 
         vaultAssetAddress = address(aUSDC);
 
-        _deploy(AVALANCHE_USDC, AVALANCHE_POOL_ADDRESSES_PROVIDER, 6);
+        _deploy(AVALANCHE_USDC, AVALANCHE_POOL_ADDRESSES_PROVIDER, 10e6);
     }
 
     /*//////////////////////////////////////////////////////////////
