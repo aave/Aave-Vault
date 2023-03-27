@@ -20,6 +20,7 @@ contract ATokenVaultBaseTest is Test {
     address constant POLYGON_AAVE_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
     address constant POLYGON_POOL_ADDRESSES_PROVIDER = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
     address constant POLYGON_REWARDS_CONTROLLER = 0x929EC64c34a17401F460460D4B9390518E5B473e;
+    address constant POLYGON_DATA_PROVIDER = 0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654;
 
     // Fork tests using Avalanche for Aave v3
     address constant AVALANCHE_USDC = 0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E;
@@ -112,16 +113,11 @@ contract ATokenVaultBaseTest is Test {
     }
 
     function _deploy(address underlying, address addressesProvider) internal {
-        _baseDeploy(underlying, addressesProvider, 18);
+        _deploy(underlying, addressesProvider, 10e18);
     }
 
-    function _deploy(address underlying, address addressesProvider, uint256 decimals) internal {
-        _baseDeploy(underlying, addressesProvider, decimals);
-    }
-
-    function _baseDeploy(address underlying, address addressesProvider, uint256 decimals) internal {
-        uint256 amount = 10 ** decimals;
-        initialLockDeposit = amount;
+    function _deploy(address underlying, address addressesProvider, uint256 _initialLockDeposit) internal {
+        initialLockDeposit = _initialLockDeposit;
         vault = new ATokenVault(underlying, referralCode, IPoolAddressesProvider(addressesProvider));
 
         bytes memory data = abi.encodeWithSelector(
@@ -130,12 +126,12 @@ contract ATokenVaultBaseTest is Test {
             fee,
             SHARE_NAME,
             SHARE_SYMBOL,
-            amount
+            _initialLockDeposit
         );
         address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)));
 
-        deal(underlying, address(this), amount);
-        IERC20Upgradeable(underlying).safeApprove(address(proxyAddr), amount);
+        deal(underlying, address(this), _initialLockDeposit);
+        IERC20Upgradeable(underlying).safeApprove(address(proxyAddr), _initialLockDeposit);
 
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
 
