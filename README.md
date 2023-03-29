@@ -115,3 +115,7 @@ and
 > maxMint: Maximum amount of shares that can be minted for the receiver, through a mint call.
 
 Therefore, any supply amount limitations that affect the Aave v3 market for the vault's underlying asset should be reflected in these functions. This logic is implemented `_maxAssetsSuppliableToAave` which returns the maximum amount of the underlying asset that can be supplied to Aave v3, taking into account any supply caps, and if the market is active, frozen, or paused.
+
+## License
+
+All Rights Reserved © AaveCo
