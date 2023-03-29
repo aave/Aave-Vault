@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
-// All rights Reserved © AaveCo
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.10;
 
 uint256 constant AAVE_ACTIVE_MASK = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFF;

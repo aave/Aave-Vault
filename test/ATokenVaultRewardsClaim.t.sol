@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
-// All rights Reserved © AaveCo
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.10;
 
 import "forge-std/Test.sol";
