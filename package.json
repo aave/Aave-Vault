@@ -2,7 +2,7 @@
   "name": "@aave/wrapped-token-vault",
   "license": "All Rights Reserved © AaveCo",
   "version": "1.0.0",
-  "author": "Aave",
+  "author": "AaveCo",
   "description": "ERC-4626 vault for depositing & withdrawing into Aave V3",
   "files": [
     "contracts"
