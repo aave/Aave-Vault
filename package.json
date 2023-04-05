@@ -3,7 +3,7 @@
   "license": "All Rights Reserved © AaveCo",
   "version": "1.0.0",
   "author": "Aave",
-  "description": "ERC-4626 vault for depositing & withdrawl into Aave V3",
+  "description": "ERC-4626 vault for depositing & withdrawing into Aave V3",
   "files": [
     "contracts"
   ],
