@@ -1,19 +1,25 @@
 {
-  "name": "foundry-template",
-  "license": "MIT",
+  "name": "@aave/wrapped-token-vault",
+  "license": "All Rights Reserved © AaveCo",
   "version": "1.0.0",
-  "description": "Streamlined template for getting started with Foundry and Solmate.",
+  "author": "AaveCo",
+  "description": "ERC-4626 vault for depositing & withdrawing into Aave V3",
   "files": [
-    "src/**/*.sol"
+    "contracts"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/transmissions11/foundry-template.git"
+    "url": "https://github.com/aave/wrapped-atoken-vault"
   },
   "devDependencies": {
     "prettier": "^2.3.1",
     "prettier-plugin-solidity": "^1.0.0-beta.13"
   },
+  "contributors": [
+    "Miguel Martinez <miguel@aave.com>",
+    "Peter Michael <peter.dev@aave.com>",
+    "Mark Hinschberger <mark@aave.com>"
+  ],
   "scripts": {
     "lint": "prettier --write **.sol"
   }
