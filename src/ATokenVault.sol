@@ -525,7 +525,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     function _handleDeposit(uint256 assets, address receiver, address depositor, bool asAToken) internal returns (uint256) {
-        require(assets <= maxDeposit(receiver), "DEPOSIT_EXCEEDS_MAX");
+        if (!asAToken) require(assets <= maxDeposit(receiver), "DEPOSIT_EXCEEDS_MAX");
         _accrueYield();
         uint256 shares = super.previewDeposit(assets);
         require(shares != 0, "ZERO_SHARES"); // Check for rounding error since we round down in previewDeposit.
@@ -534,7 +534,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     function _handleMint(uint256 shares, address receiver, address depositor, bool asAToken) internal returns (uint256) {
-        require(shares <= maxMint(receiver), "MINT_EXCEEDS_MAX");
+        if (!asAToken) require(shares <= maxMint(receiver), "MINT_EXCEEDS_MAX");
         _accrueYield();
         uint256 assets = super.previewMint(shares); // No need to check for rounding error, previewMint rounds up.
         _baseDeposit(assets, shares, depositor, receiver, asAToken);
