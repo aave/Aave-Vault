@@ -418,12 +418,11 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
 
     /// @inheritdoc IATokenVault
     function withdrawFees(address to, uint256 amount) public override onlyOwner {
-        uint256 claimableFees = getClaimableFees();
-        require(amount <= claimableFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
+        _accrueYield();
+        require(amount <= _s.accumulatedFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
 
-        _s.accumulatedFees = uint128(claimableFees - amount);
+        _s.accumulatedFees -= uint128(amount);
         _s.lastVaultBalance = uint128(ATOKEN.balanceOf(address(this)) - amount);
-        _s.lastUpdated = uint40(block.timestamp);
 
         ATOKEN.transfer(to, amount);
 
@@ -459,32 +458,21 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     /// @inheritdoc IATokenVault
     function totalAssets() public view override(ERC4626Upgradeable, IATokenVault) returns (uint256) {
         // Report only the total assets net of fees, for vault share logic
-        return ATOKEN.balanceOf(address(this)) - getClaimableFees();
+        return ATOKEN.balanceOf(address(this)) - _s.accumulatedFees;
     }
 
     /// @inheritdoc IATokenVault
-    function getClaimableFees() public view override returns (uint256) {
-        if (block.timestamp == _s.lastUpdated) {
-            // Accumulated fees already up to date
-            return _s.accumulatedFees;
-        } else {
-            // Calculate new fees since last accrueYield
-            uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
-            uint256 newYield = newVaultBalance - _s.lastVaultBalance;
-            uint256 newFees = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
+    function getClaimableFees() external view override returns (uint256) {
+        uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
+        uint256 newYield = newVaultBalance > _s.lastVaultBalance ? newVaultBalance - _s.lastVaultBalance : 0;
+        uint256 newFees = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
 
-            return _s.accumulatedFees + newFees;
-        }
+        return _s.accumulatedFees + newFees;
     }
 
     /// @inheritdoc IATokenVault
     function getSigNonce(address signer) public view override returns (uint256) {
         return _sigNonces[signer];
-    }
-
-    /// @inheritdoc IATokenVault
-    function getLastUpdated() public view override returns (uint256) {
-        return _s.lastUpdated;
     }
 
     /// @inheritdoc IATokenVault
@@ -511,17 +499,14 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     function _accrueYield() internal {
-        if (block.timestamp != _s.lastUpdated) {
-            uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
-            uint256 newYield = newVaultBalance > _s.lastVaultBalance ? newVaultBalance - _s.lastVaultBalance : 0;
-            uint256 newFeesEarned = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
+        uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
+        uint256 newYield = newVaultBalance > _s.lastVaultBalance ? newVaultBalance - _s.lastVaultBalance : 0;
+        uint256 newFeesEarned = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
 
-            _s.accumulatedFees += uint128(newFeesEarned);
-            _s.lastVaultBalance = uint128(newVaultBalance);
-            _s.lastUpdated = uint40(block.timestamp);
+        _s.accumulatedFees += uint128(newFeesEarned);
+        _s.lastVaultBalance = uint128(newVaultBalance);
 
-            emit YieldAccrued(newYield, newFeesEarned, newVaultBalance);
-        }
+        emit YieldAccrued(newYield, newFeesEarned, newVaultBalance);
     }
 
     function _handleDeposit(uint256 assets, address receiver, address depositor, bool asAToken) internal returns (uint256) {

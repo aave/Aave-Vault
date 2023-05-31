@@ -109,7 +109,6 @@ contract ATokenVaultBaseTest is Test {
         console.log("lastVaultBalance()\t\t", vault.getLastVaultBalance());
         console.log("User Withdrawable\t\t", vault.maxWithdraw(user));
         console.log("claimable fees\t\t", vault.getClaimableFees());
-        console.log("lastUpdated\t\t\t", vault.getLastUpdated());
         console.log("current time\t\t\t", block.timestamp);
     }
 

@@ -349,7 +349,7 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         uint256 amount = HUNDRED;
         _deployAndCheckProps();
 
-        uint256 lastUpdated = vault.getLastUpdated();
+        // uint256 lastUpdated = vault.getLastUpdated();
         uint256 lastVaultBalance = vault.getLastVaultBalance();
 
         _depositFromUser(ALICE, amount);
@@ -358,7 +358,7 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         // only lastUpdated does NOT change if same timestamp
         // lastVaultBalance is updated separately regardless of timestamp
 
-        assertEq(vault.getLastUpdated(), lastUpdated + 1);
+        // assertEq(vault.getLastUpdated(), lastUpdated + 1);
         assertApproxEqRel(vault.getLastVaultBalance(), lastVaultBalance + (2 * amount), ONE_BPS);
     }
 
@@ -367,7 +367,7 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         _deployAndCheckProps();
 
         uint256 prevTimestamp = block.timestamp;
-        uint256 lastUpdated = vault.getLastUpdated();
+        // uint256 lastUpdated = vault.getLastUpdated();
         uint256 lastVaultBalance = vault.getLastVaultBalance();
 
         _depositFromUser(ALICE, amount);
@@ -376,7 +376,7 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         // lastVaultBalance is updated separately regardless of timestamp
 
         assertEq(block.timestamp, prevTimestamp);
-        assertEq(vault.getLastUpdated(), lastUpdated); // this should not have changed as timestamp is same
+        // assertEq(vault.getLastUpdated(), lastUpdated); // this should not have changed as timestamp is same
         assertApproxEqAbs(vault.getLastVaultBalance(), lastVaultBalance + (2 * amount), 1); // This should change on deposit() anyway
     }
 
