@@ -483,7 +483,9 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         assertEq(vault.balanceOf(ALICE), amount - initialLockDeposit);
 
         // Increase share/asset exchange rate
-        _accrueYieldInVault(amount);
+        uint256 fee = vault.getFee();
+        uint256 amountPlusFee = amount.mulDiv(SCALE, SCALE - fee, MathUpgradeable.Rounding.Up);
+        _accrueYieldInVault(amountPlusFee);
 
         // Now 2:1 assets to shares exchange rate
         assertEq(vault.convertToShares(amount), amount / 2);
@@ -566,7 +568,9 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         assertEq(vault.balanceOf(ALICE), amount - initialLockDeposit);
 
         // Increase share/asset exchange rate
-        _accrueYieldInVault(amount);
+        uint256 fee = vault.getFee();
+        uint256 amountPlusFee = amount.mulDiv(SCALE, SCALE - fee, MathUpgradeable.Rounding.Up);
+        _accrueYieldInVault(amountPlusFee);
 
         // Now 2:1 assets to shares exchange rate
         assertEq(vault.convertToShares(amount), amount / 2);
@@ -635,8 +639,7 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
     function testWithdrawAfterYieldEarned() public {
         uint256 amount = HUNDRED;
         uint256 adjustedAmount = amount - initialLockDeposit;
-        uint256 expectedAliceAmountEnd = adjustedAmount + adjustedAmount - _getFeesOnAmount(adjustedAmount);
-        uint256 expectedFees = _getFeesOnAmount(amount);
+        uint256 expectedAliceAmountEnd = adjustedAmount + adjustedAmount;
 
         _depositFromUser(ALICE, adjustedAmount);
 
@@ -645,7 +648,10 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         assertEq(vault.balanceOf(ALICE), adjustedAmount);
 
         // Increase share/asset exchange rate
-        _accrueYieldInVault(amount);
+        uint256 fee = vault.getFee();
+        uint256 amountPlusFee = amount.mulDiv(SCALE, SCALE - fee, MathUpgradeable.Rounding.Up);
+        uint256 feesTaken = amountPlusFee - amount;
+        _accrueYieldInVault(amountPlusFee);
 
         // Now 2:1 assets to shares exchange rate
         assertEq(vault.convertToAssets(amount), amount * 2);
@@ -667,7 +673,7 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
             vault.getClaimableFees(),
             "FEES NOT SAME AS VAULT BALANCE"
         );
-        assertApproxEqRel(vault.getClaimableFees(), expectedFees, ONE_BPS, "FEES NOT AS EXPECTED");
+        assertApproxEqRel(vault.getClaimableFees(), feesTaken, ONE_BPS, "FEES NOT AS EXPECTED");
         assertApproxEqRel(dai.balanceOf(ALICE), expectedAliceAmountEnd, ONE_BPS, "END ALICE BALANCE NOT AS EXPECTED");
     }
 
@@ -727,8 +733,7 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
     function testRedeemAfterYieldEarned() public {
         uint256 amount = HUNDRED;
         uint256 adjustedAmount = amount - initialLockDeposit;
-        uint256 expectedAliceAmountEnd = adjustedAmount + adjustedAmount - _getFeesOnAmount(adjustedAmount);
-        uint256 expectedFees = _getFeesOnAmount(amount);
+        uint256 expectedAliceAmountEnd = adjustedAmount + adjustedAmount;
 
         _depositFromUser(ALICE, adjustedAmount);
 
@@ -737,7 +742,10 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         assertEq(vault.balanceOf(ALICE), adjustedAmount);
 
         // Increase share/asset exchange rate
-        _accrueYieldInVault(amount);
+        uint256 fee = vault.getFee();
+        uint256 amountPlusFee = amount.mulDiv(SCALE, SCALE - fee, MathUpgradeable.Rounding.Up);
+        uint256 feesTaken = amountPlusFee - amount;
+        _accrueYieldInVault(amountPlusFee);
 
         // Now 2:1 assets to shares exchange rate
         assertEq(vault.convertToAssets(amount), amount * 2);
@@ -745,7 +753,6 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         skip(1);
 
         uint256 aliceMaxRedeemable = vault.maxRedeem(ALICE);
-
         assertApproxEqRel(vault.convertToAssets(aliceMaxRedeemable), expectedAliceAmountEnd, ONE_BPS);
 
         vm.startPrank(ALICE);
@@ -759,7 +766,7 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
             vault.getClaimableFees(),
             "FEES NOT SAME AS VAULT BALANCE"
         );
-        assertApproxEqRel(vault.getClaimableFees(), expectedFees, ONE_BPS, "FEES NOT AS EXPECTED");
+        assertApproxEqRel(vault.getClaimableFees(), feesTaken, ONE_BPS, "FEES NOT AS EXPECTED");
         assertApproxEqRel(dai.balanceOf(ALICE), expectedAliceAmountEnd, ONE_BPS, "END ALICE BALANCE NOT AS EXPECTED");
     }
 
