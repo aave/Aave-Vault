@@ -458,7 +458,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     /// @inheritdoc IATokenVault
     function totalAssets() public view override(ERC4626Upgradeable, IATokenVault) returns (uint256) {
         // Report only the total assets net of fees, for vault share logic
-        return ATOKEN.balanceOf(address(this)) - _s.accumulatedFees;
+        return ATOKEN.balanceOf(address(this)) - getClaimableFees();
     }
 
     /// @inheritdoc IATokenVault
