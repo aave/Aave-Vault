@@ -462,7 +462,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     /// @inheritdoc IATokenVault
-    function getClaimableFees() external view override returns (uint256) {
+    function getClaimableFees() public view override returns (uint256) {
         uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
         uint256 newYield = newVaultBalance > _s.lastVaultBalance ? newVaultBalance - _s.lastVaultBalance : 0;
         uint256 newFees = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
