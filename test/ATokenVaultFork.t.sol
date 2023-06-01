@@ -6,6 +6,7 @@ import "./utils/Constants.sol";
 import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
+import {MathUpgradeable} from "@openzeppelin-upgradeable/utils/math/MathUpgradeable.sol";
 import {IPool} from "@aave-v3-core/interfaces/IPool.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
@@ -13,6 +14,8 @@ import {ATokenVaultForkBaseTest} from "./ATokenVaultForkBaseTest.t.sol";
 import {ATokenVault} from "../src/ATokenVault.sol";
 
 contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
+    using MathUpgradeable for uint256;
+
     /*//////////////////////////////////////////////////////////////
                         POLYGON FORK TESTS
     //////////////////////////////////////////////////////////////*/
