@@ -11,7 +11,7 @@ import {MockAToken} from "./mocks/MockAToken.sol";
 import {ATokenVaultForkBaseTest} from "./ATokenVaultForkBaseTest.t.sol";
 import {ATokenVault} from "../src/ATokenVault.sol";
 
-contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
+contract ATokenVaultForkFuzzingTest is ATokenVaultForkBaseTest {
     /*//////////////////////////////////////////////////////////////
                         POLYGON FORK FUZZ TESTS
     //////////////////////////////////////////////////////////////*/

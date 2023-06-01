@@ -37,7 +37,6 @@ contract ATokenVaultPropertiesTest is ERC4626Test, ATokenVaultBaseTest {
 
     // NOTE: The following test is relaxed to consider only smaller values (of type uint120),
     // since maxWithdraw() fails with large values (due to overflow).
-    // The maxWithdraw() behavior is inherited from Solmate ERC4626 on which this vault is built.
     function test_maxWithdraw(Init memory init) public override {
         init = clamp(init, type(uint120).max);
         super.test_maxWithdraw(init);
