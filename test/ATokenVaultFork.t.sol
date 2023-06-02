@@ -916,17 +916,10 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         _transferFromUser(OWNER, 8);
 
         _redeemFromUser(ALICE, 67);
+        assertEq(vault.balanceOf(ALICE), 0);
 
-        vm.startPrank(BOB);
-        vm.expectRevert(); // Arithmetic over/underflow errors are not caught properly.
-
+        vm.prank(BOB);
         vault.redeem(66, BOB, BOB);
-        
-        vm.expectRevert(); // Arithmetic over/underflow errors are not caught properly.
-        vault.redeem(65, BOB, BOB);
-        
-        vault.redeem(64, BOB, BOB); // Redeem 64 passes, leading to 2 shares locked.
-        assertEq(vault.balanceOf(BOB), 2);
-        vm.stopPrank();
+        assertEq(vault.balanceOf(BOB), 0);
     }
 }
