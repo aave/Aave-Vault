@@ -203,10 +203,27 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
     }
 
     function testDeployEmitsFeeEvent() public {
+        uint256 initialLockDeposit = 10e18;
+
+        vault = new ATokenVault(address(dai), referralCode, vault.POOL_ADDRESSES_PROVIDER());
+
+        bytes memory data = abi.encodeWithSelector(
+            ATokenVault.initialize.selector,
+            OWNER,
+            fee,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            initialLockDeposit
+        );
+        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)));
+
+        deal(address(dai), address(this), initialLockDeposit);
+        dai.approve(address(proxyAddr), initialLockDeposit);
+
         // no indexed fields, just data check (4th param)
         vm.expectEmit(true, true, false, true);
         emit FeeUpdated(0, fee);
-        _deploy(POLYGON_DAI, POLYGON_POOL_ADDRESSES_PROVIDER);
+        new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
     }
 
     function testOwnerCanWithdrawFees() public {
