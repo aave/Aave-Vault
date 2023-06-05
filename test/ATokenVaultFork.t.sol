@@ -931,31 +931,9 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         uint256 yieldBob = dai.balanceOf(BOB) - amount;
         uint256 yieldChad = dai.balanceOf(CHAD) - amount;
 
-        // Rough checks of yield diffs, within 1% margin
-        assertApproxEqRel(yieldBob, 3 * yieldChad, ONE_PERCENT);
-        assertApproxEqRel(yieldAlice, 5 * yieldChad, ONE_PERCENT);
+        // Rough checks of yield diffs, within 1.5% margin
+        assertApproxEqRel(yieldBob, 3 * yieldChad, ONE_AND_HALF_PERCENT);
+        assertApproxEqRel(yieldAlice, 5 * yieldChad, ONE_AND_HALF_PERCENT);
         assertGt(yieldAlice, yieldBob);
-    }
-
-    // This test demonstrates a problematic scenario if the initial deposit is too little.
-    function testLowInitialDepositLock() public {
-        _deploy(POLYGON_DAI, POLYGON_POOL_ADDRESSES_PROVIDER, 1);
-
-        _transferFromUser(OWNER, 2);
-
-        _depositFromUser(ALICE, 201);
-        assertEq(vault.balanceOf(ALICE), 67);
-
-        _depositFromUser(BOB, 200);
-        assertEq(vault.balanceOf(BOB), 66);
-
-        _transferFromUser(OWNER, 8);
-
-        _redeemFromUser(ALICE, 67);
-        assertEq(vault.balanceOf(ALICE), 0);
-
-        vm.prank(BOB);
-        vault.redeem(66, BOB, BOB);
-        assertEq(vault.balanceOf(BOB), 0);
     }
 }

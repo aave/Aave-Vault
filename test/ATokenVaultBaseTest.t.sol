@@ -35,6 +35,7 @@ contract ATokenVaultBaseTest is Test {
     uint256 constant TEN = 10e18;
     uint256 constant HUNDRED = 100e18;
     uint256 constant ONE_PERCENT = 0.01e18;
+    uint256 constant ONE_AND_HALF_PERCENT = 0.015e18;
     uint256 constant ONE_BPS = 0.0001e18;
 
     uint256 constant PROXY_ADMIN_PRIV_KEY = 4546;
