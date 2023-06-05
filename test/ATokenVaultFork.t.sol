@@ -12,6 +12,7 @@ import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
 import {ATokenVaultForkBaseTest} from "./ATokenVaultForkBaseTest.t.sol";
 import {ATokenVault} from "../src/ATokenVault.sol";
+import "forge-std/console2.sol";
 
 contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
     using MathUpgradeable for uint256;
@@ -423,6 +424,41 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         vm.expectEmit(false, false, false, true, address(vault));
         emit YieldAccrued(expectedNewYield, expectedFeesFromYield, vaultBalanceAfter);
         vault.deposit(amount, ALICE);
+        vm.stopPrank();
+    }
+
+    function testAccrueYieldNoEmitsEvent() public {
+        uint256 amount = HUNDRED;
+        _deployAndCheckProps();
+
+        _depositFromUser(ALICE, amount);
+        uint256 vaultBalanceBefore = aDai.balanceOf(address(vault));
+
+        skip(365 days);
+
+        uint256 vaultBalanceAfter = aDai.balanceOf(address(vault));
+        uint256 expectedNewYield = vaultBalanceAfter - vaultBalanceBefore;
+        uint256 expectedFeesFromYield = (expectedNewYield * vault.getFee()) / SCALE;
+
+        deal(address(dai), ALICE, amount * 2);
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), amount * 2);
+
+        vm.record();
+
+        // Event emission
+        vm.expectEmit(false, false, false, true, address(vault));
+        emit YieldAccrued(expectedNewYield, expectedFeesFromYield, vaultBalanceAfter);
+        vault.deposit(amount, ALICE);
+        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(vault));
+
+        // No event emission
+        vault.deposit(amount, ALICE);
+        (bytes32[] memory reads2, bytes32[] memory writes2) = vm.accesses(address(vault));
+
+        assertEq(reads2.length, reads.length - 7, "wrong reads"); // 3 in getClaimableFees, 4 in _accrueYield
+        assertEq(writes2.length, writes.length - 2, "wrong writes"); // 2 in _accrueYield
+
         vm.stopPrank();
     }
 

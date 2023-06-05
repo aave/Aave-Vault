@@ -20,6 +20,7 @@ import {IATokenVault} from "./interfaces/IATokenVault.sol";
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
 import "./libraries/Constants.sol";
 import {ATokenVaultStorage} from "./ATokenVaultStorage.sol";
+import "forge-std/console2.sol";
 
 /**
  * @title ATokenVault
@@ -464,7 +465,13 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     /// @inheritdoc IATokenVault
     function getClaimableFees() public view override returns (uint256) {
         uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
-        uint256 newYield = newVaultBalance > _s.lastVaultBalance ? newVaultBalance - _s.lastVaultBalance : 0;
+
+        // Skip computation if there is no yield
+        if (newVaultBalance <= _s.lastVaultBalance) {
+            return _s.accumulatedFees;
+        }
+
+        uint256 newYield = newVaultBalance - _s.lastVaultBalance;
         uint256 newFees = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
 
         return _s.accumulatedFees + newFees;
@@ -500,7 +507,13 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
 
     function _accrueYield() internal {
         uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
-        uint256 newYield = newVaultBalance > _s.lastVaultBalance ? newVaultBalance - _s.lastVaultBalance : 0;
+
+        // Skip computation if there is no yield
+        if (newVaultBalance <= _s.lastVaultBalance) {
+            return;
+        }
+
+        uint256 newYield = newVaultBalance - _s.lastVaultBalance;
         uint256 newFeesEarned = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
 
         _s.accumulatedFees += uint128(newFeesEarned);
