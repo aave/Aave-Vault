@@ -530,6 +530,34 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         assertEq(vault.balanceOf(ALICE), ONE);
     }
 
+    function testDepositATokensWithExceedsMax() public {
+        // mock call to Aave Pool
+        MockAavePool mp = new MockAavePool(new MockAToken(address(dai)));
+        mp.setReserveConfigMap(RESERVE_CONFIG_MAP_INACTIVE);
+        vm.mockCall(
+            address(vault.AAVE_POOL()),
+            abi.encodeWithSelector(IPool.getReserveData.selector, address(dai)),
+            abi.encode(mp.getReserveData(address(dai)))
+        );
+
+        vm.startPrank(ALICE);
+        deal(address(dai), ALICE, ONE);
+
+        dai.approve(POLYGON_AAVE_POOL, ONE);
+        IPool(POLYGON_AAVE_POOL).supply(address(dai), ONE, ALICE, 0);
+
+        assertEq(aDai.balanceOf(ALICE), ONE);
+
+        aDai.approve(address(vault), ONE);
+        vm.expectEmit(true, true, false, true, address(vault));
+        emit Deposit(ALICE, ALICE, ONE, ONE);
+        vault.depositATokens(ONE, ALICE);
+
+        assertEq(aDai.balanceOf(ALICE), 0);
+        assertEq(aDai.balanceOf(address(vault)), ONE + initialLockDeposit);
+        assertEq(vault.balanceOf(ALICE), ONE);
+    }
+
     function testDepositAffectedByExchangeRate() public {
         uint256 amount = HUNDRED;
         _depositFromUser(ALICE, amount - initialLockDeposit);
@@ -591,6 +619,34 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
 
         assertEq(dai.balanceOf(ALICE), 0);
         assertEq(dai.balanceOf(address(vault)), 0);
+        assertEq(aDai.balanceOf(ALICE), 0);
+        assertEq(aDai.balanceOf(address(vault)), ONE + initialLockDeposit);
+        assertEq(vault.balanceOf(ALICE), ONE);
+    }
+
+    function testMintATokensWithExceedsMax() public {
+        // mock call to Aave Pool
+        MockAavePool mp = new MockAavePool(new MockAToken(address(dai)));
+        mp.setReserveConfigMap(RESERVE_CONFIG_MAP_INACTIVE);
+        vm.mockCall(
+            address(vault.AAVE_POOL()),
+            abi.encodeWithSelector(IPool.getReserveData.selector, address(dai)),
+            abi.encode(mp.getReserveData(address(dai)))
+        );
+
+        vm.startPrank(ALICE);
+        deal(address(dai), ALICE, ONE);
+
+        dai.approve(POLYGON_AAVE_POOL, ONE);
+        IPool(POLYGON_AAVE_POOL).supply(address(dai), ONE, ALICE, 0);
+
+        assertEq(aDai.balanceOf(ALICE), ONE);
+
+        aDai.approve(address(vault), ONE);
+        vm.expectEmit(true, true, false, true, address(vault));
+        emit Deposit(ALICE, ALICE, ONE, ONE);
+        vault.mintWithATokens(ONE, ALICE);
+
         assertEq(aDai.balanceOf(ALICE), 0);
         assertEq(aDai.balanceOf(address(vault)), ONE + initialLockDeposit);
         assertEq(vault.balanceOf(ALICE), ONE);
