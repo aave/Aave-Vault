@@ -20,7 +20,6 @@ import {IATokenVault} from "./interfaces/IATokenVault.sol";
 import {MetaTxHelpers} from "./libraries/MetaTxHelpers.sol";
 import "./libraries/Constants.sol";
 import {ATokenVaultStorage} from "./ATokenVaultStorage.sol";
-import "forge-std/console2.sol";
 
 /**
  * @title ATokenVault
@@ -590,12 +589,12 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
             // Reserve's supply cap - current amount supplied
             // See similar logic in Aave v3 ValidationLogic library, in the validateSupply function
             // https://github.com/aave/aave-v3-core/blob/a00f28e3ad7c0e4a369d8e06e0ac9fd0acabcab7/contracts/protocol/libraries/logic/ValidationLogic.sol#L71-L78
-            return
-                (supplyCap * 10 ** decimals()) -
-                WadRayMath.rayMul(
-                    (ATOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)),
-                    reserveData.liquidityIndex
-                );
+            uint256 currentSupply = WadRayMath.rayMul(
+                (ATOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)),
+                reserveData.liquidityIndex
+            );
+            uint256 supplyCapWithDecimals = supplyCap * 10 ** decimals();
+            return supplyCapWithDecimals > currentSupply ? supplyCapWithDecimals - currentSupply : 0;
         }
     }
 

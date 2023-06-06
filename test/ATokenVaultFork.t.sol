@@ -11,8 +11,8 @@ import {IPool} from "@aave-v3-core/interfaces/IPool.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
 import {ATokenVaultForkBaseTest} from "./ATokenVaultForkBaseTest.t.sol";
+
 import {ATokenVault} from "../src/ATokenVault.sol";
-import "forge-std/console2.sol";
 
 contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
     using MathUpgradeable for uint256;

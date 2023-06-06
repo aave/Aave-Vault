@@ -35,11 +35,11 @@ contract MockAavePool {
                 //stores the reserve configuration
                 configuration: DataTypes.ReserveConfigurationMap({data: reserveConfigMap}),
                 //the liquidity index. Expressed in ray
-                liquidityIndex: 0,
+                liquidityIndex: 1e27,
                 //the current supply rate. Expressed in ray
                 currentLiquidityRate: 0,
                 //variable borrow index. Expressed in ray
-                variableBorrowIndex: 0,
+                variableBorrowIndex: 1e27,
                 //the current variable borrow rate. Expressed in ray
                 currentVariableBorrowRate: 0,
                 //the current stable borrow rate. Expressed in ray
