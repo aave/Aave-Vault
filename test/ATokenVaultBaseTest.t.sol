@@ -100,6 +100,10 @@ contract ATokenVaultBaseTest is Test {
     event RewardsClaimed(address indexed to, address[] rewardsList, uint256[] claimedAmounts);
     event EmergencyRescue(address indexed token, address indexed to, uint256 amount);
 
+    // ERC1967Proxy Events
+    event Upgraded(address indexed implementation);
+    event Initialized(uint8 version);
+
     function setUp() public virtual {}
 
     // For debug purposes

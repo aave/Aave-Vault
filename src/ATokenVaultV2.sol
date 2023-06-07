@@ -29,7 +29,7 @@ contract ATokenVaultV2 is ATokenVault {
     /**
      * @dev Re-initializes the vault
      */
-    function initialize() external reinitializer(2) {
+    function initializeV2() external reinitializer(2) {
         // Reset deprecated cap
         _s.__deprecated_gap = 0;
     }
