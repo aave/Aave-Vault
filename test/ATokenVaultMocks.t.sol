@@ -26,6 +26,10 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
 
         pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
         _deploy(address(dai), address(poolAddrProvider));
+        // Remove initial supply
+        vm.startPrank(address(vault));
+        vault.redeem(vault.balanceOf(address(vault)), address(vault), address(vault));
+        vm.stopPrank();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -62,6 +66,36 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         assertEq(maxDeposit, 0);
     }
 
+    function testMaxDepositAaveCappedWithSomeSupply() public {
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_CAPPED_ACTIVE);
+        uint256 supplyCapWithDecimals = SUPPLY_CAP_UNSCALED * 10 ** dai.decimals();
+        assertEq(vault.maxDeposit(ALICE), supplyCapWithDecimals);
+
+        // ALICE deposit TEN
+        deal(address(dai), ALICE, TEN);
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), TEN);
+        vault.deposit(TEN, ALICE);
+        vm.stopPrank();
+
+        assertEq(vault.maxDeposit(ALICE), supplyCapWithDecimals - TEN);
+    }
+
+    function testMaxDepositAaveCappedBelowCurrentSupply() public {
+        assertEq(vault.maxDeposit(ALICE), type(uint256).max);
+
+        // ALICE deposit TEN
+        deal(address(dai), ALICE, TEN);
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), TEN);
+        vault.deposit(TEN, ALICE);
+        vm.stopPrank();
+
+        // SupplyCap of ONE
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_SHORT_CAPPED_ACTIVE);
+        assertEq(vault.maxDeposit(ALICE), 0);
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 MAX MINT
     //////////////////////////////////////////////////////////////*/
@@ -94,6 +128,36 @@ contract ATokenVaultMocksTest is ATokenVaultBaseTest {
         pool.setReserveConfigMap(RESERVE_CONFIG_MAP_PAUSED);
         uint256 maxMint = vault.maxMint(ALICE);
         assertEq(maxMint, 0);
+    }
+
+    function testMaxMintAaveCappedWithSomeSupply() public {
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_CAPPED_ACTIVE);
+        uint256 supplyCapWithDecimals = SUPPLY_CAP_UNSCALED * 10 ** dai.decimals();
+        assertEq(vault.maxMint(ALICE), supplyCapWithDecimals);
+
+        // ALICE deposit TEN
+        deal(address(dai), ALICE, TEN);
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), TEN);
+        vault.deposit(TEN, ALICE);
+        vm.stopPrank();
+
+        assertEq(vault.maxMint(ALICE), supplyCapWithDecimals - TEN);
+    }
+
+    function testMaxMintAaveCappedBelowCurrentSupply() public {
+        assertEq(vault.maxMint(ALICE), type(uint256).max);
+
+        // ALICE deposit TEN
+        deal(address(dai), ALICE, TEN);
+        vm.startPrank(ALICE);
+        dai.approve(address(vault), TEN);
+        vault.deposit(TEN, ALICE);
+        vm.stopPrank();
+
+        // SupplyCap of ONE
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_SHORT_CAPPED_ACTIVE);
+        assertEq(vault.maxMint(ALICE), 0);
     }
 
     /*//////////////////////////////////////////////////////////////

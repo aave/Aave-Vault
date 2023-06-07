@@ -418,12 +418,11 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
 
     /// @inheritdoc IATokenVault
     function withdrawFees(address to, uint256 amount) public override onlyOwner {
-        uint256 claimableFees = getClaimableFees();
-        require(amount <= claimableFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
+        _accrueYield();
+        require(amount <= _s.accumulatedFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
 
-        _s.accumulatedFees = uint128(claimableFees - amount);
-        _s.lastVaultBalance = uint128(ATOKEN.balanceOf(address(this)) - amount);
-        _s.lastUpdated = uint40(block.timestamp);
+        _s.accumulatedFees -= uint128(amount);
+        _s.lastVaultBalance -= uint128(amount);
 
         ATOKEN.transfer(to, amount);
 
@@ -464,27 +463,22 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
 
     /// @inheritdoc IATokenVault
     function getClaimableFees() public view override returns (uint256) {
-        if (block.timestamp == _s.lastUpdated) {
-            // Accumulated fees already up to date
-            return _s.accumulatedFees;
-        } else {
-            // Calculate new fees since last accrueYield
-            uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
-            uint256 newYield = newVaultBalance - _s.lastVaultBalance;
-            uint256 newFees = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
+        uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
 
-            return _s.accumulatedFees + newFees;
+        // Skip computation if there is no yield
+        if (newVaultBalance <= _s.lastVaultBalance) {
+            return _s.accumulatedFees;
         }
+
+        uint256 newYield = newVaultBalance - _s.lastVaultBalance;
+        uint256 newFees = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
+
+        return _s.accumulatedFees + newFees;
     }
 
     /// @inheritdoc IATokenVault
     function getSigNonce(address signer) public view override returns (uint256) {
         return _sigNonces[signer];
-    }
-
-    /// @inheritdoc IATokenVault
-    function getLastUpdated() public view override returns (uint256) {
-        return _s.lastUpdated;
     }
 
     /// @inheritdoc IATokenVault
@@ -511,17 +505,20 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     function _accrueYield() internal {
-        if (block.timestamp != _s.lastUpdated) {
-            uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
-            uint256 newYield = newVaultBalance > _s.lastVaultBalance ? newVaultBalance - _s.lastVaultBalance : 0;
-            uint256 newFeesEarned = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
+        uint256 newVaultBalance = ATOKEN.balanceOf(address(this));
 
-            _s.accumulatedFees += uint128(newFeesEarned);
-            _s.lastVaultBalance = uint128(newVaultBalance);
-            _s.lastUpdated = uint40(block.timestamp);
-
-            emit YieldAccrued(newYield, newFeesEarned, newVaultBalance);
+        // Skip computation if there is no yield
+        if (newVaultBalance <= _s.lastVaultBalance) {
+            return;
         }
+
+        uint256 newYield = newVaultBalance - _s.lastVaultBalance;
+        uint256 newFeesEarned = newYield.mulDiv(_s.fee, SCALE, MathUpgradeable.Rounding.Down);
+
+        _s.accumulatedFees += uint128(newFeesEarned);
+        _s.lastVaultBalance = uint128(newVaultBalance);
+
+        emit YieldAccrued(newYield, newFeesEarned, newVaultBalance);
     }
 
     function _handleDeposit(uint256 assets, address receiver, address depositor, bool asAToken) internal returns (uint256) {
@@ -592,12 +589,12 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
             // Reserve's supply cap - current amount supplied
             // See similar logic in Aave v3 ValidationLogic library, in the validateSupply function
             // https://github.com/aave/aave-v3-core/blob/a00f28e3ad7c0e4a369d8e06e0ac9fd0acabcab7/contracts/protocol/libraries/logic/ValidationLogic.sol#L71-L78
-            return
-                (supplyCap * 10 ** decimals()) -
-                WadRayMath.rayMul(
-                    (ATOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)),
-                    reserveData.liquidityIndex
-                );
+            uint256 currentSupply = WadRayMath.rayMul(
+                (ATOKEN.scaledTotalSupply() + uint256(reserveData.accruedToTreasury)),
+                reserveData.liquidityIndex
+            );
+            uint256 supplyCapWithDecimals = supplyCap * 10 ** decimals();
+            return supplyCapWithDecimals > currentSupply ? supplyCapWithDecimals - currentSupply : 0;
         }
     }
 

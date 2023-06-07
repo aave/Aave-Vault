@@ -14,7 +14,7 @@ import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 contract ATokenVaultForkBaseTest is ATokenVaultBaseTest {
     // Forked tests using Polygon for Aave v3
     uint256 polygonFork;
-    uint256 POLYGON_FORK_BLOCK = 35486670;
+    uint256 POLYGON_FORK_BLOCK = 42535610;
 
     ERC20 dai;
     IAToken aDai;

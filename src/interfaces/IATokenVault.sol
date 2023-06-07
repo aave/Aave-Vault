@@ -426,12 +426,6 @@ interface IATokenVault is IERC4626Upgradeable {
     function getSigNonce(address signer) external view returns (uint256);
 
     /**
-     * @notice Returns the latest timestamp when yield was accrued.
-     * @return The last update timestamp
-     */
-    function getLastUpdated() external view returns (uint256);
-
-    /**
      * @notice Returns the vault balance at the latest update timestamp.
      * @return The latest vault balance
      */
