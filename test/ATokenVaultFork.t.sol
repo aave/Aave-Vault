@@ -369,36 +369,63 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
     function testAccrueYieldUpdatesOnTimestampDiff() public {
         uint256 amount = HUNDRED;
         _deployAndCheckProps();
+        skip(10);
 
-        // uint256 lastUpdated = vault.getLastUpdated();
         uint256 lastVaultBalance = vault.getLastVaultBalance();
 
-        _depositFromUser(ALICE, amount);
-        skip(1);
-        _depositFromUser(ALICE, amount);
-        // only lastUpdated does NOT change if same timestamp
-        // lastVaultBalance is updated separately regardless of timestamp
+        deal(address(dai), ALICE, amount * 2);
+        vm.prank(ALICE);
+        dai.approve(address(vault), amount * 2);
 
-        // assertEq(vault.getLastUpdated(), lastUpdated + 1);
+        vm.record();
+
+        vm.prank(ALICE);
+        vault.deposit(amount, ALICE);
+        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(vault));
+
+        _accrueYieldInVault(100); // simulate some yield
+
+        skip(1);
+
+        vm.prank(ALICE);
+        vault.deposit(amount, ALICE);
+        (bytes32[] memory reads2, bytes32[] memory writes2) = vm.accesses(address(vault));
+
+        assertEq(reads2.length, reads.length, "unexpected number of reads"); // same number of reads
+        assertEq(writes2.length, writes.length, "unexpected number of writes"); // same number of writes
+
         assertApproxEqRel(vault.getLastVaultBalance(), lastVaultBalance + (2 * amount), ONE_BPS);
     }
 
-    function testAccrueYieldDoesNotUpdateOnSameTimestamp() public {
+    function testAccrueYieldUpdatesOnSameTimestamp() public {
         uint256 amount = HUNDRED;
         _deployAndCheckProps();
+        skip(10);
 
         uint256 prevTimestamp = block.timestamp;
-        // uint256 lastUpdated = vault.getLastUpdated();
         uint256 lastVaultBalance = vault.getLastVaultBalance();
 
-        _depositFromUser(ALICE, amount);
-        _depositFromUser(ALICE, amount);
-        // only lastUpdated does NOT change if same timestamp
-        // lastVaultBalance is updated separately regardless of timestamp
+        deal(address(dai), ALICE, amount * 2);
+        vm.prank(ALICE);
+        dai.approve(address(vault), amount * 2);
+
+        vm.record();
+
+        vm.prank(ALICE);
+        vault.deposit(amount, ALICE);
+        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(vault));
+
+        _accrueYieldInVault(100); // simulate some yield
+
+        vm.prank(ALICE);
+        vault.deposit(amount, ALICE);
+        (bytes32[] memory reads2, bytes32[] memory writes2) = vm.accesses(address(vault));
+
+        assertEq(reads2.length, reads.length, "unexpected number of reads"); // same number of reads
+        assertEq(writes2.length, writes.length, "unexpected number of writes"); // same number of writes
 
         assertEq(block.timestamp, prevTimestamp);
-        // assertEq(vault.getLastUpdated(), lastUpdated); // this should not have changed as timestamp is same
-        assertApproxEqAbs(vault.getLastVaultBalance(), lastVaultBalance + (2 * amount), 1); // This should change on deposit() anyway
+        assertApproxEqRel(vault.getLastVaultBalance(), lastVaultBalance + (2 * amount), ONE_BPS);
     }
 
     function testAccrueYieldEmitsEvent() public {
