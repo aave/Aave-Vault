@@ -76,9 +76,19 @@ contract Deploy is Script {
 
         // Deploy and initialize the proxy
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN_ADDRESS, data);
+        console.log("Vault proxy deployed and initialized at: ", address(proxy));
 
         vm.stopBroadcast();
 
-        console.log("Vault proxy deployed and initialized at: ", address(proxy));
+        console.log("\nVault data:");
+        vault = ATokenVault(address(proxy));
+        console.log("POOL_ADDRESSES_PROVIDER:", address(vault.POOL_ADDRESSES_PROVIDER()));
+        console.log("REFERRAL_CODE:", vault.REFERRAL_CODE());
+        console.log("UNDERLYING:", address(vault.UNDERLYING()));
+        console.log("ATOKEN:", address(vault.ATOKEN()));
+        console.log("Name:", vault.name());
+        console.log("Symbol:", vault.symbol());
+        console.log("Owner:", vault.owner());
+        console.log("Fee:", vault.getFee());
     }
 }
