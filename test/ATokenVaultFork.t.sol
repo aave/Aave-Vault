@@ -403,6 +403,7 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         skip(10);
 
         uint256 prevTimestamp = block.timestamp;
+
         uint256 lastVaultBalance = vault.getLastVaultBalance();
 
         deal(address(dai), ALICE, amount * 2);
@@ -425,6 +426,7 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         assertEq(writes2.length, writes.length, "unexpected number of writes"); // same number of writes
 
         assertEq(block.timestamp, prevTimestamp);
+
         assertApproxEqRel(vault.getLastVaultBalance(), lastVaultBalance + (2 * amount), ONE_BPS);
     }
 

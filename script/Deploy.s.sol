@@ -9,29 +9,17 @@ import {IERC20Upgradeable} from "@openzeppelin-upgradeable/interfaces/IERC20Upgr
 import "../src/ATokenVault.sol";
 
 contract Deploy is Script {
-    // MUMBAI TESTNET ADDRESSES
-    address constant DAI_MUMBAI = 0xF14f9596430931E177469715c591513308244e8F;
-    address constant POOL_ADDRESS_PROVIDER_MUMBAI = 0xeb7A892BB04A8f836bDEeBbf60897A7Af1Bf5d7F;
-    address constant REWARDS_CONTROLLER_MUMBAI = address(0);
-
-    // POLYGON MAINNET ADDRESSES
-    address constant DAI_POLYGON = 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063;
-    address constant POOL_ADDRESS_PROVIDER_POLYGON = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
-    address constant REWARDS_CONTROLLER_POLYGON = 0x929EC64c34a17401F460460D4B9390518E5B473e;
-
     // DEPLOYMENT PARAMETERS - CHANGE THESE FOR YOUR VAULT
     // ===================================================
-    address underlyingAsset = DAI_MUMBAI; // An ERC20 address, must have an Aave v3 market
-    address aavePoolAddressProvider = POOL_ADDRESS_PROVIDER_MUMBAI;
-
-    // TODO: Replace with correct addresses
-    address proxyAdmin = address(1);
-    address owner = address(2);
-    string shareName = "Wrapped aDAI";
-    string shareSymbol = "waDAI";
-    uint256 fee = 0.1e18; // 10%
-    uint256 initialDeposit = 10e18;
-    uint16 referralCode = 4546;
+    address UNDERLYING_ASSET_ADDRESS = address(0); // Underlying asset listed in the Aave Protocol
+    uint16 REFERRAL_CODE = 0; // Referral code to use
+    address AAVE_POOL_ADDRESSES_PROVIDER_ADDRESS = address(0); // PoolAddressesProvider contract of the Aave Pool
+    address constant PROXY_ADMIN_ADDRESS = address(0); // Address of the proxy admin
+    address constant OWNER_ADDRESS = address(0); // Address of the vault owner
+    string constant SHARE_NAME = "Wrapped aDAI"; // Name of the token shares
+    string constant SHARE_SYMBOL = "waDAI"; // Symbol of the token shares
+    uint256 constant FEE = 0.1e18; // Vault Fee bps in wad (e.g. 0.1e18 results in 10%)
+    uint256 constant INITIAL_LOCK_DEPOSIT = 10e18; // Initial deposit on behalf of the vault
     // ===================================================
 
     ATokenVault public vault;
@@ -55,37 +43,52 @@ contract Deploy is Script {
         console.log("Deploying vault...");
 
         require(
-            initialDeposit != 0,
+            INITIAL_LOCK_DEPOSIT != 0,
             "Initial deposit not set. This prevents a frontrunning attack, please set a non-trivial initial deposit."
         );
 
         vm.startBroadcast(deployerPrivateKey);
+
         // Deploy the implementation, which disables initializers on construction
-        vault = new ATokenVault(underlyingAsset, referralCode, IPoolAddressesProvider(aavePoolAddressProvider));
+        vault = new ATokenVault(
+            UNDERLYING_ASSET_ADDRESS,
+            REFERRAL_CODE,
+            IPoolAddressesProvider(AAVE_POOL_ADDRESSES_PROVIDER_ADDRESS)
+        );
         console.log("Vault impl deployed at: ", address(vault));
 
         console.log("Deploying proxy...");
         // Encode the initializer call
         bytes memory data = abi.encodeWithSelector(
             ATokenVault.initialize.selector,
-            owner,
-            fee,
-            shareName,
-            shareSymbol,
-            initialDeposit
+            OWNER_ADDRESS,
+            FEE,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            INITIAL_LOCK_DEPOSIT
         );
         console.logBytes(data);
 
         address proxyAddr = computeCreateAddress(deployerAddress, vm.getNonce(deployerAddress) + 1);
-        IERC20Upgradeable(underlyingAsset).approve(proxyAddr, initialDeposit);
+        IERC20Upgradeable(UNDERLYING_ASSET_ADDRESS).approve(proxyAddr, INITIAL_LOCK_DEPOSIT);
         console.log("Precomputed proxy address: ", proxyAddr);
-        console.log("Allowance for proxy: ", IERC20Upgradeable(underlyingAsset).allowance(deployerAddress, proxyAddr));
+        console.log("Allowance for proxy: ", IERC20Upgradeable(UNDERLYING_ASSET_ADDRESS).allowance(deployerAddress, proxyAddr));
 
         // Deploy and initialize the proxy
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), proxyAdmin, data);
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN_ADDRESS, data);
+        console.log("Vault proxy deployed and initialized at: ", address(proxy));
 
         vm.stopBroadcast();
 
-        console.log("Vault proxy deployed and initialized at: ", address(proxy));
+        console.log("\nVault data:");
+        vault = ATokenVault(address(proxy));
+        console.log("POOL_ADDRESSES_PROVIDER:", address(vault.POOL_ADDRESSES_PROVIDER()));
+        console.log("REFERRAL_CODE:", vault.REFERRAL_CODE());
+        console.log("UNDERLYING:", address(vault.UNDERLYING()));
+        console.log("ATOKEN:", address(vault.ATOKEN()));
+        console.log("Name:", vault.name());
+        console.log("Symbol:", vault.symbol());
+        console.log("Owner:", vault.owner());
+        console.log("Fee:", vault.getFee());
     }
 }
