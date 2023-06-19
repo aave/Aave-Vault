@@ -616,8 +616,9 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     function _baseDeposit(uint256 assets, uint256 shares, address depositor, address receiver, bool asAToken) private {
         // Need to transfer before minting or ERC777s could reenter.
         if (asAToken) {
+            uint256 aTokenBalanceBefore = ATOKEN.balanceOf(address(this));
             ATOKEN.transferFrom(depositor, address(this), assets);
-            _s.lastVaultBalance += uint128(assets);
+            _s.lastVaultBalance += uint128(ATOKEN.balanceOf(address(this)) - aTokenBalanceBefore);
         } else {
             UNDERLYING.safeTransferFrom(depositor, address(this), assets);
             uint256 aTokenBalanceBefore = ATOKEN.balanceOf(address(this));
@@ -646,8 +647,9 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
 
         // Withdraw assets from Aave v3 and send to receiver
         if (asAToken) {
+            uint256 aTokenBalanceBefore = ATOKEN.balanceOf(address(this));
             ATOKEN.transfer(receiver, assets);
-            _s.lastVaultBalance -= uint128(assets);
+            _s.lastVaultBalance -= uint128(aTokenBalanceBefore - ATOKEN.balanceOf(address(this)));
         } else {
             uint256 amountWithdrawn = AAVE_POOL.withdraw(address(UNDERLYING), assets, receiver);
             _s.lastVaultBalance -= uint128(amountWithdrawn);
