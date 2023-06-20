@@ -422,9 +422,10 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         require(amount <= _s.accumulatedFees, "INSUFFICIENT_FEES"); // will underflow below anyway, error msg for clarity
 
         _s.accumulatedFees -= uint128(amount);
-        _s.lastVaultBalance -= uint128(amount);
 
         ATOKEN.transfer(to, amount);
+
+        _s.lastVaultBalance = uint128(ATOKEN.balanceOf(address(this)));
 
         emit FeesWithdrawn(to, amount, _s.lastVaultBalance, _s.accumulatedFees);
     }
