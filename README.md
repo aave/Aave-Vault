@@ -63,6 +63,7 @@ You can find all audit reports under the audits folder
 
 - [01-03-2023 OpenZeppelin](./audits/01-03-2023_OpenZeppelin_Wrapped_AToken_Vault.pdf)
 - [03-03-2023 PeckShield](./audits/03-03-2023_Peckshield_Wrapped_AToken_Vault.pdf)
+- [18-06-2023 Certora](./certora/report/Aave-Vault-Formal-Verification.pdf)
 
 
 ## License
