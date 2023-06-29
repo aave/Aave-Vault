@@ -207,11 +207,6 @@ function maxUint132() returns uint256 {return 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 function maxUint128() returns uint128 {return 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;}
                                               
 function maxUint120() returns uint128 {return 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;}
-//function maxUint64()  returns uint128 {return 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;}
-//function maxUint64() returns uint128  {
-//    return 0xFFFFFFFFFFFFFFFF;
-//    
-//}
 
 // axiom f * deno < x*y
 // axioms for requirement in CVL function
