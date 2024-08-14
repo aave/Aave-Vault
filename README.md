@@ -68,4 +68,4 @@ You can find all audit reports under the audits folder
 
 ## License
 
-All Rights Reserved © AaveCo
+All Rights Reserved © Aave Labs
