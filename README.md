@@ -24,7 +24,7 @@ AVALANCHE_RPC_URL=[Your favourite Avalanche RPC URL]
 
 The fork tests all use Polygon, except tests for claiming Aave rewards, which use Avalanche.
 
-This test suite also includes a16z's [ERC-4626 Property Tests](https://a16zcrypto.com/generalized-property-tests-for-erc4626-vaults/), which are in the `ATokenVaultProperties.t.sol` file. These tests do not use a forked network state but rather use mock contracts, found in the `test/mocks` folder.
+This test suite also includes A16z's [ERC-4626 Property Tests](https://A16zcrypto.com/generalized-property-tests-for-erc4626-vaults/), which are in the `ATokenVaultProperties.t.sol` file. These tests do not use a forked network state but rather use mock contracts, found in the `test/mocks` folder.
 
 ## Deployment
 
