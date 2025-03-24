@@ -46,11 +46,8 @@ contract ATokenVaultHarness is ATokenVault {
         return _maxAssetsWithdrawableFromAave();
     }
 
-    function mulDiv__(uint256 x, uint256 y, uint256 deno, uint8 rounding) external returns(uint256 result) {
-        if (rounding==0)
-            result = x.mulDiv(y,deno,MathUpgradeable.Rounding.Down);
-        else
-            result = x.mulDiv(y,deno,MathUpgradeable.Rounding.Up);
+    function mulDiv__(uint256 x, uint256 y, uint256 deno, MathUpgradeable.Rounding rounding) external returns(uint256 result) {
+      result = x.mulDiv(y,deno,rounding);
     }
 
     function rayMul__(uint256 a, uint256 b) external returns (uint256) {
@@ -60,7 +57,6 @@ contract ATokenVaultHarness is ATokenVault {
     function rayDiv__(uint256 a, uint256 b) external returns (uint256) {
         return WadRayMath.rayDiv(a,b);
     }
-
     function handleDeposit_wrapper(uint256 assets, address receiver, address depositor, bool asAToken)
         external returns (uint256) {
         return _handleDeposit(assets,receiver,depositor,asAToken);
@@ -78,6 +74,5 @@ contract ATokenVaultHarness is ATokenVault {
         return _handleRedeem(shares,receiver,owner,allowanceTarget,asAToken);
     }
 
-
-        
+    
 }

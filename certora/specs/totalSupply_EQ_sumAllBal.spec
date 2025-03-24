@@ -1,10 +1,15 @@
-import "methods_base.spec"
+import "methods_base.spec";
 
 methods {
-    Underlying.totalSupply() envfree;
-    rayMul(uint256 a,uint256 b) returns (uint256) => rayMul_g(a,b);
-    rayDiv(uint256 a,uint256 b) returns (uint256) => rayDiv_g(a,b);
-    mulDiv(uint256 x, uint256 y, uint256 denominator) returns uint256 => mulDiv3_g(x,y,denominator);
+    //    function _.rayMul(uint256 a,uint256 b) internal returns (uint256) => rayMul_g(a,b);
+    //function _.rayDiv(uint256 a,uint256 b) internal returns (uint256) => rayDiv_g(a,b);
+    //function _.mulDiv(uint256 x, uint256 y, uint256 denominator) internal returns uint256 => mulDiv3_g(x,y,denominator);
+
+    //function _.foo() external => fooImpl() expect uint256 ALL;
+    
+    function _.rayMul(uint256 a,uint256 b) internal => rayMul_g(a,b) expect uint256 ALL;
+    function _.rayDiv(uint256 a,uint256 b) internal => rayDiv_g(a,b) expect uint256 ALL;
+    function _.mulDiv(uint256 x, uint256 y, uint256 denominator) internal => mulDiv3_g(x,y,denominator)  expect uint256 ALL;
 }
 
 
@@ -27,16 +32,31 @@ ghost mulDiv3_g(uint256 , uint256 , uint256) returns uint256 {
 // Status: pass
 // **********************************************
 invariant inv_sumAllBalance_eq_totalSupply()
-    sumAllBalance() == totalSupply()
-    filtered {f -> f.selector != havoc_all().selector}
+  sumAllBalance() == to_mathint(totalSupply())
+  filtered {f -> f.contract==currentContract && f.selector != sig:havoc_all().selector}
 
 invariant inv_balanceOf_leq_totalSupply(address user)
-    balanceOf(user) <= totalSupply()
+  balanceOf(user) <= totalSupply()
+  filtered {f -> f.contract==currentContract}
 {
-    preserved with (env e) {
-        requireInvariant inv_sumAllBalance_eq_totalSupply();
-    }
+  preserved with (env e) {
+    requireInvariant inv_sumAllBalance_eq_totalSupply();
+  }
 }
+
+rule my_rule() {
+    address a;
+    requireInvariant inv_sumAllBalance_eq_totalSupply();
+
+    require balanceOf(a) <= totalSupply();
+
+    address from; address to; uint256 amount;
+    env e;
+    transferFrom(e, from, to, amount);
+    
+    assert balanceOf(a) <= totalSupply();
+}
+
 
 
 // **********************************************
@@ -50,11 +70,10 @@ invariant inv_balanceOf_leq_totalSupply(address user)
 //         This help us to avoid failures due to overflows.
 // **********************************************
 invariant inv_sumAllBalance_eq_totalSupply__underline()
-    sumAllBalance_underline() == Underlying.totalSupply()
+    sumAllBalance_underline() == to_mathint(Underlying.totalSupply())
     filtered {f -> !f.isView &&
-    f.selector != havoc_all().selector
+    f.selector != sig:havoc_all().selector
    }
-
 
 // **********************************************
 // ATOKEN:
@@ -67,9 +86,9 @@ invariant inv_sumAllBalance_eq_totalSupply__underline()
 //         This help us to avoid failures due to overflows.
 // **********************************************
 invariant inv_sumAllBalance_eq_totalSupply__atoken()
-    sumAllBalance_atoken() == _AToken.scaledTotalSupply()
+    sumAllBalance_atoken() == to_mathint(_AToken.scaledTotalSupply())
     filtered {f -> !f.isView &&
-              f.selector != havoc_all().selector
+              f.selector != sig:havoc_all().selector
    }
 
 

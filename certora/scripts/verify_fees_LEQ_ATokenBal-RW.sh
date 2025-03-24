@@ -3,7 +3,7 @@ certoraRun certora/harness/ATokenVaultHarness.sol \
     certora/harness/pool/SymbolicLendingPoolL1.sol \
     certora/harness/tokens/DummyERC20_aTokenUnderlying.sol \
     certora/munged/lib/aave-v3-core/contracts/protocol/tokenization/AToken.sol \
-    --verify ATokenVaultHarness:certora/specs/fees_LEQ_ATokenBal-RW.spec \
+    --verify ATokenVaultHarness:certora/specs/Fees_LEQ_ATokenBal-redeem-withdraw.spec \
     --link ATokenVaultHarness:AAVE_POOL=SymbolicLendingPoolL1 \
            ATokenVaultHarness:ATOKEN=AToken \
            ATokenVaultHarness:UNDERLYING=DummyERC20_aTokenUnderlying \
@@ -14,7 +14,7 @@ certoraRun certora/harness/ATokenVaultHarness.sol \
            AToken:_underlyingAsset=DummyERC20_aTokenUnderlying \
     --solc solc8.10 \
     --optimistic_loop \
-    --cloud \
+    --staging pre_cvl2 \
     --packages @openzeppelin-upgradeable=certora/munged/lib/openzeppelin-contracts-upgradeable/contracts \
                @aave-v3-core=certora/munged/lib/aave-v3-core/contracts \
                @aave-v3-periphery=certora/munged/lib/aave-v3-periphery/contracts \
@@ -22,30 +22,27 @@ certoraRun certora/harness/ATokenVaultHarness.sol \
                @aave/core-v3=certora/munged/lib/aave-v3-core \
     --msg "$1::  $2" \
     --settings  -t=2000,-mediumTimeout=1000,-depth=15    \
-    --settings \
+    --settings -enableEventReporting \
     --rule $1 \
     --send_only \
+    --method "withdraw(uint256,address,address)" \
 
 
 
 
-
-
-
-#    --method "withdraw(uint256,address,address)" 
-#     --method "withdrawATokens(uint256,address,address)"
-#--method "withdrawATokensWithSig(uint256,address,address,(uint8,bytes32,bytes32,uint256))"
-#--method "withdrawWithSig(uint256,address,address,(uint8,bytes32,bytes32,uint256))"
-#--method "redeemAsATokens(uint256,address,address)"
-#--method "redeemAsATokens(uint256,address,address)"
-#--method "depositATokens(uint256,address)"    
-#--typecheck_only
+    #--method "withdrawATokensWithSig(uint256,address,address,(uint8,bytes32,bytes32,uint256))"
+    #--method "withdrawWithSig(uint256,address,address,(uint8,bytes32,bytes32,uint256))"
+    #--method "redeemAsATokens(uint256,address,address)"
+    #--method "redeemAsATokens(uint256,address,address)"
+    #--method "depositATokens(uint256,address)"    
+    #--typecheck_only
 
 #    --method "redeemAsATokens(uint256,address,address)"
 # --method "depositATokensWithSig(uint256,address,address,(uint8,bytes32,bytes32,uint256))"
 # --method "depositATokens(uint256,address)"    
 #    --method "depositATokens(uint256,address)" \
 #    --method "deposit(uint256,address)" \
+#    --method "withdraw(uint256,address,address)" \
 #    --method "My_baseDeposit(uint256,uint256,address,address,bool)" \
 #    --method "redeem(uint256,address,address)" \
 
