@@ -21,8 +21,8 @@ certoraRun certora/harness/ATokenVaultHarness.sol \
                @openzeppelin=certora/munged/lib/openzeppelin-contracts/contracts \
                @aave/core-v3=certora/munged/lib/aave-v3-core \
     --msg "_s.lastVaultBalance LEQ AToken.balance[this]" \
-    --settings  -t=2000,-mediumTimeout=1000,-depth=15  \
-    --settings \
+    --settings  -t=2000,-mediumTimeout=1000,-depth=15    \
+    --settings -enableEventReporting \
     --send_only \
     --disable_auto_cache_key_gen \
     --rule inv_lastVaultBalance_LEQ_ATokenBalThis \

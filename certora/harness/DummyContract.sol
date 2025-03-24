@@ -1,9 +1,9 @@
 
 
 contract DummyContract {
-    function havoc_all_dummy() public {
+    function havoc_all_dummy() external {
         havoc_all_dummy_internal();
     }
 
-    function havoc_all_dummy_internal() public {}
+    function havoc_all_dummy_internal() internal {}
 }

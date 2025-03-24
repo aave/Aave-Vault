@@ -7,3 +7,5 @@
 .DS_Store
 .gas-snapshot
 lcov.info
+.certora_internal/
+.certora_recent_jobs.json
