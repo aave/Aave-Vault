@@ -133,9 +133,10 @@ contract ATokenVaultBaseTest is Test {
             SHARE_SYMBOL,
             _initialLockDeposit
         );
-        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)));
 
         deal(underlying, address(this), _initialLockDeposit);
+        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)) + 1);
+
         IERC20Upgradeable(underlying).safeApprove(address(proxyAddr), _initialLockDeposit);
 
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
