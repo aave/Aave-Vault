@@ -186,9 +186,10 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
             SHARE_SYMBOL,
             amount
         );
-        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)));
 
         deal(address(dai), address(this), amount);
+        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)) + 1);
+
         dai.approve(address(proxyAddr), amount);
 
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
@@ -217,9 +218,10 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
             SHARE_SYMBOL,
             initialLockDeposit
         );
-        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)));
-
+        
         deal(address(dai), address(this), initialLockDeposit);
+        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)) + 1);
+
         dai.approve(address(proxyAddr), initialLockDeposit);
 
         // no indexed fields, just data check (4th param)
