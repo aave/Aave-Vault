@@ -11,9 +11,6 @@
 	path = lib/aave-v3-core
 	url = https://github.com/aave/aave-v3-core
 	branch = v1.17.1
-[submodule "lib/erc4626-tests"]
-	path = lib/erc4626-tests
-	url = https://github.com/a16z/erc4626-tests
 [submodule "lib/aave-v3-periphery"]
 	path = lib/aave-v3-periphery
 	url = https://github.com/aave/aave-v3-periphery
@@ -22,3 +19,6 @@
 	path = lib/openzeppelin-contracts-upgradeable
 	url = https://github.com/openzeppelin/openzeppelin-contracts-upgradeable
 	branch = v4.8.1
+[submodule "lib/erc4626-tests"]
+	path = lib/erc4626-tests
+	url = https://github.com/a16z/erc4626-tests
