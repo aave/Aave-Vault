@@ -17,14 +17,14 @@ jobs:
   compare_gas_reports:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Install Foundry
         uses: onbjerg/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
       # Add any step generating a gas report to a temporary file named gasreport.ansi
       # For example:
@@ -38,7 +38,7 @@ jobs:
           FOUNDRY_FUZZ_SEED: 0x${{ github.event.pull_request.base.sha || github.sha }}
 
       - name: Compare gas reports
-        uses: Rubilmax/foundry-gas-diff@v3.11
+        uses: Rubilmax/foundry-gas-diff@v3.21
         with:
           sortCriteria: avg,max # optionnally sort diff rows by criteria
           sortOrders: desc,asc # and directions

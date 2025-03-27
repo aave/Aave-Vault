@@ -6,6 +6,7 @@ optimizer-runs = 10_000_000
 via_ir = false
 runs = 256
 gas_reports = ["ATokenVault"]
+isolate = true
 
 [fuzz]
 max_test_rejects = 65536

@@ -22,7 +22,7 @@ certoraRun certora/harness/ATokenVaultHarness.sol \
                @aave/core-v3=certora/munged/lib/aave-v3-core \
     --msg "totalSupply EQ sum of all balances: Vault, AToken, Underline" \
     --settings  -t=2000,-mediumTimeout=1000,-depth=15    \
-    --settings \
+    --settings -enableEventReporting \
     --send_only \
 
 #    --rule $1 \

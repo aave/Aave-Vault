@@ -3,6 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "./utils/Constants.sol";
+import {console2 as console} from "forge-std/console2.sol";
 import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
@@ -185,9 +186,10 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
             SHARE_SYMBOL,
             amount
         );
-        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)));
 
         deal(address(dai), address(this), amount);
+        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)) + 1);
+
         dai.approve(address(proxyAddr), amount);
 
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
@@ -216,9 +218,10 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
             SHARE_SYMBOL,
             initialLockDeposit
         );
-        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)));
-
+        
         deal(address(dai), address(this), initialLockDeposit);
+        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)) + 1);
+
         dai.approve(address(proxyAddr), initialLockDeposit);
 
         // no indexed fields, just data check (4th param)
@@ -474,13 +477,13 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
         dai.approve(address(vault), amount * 2);
 
         vm.record();
-
         // Event emission
         vm.expectEmit(false, false, false, true, address(vault));
         emit YieldAccrued(expectedNewYield, expectedFeesFromYield, vaultBalanceAfter);
         vault.deposit(amount, ALICE);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(vault));
 
+        vm.record();
         // No event emission
         vault.deposit(amount, ALICE);
         (bytes32[] memory reads2, bytes32[] memory writes2) = vm.accesses(address(vault));

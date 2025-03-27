@@ -1,12 +1,12 @@
 // erc20 methods
 methods {
-    name()                                => DISPATCHER(true)
-    symbol()                              => DISPATCHER(true)
-    decimals()                            => DISPATCHER(true)
-    totalSupply()                         => DISPATCHER(true)
-    balanceOf(address)                    => DISPATCHER(true)
-    allowance(address,address)            => DISPATCHER(true)
-    approve(address,uint256)              => DISPATCHER(true)
-    transfer(address,uint256)             => DISPATCHER(true)
-    transferFrom(address,address,uint256) => DISPATCHER(true)
+    function _.name()                                external => DISPATCHER(true);
+    function _.symbol()                              external => DISPATCHER(true);
+    function _.decimals()                            external => DISPATCHER(true);
+    function _.totalSupply()                         external => DISPATCHER(true);
+    function _.balanceOf(address)                    external => DISPATCHER(true);
+    function _.allowance(address,address)            external => DISPATCHER(true);
+    function _.approve(address,uint256)              external => DISPATCHER(true);
+    function _.transfer(address,uint256)             external => DISPATCHER(true);
+    function _.transferFrom(address,address,uint256) external => DISPATCHER(true);
 }
