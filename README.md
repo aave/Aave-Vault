@@ -68,4 +68,4 @@ You can find all audit reports under the audits folder
 
 ## License
 
-All Rights Reserved © Aave Labs
+[All Rights Reserved © Aave Labs](https://github.com/aave/Aave-Vault/blob/main/LICENSE)
