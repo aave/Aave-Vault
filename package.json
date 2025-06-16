@@ -21,6 +21,9 @@
     "Mark Hinschberger <mark@aave.com>"
   ],
   "scripts": {
-    "lint": "prettier --write **.sol"
+    "lint": "prettier --write **.sol",
+    "rs:bind": "forge bind --bindings-path ./out/__BINDINGS__ --alloy --skip 'test/**/*.sol'",
+    "rs:abis": "forge build --out ./out/__FOLDER_ABIS__ --skip 'test/**/*.sol' --extra-output-files abi && rm -rf ./out/__ABIS__ && mkdir -p ./out/__ABIS__ && find ./out/__FOLDER_ABIS__ -name '*.abi.json' -exec cp {} ./out/__ABIS__/ \\;",
+    "rs:generate": "npm run rs:bind && npm run rs:abis"
   }
 }
