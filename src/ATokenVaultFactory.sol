@@ -9,6 +9,28 @@ import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/Trans
 import {ATokenVault} from "./ATokenVault.sol";
 
 /**
+ * @title ATokenVaultImplDeploymentLib
+ * @author Aave Protocol
+ * @notice Library that handles the deployment of the ATokenVault implementation contract
+ * @dev This library is a helper to avoid holding the ATokenVault bytecode in the factory contract avoiding exceeding
+ *      the contract size limit.
+ */
+library ATokenVaultImplDeploymentLib {
+    function deployVaultImpl(
+        bytes32 salt,
+        address underlying,
+        uint16 referralCode,
+        IPoolAddressesProvider poolAddressesProvider
+    ) external returns (address vault) {
+        return address(new ATokenVault{salt: salt}(
+            underlying,
+            referralCode,
+            poolAddressesProvider
+        ));
+    }
+}
+
+/**
  * @title ATokenVaultFactory
  * @author Aave Protocol
  * @notice Factory contract for deploying ATokenVault instances
@@ -124,11 +146,12 @@ contract ATokenVaultFactory {
             currentCounter
         ));
 
-        address implementation = address(new ATokenVault{salt: salt}(
+        address implementation = ATokenVaultImplDeploymentLib.deployVaultImpl(
+            salt,
             params.underlying,
             params.referralCode,
             params.poolAddressesProvider
-        ));
+        );
 
         vault = address(new TransparentUpgradeableProxy{salt: salt}(
             implementation,
