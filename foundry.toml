@@ -2,7 +2,7 @@
 solc = "0.8.10"
 bytecode_hash = "none"
 optimizer = true
-optimizer-runs = 10_000_000
+optimizer-runs = 10
 via_ir = false
 runs = 256
 gas_reports = ["ATokenVault"]
