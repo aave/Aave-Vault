@@ -11,7 +11,7 @@ import {ATokenVault} from "./ATokenVault.sol";
 /**
  * @title ATokenVaultFactory
  * @author Aave Protocol
- * @notice Factory contract for deploying ATokenVault instances using the proxy pattern
+ * @notice Factory contract for deploying ATokenVault instances
  */
 contract ATokenVaultFactory {
     /*//////////////////////////////////////////////////////////////
