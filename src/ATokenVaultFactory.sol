@@ -41,19 +41,19 @@ contract ATokenVaultFactory {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Array of all deployed vaults
-    address[] public allVaults;
+    address[] internal _allVaults;
 
     /// @notice Mapping from underlying asset to deployed vaults
-    mapping(address => address[]) public vaultsByUnderlying;
+    mapping(address => address[]) internal _vaultsByUnderlying;
 
     /// @notice Mapping from deployer to deployed vaults
-    mapping(address => address[]) public vaultsByDeployer;
+    mapping(address => address[]) internal _vaultsByDeployer;
 
     /// @notice Mapping to check if a vault was deployed by this factory
-    mapping(address => bool) public isVaultDeployed;
+    mapping(address => bool) internal _isVaultDeployed;
 
     /// @notice Counter for unique salt generation
-    uint256 private deploymentCounter;
+    uint256 internal _deploymentCounter;
 
     /// @notice Proxy admin address for all deployed vaults
     address public immutable PROXY_ADMIN;
@@ -113,7 +113,7 @@ contract ATokenVaultFactory {
             params.initialLockDeposit
         );
 
-        uint256 currentCounter = deploymentCounter++;
+        uint256 currentCounter = _deploymentCounter++;
 
         bytes32 salt = keccak256(abi.encodePacked(
             params.underlying,
@@ -147,10 +147,10 @@ contract ATokenVaultFactory {
             params.initialLockDeposit
         );
 
-        allVaults.push(vault);
-        vaultsByUnderlying[params.underlying].push(vault);
-        vaultsByDeployer[msg.sender].push(vault);
-        isVaultDeployed[vault] = true;
+        _allVaults.push(vault);
+        _vaultsByUnderlying[params.underlying].push(vault);
+        _vaultsByDeployer[msg.sender].push(vault);
+        _isVaultDeployed[vault] = true;
 
         emit VaultDeployed(
             vault,
@@ -172,7 +172,7 @@ contract ATokenVaultFactory {
      * @return The total number of vaults
      */
     function getAllVaultsLength() external view returns (uint256) {
-        return allVaults.length;
+        return _allVaults.length;
     }
 
     /**
@@ -180,7 +180,7 @@ contract ATokenVaultFactory {
      * @return Array of all vault addresses
      */
     function getAllVaults() external view returns (address[] memory) {
-        return allVaults;
+        return _allVaults;
     }
 
     /**
@@ -189,7 +189,7 @@ contract ATokenVaultFactory {
      * @return Array of vault addresses for the underlying asset
      */
     function getVaultsByUnderlying(address underlying) external view returns (address[] memory) {
-        return vaultsByUnderlying[underlying];
+        return _vaultsByUnderlying[underlying];
     }
 
     /**
@@ -198,7 +198,7 @@ contract ATokenVaultFactory {
      * @return Array of vault addresses deployed by the deployer
      */
     function getVaultsByDeployer(address deployer) external view returns (address[] memory) {
-        return vaultsByDeployer[deployer];
+        return _vaultsByDeployer[deployer];
     }
 
     /**
@@ -211,8 +211,8 @@ contract ATokenVaultFactory {
         address vault,
         address underlying
     ) {
-        require(vaultIndex < allVaults.length, "INVALID_VAULT_INDEX");
-        vault = allVaults[vaultIndex];
+        require(vaultIndex < _allVaults.length, "INVALID_VAULT_INDEX");
+        vault = _allVaults[vaultIndex];
         ATokenVault vaultContract = ATokenVault(vault);
         underlying = address(vaultContract.UNDERLYING());
     }
@@ -223,6 +223,6 @@ contract ATokenVaultFactory {
      * @return True if the vault was deployed by this factory
      */
     function isDeployedVault(address vault) external view returns (bool) {
-        return isVaultDeployed[vault];
+        return _isVaultDeployed[vault];
     }
 }
