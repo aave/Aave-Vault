@@ -71,7 +71,7 @@ contract MockAavePool {
         ERC20(_asset).transfer(address(aToken), _amount);
     }
 
-    function withdraw(address _asset, uint256 _amount, address _receiver) public returns (uint256) {
+    function withdraw(address /* _asset */, uint256 _amount, address _receiver) public returns (uint256) {
         aToken.burn(msg.sender, _receiver, _amount, 0);
         return _amount;
     }
