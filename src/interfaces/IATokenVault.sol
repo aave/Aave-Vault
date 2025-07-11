@@ -394,8 +394,10 @@ interface IATokenVault is IERC4626Upgradeable {
      * @notice Claims any additional Aave rewards earned from vault deposits.
      * @dev Only callable by the owner
      * @param to The address to receive any rewards tokens
+     * @return The list of addresses of the rewards that have been claimed
+     * @return The list of amounts of rewards that have been claimed
      */
-    function claimRewards(address to) external;
+    function claimRewards(address to) external returns (address[] memory, uint256[] memory);
 
     /**
      * @notice Rescue any tokens other than the vault's aToken which may have accidentally been transferred to this

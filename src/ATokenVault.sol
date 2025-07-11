@@ -431,7 +431,7 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
     }
 
     /// @inheritdoc IATokenVault
-    function claimRewards(address to) public override onlyOwner {
+    function claimRewards(address to) public override onlyOwner returns (address[] memory, uint256[] memory) {
         require(to != address(0), "CANNOT_CLAIM_TO_ZERO_ADDRESS");
 
         address[] memory assets = new address[](1);
@@ -441,6 +441,8 @@ contract ATokenVault is ERC4626Upgradeable, OwnableUpgradeable, EIP712Upgradeabl
         ).claimAllRewards(assets, to);
 
         emit RewardsClaimed(to, rewardsList, claimedAmounts);
+
+        return (rewardsList, claimedAmounts);
     }
 
     /// @inheritdoc IATokenVault
