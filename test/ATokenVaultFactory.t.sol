@@ -834,8 +834,8 @@ contract ATokenVaultFactoryTest is Test {
         uint256 initialFee,
         uint256 initialDeposit
     ) public {
-        vm.assume(initialDeposit > 0 && initialDeposit <= 1e30);
-        vm.assume(initialFee <= 1e18); // Max 100% fee
+        initialDeposit = _boundInitialDeposit(initialDeposit);
+        initialFee = _boundInitialFee(initialFee);
 
         deal(address(dai), ALICE, initialDeposit);
 
@@ -869,7 +869,7 @@ contract ATokenVaultFactoryTest is Test {
         uint256 initialFee
     ) public {
         uint256 minDeposit = 1;
-        vm.assume(initialFee <= 1e18);
+        initialFee = _boundInitialFee(initialFee);
 
         deal(address(dai), ALICE, minDeposit);
 
@@ -902,7 +902,7 @@ contract ATokenVaultFactoryTest is Test {
         uint16 referralCode,
         uint256 initialDeposit
     ) public {
-        vm.assume(initialDeposit > 0 && initialDeposit <= 1e30);
+        initialDeposit = _boundInitialDeposit(initialDeposit);
 
         deal(address(dai), ALICE, initialDeposit);
 
@@ -940,5 +940,13 @@ contract ATokenVaultFactoryTest is Test {
 
         ATokenVault vaultContract2 = ATokenVault(vault2);
         assertEq(vaultContract2.getFee(), 1e18);
+    }
+
+    function _boundInitialDeposit(uint256 initialDeposit) internal returns (uint256) {
+        return bound(initialDeposit, 1, 1e30);
+    }
+
+    function _boundInitialFee(uint256 initialFee) internal returns (uint256) {
+        return bound(initialFee, 0, 1e18);
     }
 }
