@@ -87,6 +87,10 @@ contract ATokenVaultFactoryTest is Test {
         address[] memory aliceVaults = factory.getVaultsByDeployer(ALICE);
         assertEq(aliceVaults.length, 1);
         assertEq(aliceVaults[0], vault);
+
+        address[] memory daiVaults = factory.getVaultsByUnderlying(address(dai));
+        assertEq(daiVaults.length, 1);
+        assertEq(daiVaults[0], vault);
     }
 
     function testDeployVaultWithFee() public {
@@ -323,6 +327,10 @@ contract ATokenVaultFactoryTest is Test {
 
         address[] memory bobVaults = factory.getVaultsByDeployer(BOB);
         assertEq(bobVaults.length, 0);
+
+        address[] memory daiVaults = factory.getVaultsByUnderlying(address(dai));
+        assertEq(daiVaults.length, 1);
+        assertEq(daiVaults[0], vault);
     }
 
     /*//////////////////////////////////////////////////////////////
