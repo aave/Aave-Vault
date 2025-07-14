@@ -489,6 +489,31 @@ contract ATokenVaultFactoryTest is Test {
         vm.stopPrank();
     }
 
+    function testDeployVaultExceedingMaxFeeReverts(uint256 initialDeposit, uint256 initFee) public {
+        initialDeposit = _boundInitialDeposit(initialDeposit);
+        initFee = bound(initFee, 1e18 + 1, type(uint256).max);
+
+        deal(address(dai), ALICE, initialDeposit);
+
+        vm.startPrank(ALICE);
+        dai.approve(address(factory), initialDeposit);
+
+        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+            underlying: address(dai),
+            referralCode: 0,
+            poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
+            owner: ALICE,
+            initialFee: initFee,
+            shareName: "Max Fee Vault",
+            shareSymbol: "MFV",
+            initialLockDeposit: initialDeposit
+        });
+
+        vm.expectRevert("FEE_TOO_HIGH");
+        factory.deployVault(params);
+        vm.stopPrank();
+    }
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR TESTS
     //////////////////////////////////////////////////////////////*/
