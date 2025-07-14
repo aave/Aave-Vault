@@ -17,12 +17,11 @@ import {ATokenVault} from "./ATokenVault.sol";
  */
 library ATokenVaultImplDeploymentLib {
     function deployVaultImpl(
-        bytes32 salt,
         address underlying,
         uint16 referralCode,
         IPoolAddressesProvider poolAddressesProvider
     ) external returns (address vault) {
-        return address(new ATokenVault{salt: salt}(
+        return address(new ATokenVault(
             underlying,
             referralCode,
             poolAddressesProvider
@@ -73,9 +72,6 @@ contract ATokenVaultFactory {
 
     /// @notice Mapping to check if a vault was deployed by this factory
     mapping(address => bool) internal _isVaultDeployed;
-
-    /// @notice Counter for unique salt generation
-    uint256 internal _deploymentCounter;
 
     /// @notice Proxy admin address for all deployed vaults
     address public immutable PROXY_ADMIN;
@@ -135,25 +131,13 @@ contract ATokenVaultFactory {
             params.initialLockDeposit
         );
 
-        uint256 currentCounter = _deploymentCounter++;
-
-        bytes32 salt = keccak256(abi.encodePacked(
-            params.underlying,
-            params.referralCode,
-            address(params.poolAddressesProvider),
-            msg.sender,
-            block.timestamp,
-            currentCounter
-        ));
-
         address implementation = ATokenVaultImplDeploymentLib.deployVaultImpl(
-            salt,
             params.underlying,
             params.referralCode,
             params.poolAddressesProvider
         );
 
-        vault = address(new TransparentUpgradeableProxy{salt: salt}(
+        vault = address(new TransparentUpgradeableProxy(
             implementation,
             PROXY_ADMIN,
             ""
