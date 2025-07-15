@@ -219,7 +219,7 @@ contract ATokenVaultFactoryTest is Test {
         // Find the VaultDeployed event (should be the last one)
         bool eventFound = false;
         for (uint i = 0; i < logs.length; i++) {
-            if (logs[i].topics[0] == keccak256("VaultDeployed(address,address,address,address,address,uint16,address)")) {
+            if (logs[i].topics[0] == keccak256("VaultDeployed(address,address,address,address,(address,uint16,address,address,uint256,string,string,uint256))")) {
                 eventFound = true;
 
                 // Decode the event data
@@ -227,17 +227,24 @@ contract ATokenVaultFactoryTest is Test {
                 address eventImplementation = address(uint160(uint256(logs[i].topics[2])));
                 address eventUnderlying = address(uint160(uint256(logs[i].topics[3])));
 
-                (address eventDeployer, address eventOwner, uint16 eventReferralCode, address eventPoolProvider) =
-                                    abi.decode(logs[i].data, (address, address, uint16, address));
+                (address eventDeployer, ATokenVaultFactory.VaultParams memory eventVaultParams) = abi.decode(
+                    logs[i].data,
+                    (address, ATokenVaultFactory.VaultParams)
+                );
 
                 // Verify event data
                 assertEq(eventVault, vault);
                 assertTrue(eventImplementation != address(0));
                 assertEq(eventUnderlying, address(dai));
                 assertEq(eventDeployer, ALICE);
-                assertEq(eventOwner, ALICE);
-                assertEq(eventReferralCode, 42);
-                assertEq(eventPoolProvider, address(poolAddrProvider));
+                assertEq(eventVaultParams.underlying, address(dai));
+                assertEq(eventVaultParams.referralCode, 42);
+                assertEq(address(eventVaultParams.poolAddressesProvider), address(poolAddrProvider));
+                assertEq(eventVaultParams.owner, ALICE);
+                assertEq(eventVaultParams.initialFee, 0);
+                assertEq(eventVaultParams.shareName, "Test Vault");
+                assertEq(eventVaultParams.shareSymbol, "tVault");
+                assertEq(eventVaultParams.initialLockDeposit, initialDeposit);
                 break;
             }
         }

@@ -45,16 +45,14 @@ contract ATokenVaultFactory {
      * @param implementation The address of the vault implementation
      * @param underlying The underlying asset address
      * @param deployer The address that deployed the vault
-     * @param owner The owner of the vault
+     * @param params The parameters used to deploy the vault
      */
     event VaultDeployed(
         address indexed vault,
         address indexed implementation,
         address indexed underlying,
         address deployer,
-        address owner,
-        uint16 referralCode,
-        address poolAddressesProvider
+        VaultParams params
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -164,9 +162,7 @@ contract ATokenVaultFactory {
             implementation,
             params.underlying,
             msg.sender,
-            params.owner,
-            params.referralCode,
-            address(params.poolAddressesProvider)
+            params
         );
     }
 
