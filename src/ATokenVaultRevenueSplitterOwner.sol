@@ -173,7 +173,7 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
     }
 
     /**
-     * @dev Does not check for duplicates in the recipients array. Sum of shares must be represent 100.00% in BPS.
+     * @dev Does not check for duplicates in the recipients array. Sum of shares must represent 100.00% in basis points.
      */
     function _setRecipients(Recipient[] memory recipients) internal {
         uint256 accumulatedShareInBps = 0;
