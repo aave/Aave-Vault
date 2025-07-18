@@ -8,7 +8,7 @@ import {IATokenVault} from "./interfaces/IATokenVault.sol";
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
-contract ATokenVaultOwner is Ownable {
+contract ATokenVaultRevenueSplitterOwner is Ownable {
     using SafeERC20 for IERC20;
 
     event RecipientSet(address indexed recipient, uint16 shareInBps);
@@ -38,20 +38,14 @@ contract ATokenVaultOwner is Ownable {
         Ownable(address(VAULT)).transferOwnership(newOwner);
     }
 
-    // Fees - Percentage of the yield earned by the vault (aToken)
-    // TODO: Does it make sense to allow partial withdrawal? I got rid of the `amount` param by doing a full one always
-    // TODO: Any reason to make it onlyOwner?
     function withdrawFees() public {
         _withdrawFees();
     }
 
-    // Rewards - Percentage of the token incentives granted to the vault
-    // TODO: Any reason to make it onlyOwner?
     function claimRewards() external {
         _claimRewards();
     }
 
-    // TODO: Any reason to make it onlyOwner?
     function splitRevenue(address[] calldata assets) public {
         Recipient[] memory recipients = _recipients;
         for (uint256 i = 0; i < assets.length; i++) {
