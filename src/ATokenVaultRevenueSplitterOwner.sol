@@ -64,6 +64,7 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
      */
     constructor(address vault, address owner, Recipient[] memory recipients) {
         VAULT = IATokenVault(vault);
+        require(recipients.length > 0, "MISSING_RECIPIENTS");
         _setRecipients(recipients);
         _transferOwnership(owner);
     }
