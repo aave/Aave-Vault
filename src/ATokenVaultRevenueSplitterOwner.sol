@@ -29,7 +29,7 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
      * @param asset The asset being split
      * @param amount The amount of revenue sent to the recipient in the split asset
      */
-    event RevenueSplit(address indexed recipient, address indexed asset, uint256 amount);
+    event RevenueSplitTransferred(address indexed recipient, address indexed asset, uint256 amount);
 
     /**
      * @dev The sum of all recipients' shares in basis points, represents 100.00%. Each basis point is 0.01%.
@@ -110,7 +110,7 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
                 if (amountForRecipient > 0) {
                     IERC20(assets[i]).safeTransfer(recipients[j].addr, amountForRecipient);
                 }
-                emit RevenueSplit(recipients[j].addr, assets[i], amountForRecipient);
+                emit RevenueSplitTransferred(recipients[j].addr, assets[i], amountForRecipient);
             }
         }
     }
@@ -129,7 +129,7 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
                 (bool transferSucceeded, ) = _recipients[j].addr.call{value: amountForRecipient}("");
                 require(transferSucceeded, "NATIVE_TRANSFER_FAILED");
             }
-            emit RevenueSplit(_recipients[j].addr, address(0), amountForRecipient);
+            emit RevenueSplitTransferred(_recipients[j].addr, address(0), amountForRecipient);
         }
     }
 

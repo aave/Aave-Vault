@@ -13,7 +13,7 @@ import {MockReentrant} from "./mocks/MockReentrant.sol";
 contract ATokenVaultRevenueSplitterOwnerTest is Test {
 
     event RecipientSet(address indexed recipient, uint16 shareInBps);
-    event RevenueSplit(address indexed recipient, address indexed asset, uint256 amount);
+    event RevenueSplitTransferred(address indexed recipient, address indexed asset, uint256 amount);
 
     address owner;
 
@@ -426,11 +426,11 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         assetToSplit.mint(address(revenueSplitterOwner), amountToSplit);
 
         vm.expectEmit(true, true, true, true);
-        emit RevenueSplit(address(recipientI), address(assetToSplit), 100);
+        emit RevenueSplitTransferred(address(recipientI), address(assetToSplit), 100);
         vm.expectEmit(true, true, true, true);
-        emit RevenueSplit(address(recipientII), address(assetToSplit), 200);
+        emit RevenueSplitTransferred(address(recipientII), address(assetToSplit), 200);
         vm.expectEmit(true, true, true, true);
-        emit RevenueSplit(address(recipientIII), address(assetToSplit), 700);
+        emit RevenueSplitTransferred(address(recipientIII), address(assetToSplit), 700);
 
         revenueSplitterOwner.splitRevenue(assetsToSplit);
     }
@@ -490,11 +490,11 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         vm.deal(address(revenueSplitterOwner), amountToSplit);
 
         vm.expectEmit(true, true, true, true);
-        emit RevenueSplit(address(recipientI), address(0), 100);
+        emit RevenueSplitTransferred(address(recipientI), address(0), 100);
         vm.expectEmit(true, true, true, true);
-        emit RevenueSplit(address(recipientII), address(0), 200);
+        emit RevenueSplitTransferred(address(recipientII), address(0), 200);
         vm.expectEmit(true, true, true, true);
-        emit RevenueSplit(address(recipientIII), address(0), 700);
+        emit RevenueSplitTransferred(address(recipientIII), address(0), 700);
 
         revenueSplitterOwner.splitRevenue();
     }
