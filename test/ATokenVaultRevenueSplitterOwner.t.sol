@@ -68,6 +68,56 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         vault.transferOwnership(address(revenueSplitterOwner));
     }
 
+    function test_constructor_setsParametersCorrectly(address someVault, address someOwner) public {
+        vm.assume(someOwner != address(0));
+
+        revenueSplitterOwner = new ATokenVaultRevenueSplitterOwner(someVault, someOwner, recipients);
+
+        assertEq(address(revenueSplitterOwner.VAULT()), someVault);
+        assertEq(revenueSplitterOwner.owner(), someOwner);
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory returnedRecipients = revenueSplitterOwner.getRecipients();
+        assertEq(returnedRecipients.length, recipients.length);
+        for (uint256 i = 0; i < recipients.length; i++) {
+            assertEq(returnedRecipients[i].addr, recipients[i].addr);
+            assertEq(returnedRecipients[i].shareInBps, recipients[i].shareInBps);
+        }
+    }
+
+    function test_constructor_revertsUponEmptyRecipients() public {
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory emptyRecipients =
+            new ATokenVaultRevenueSplitterOwner.Recipient[](0);
+
+        vm.expectRevert("MISSING_RECIPIENTS");
+        new ATokenVaultRevenueSplitterOwner(address(vault), owner, emptyRecipients);
+    }
+
+    function test_constructor_revertsIfSomeRecipientShareIsZero() public {
+        recipients[0].shareInBps = 0;
+
+        vm.expectRevert("BPS_SHARE_CANNOT_BE_ZERO");
+        new ATokenVaultRevenueSplitterOwner(address(vault), owner, recipients);
+    }
+
+    function test_constructor_revertsIfRecipientsSumExceedsTotalBpsSum() public {
+        // Sum of shares (50.00% + 30.00% + 30.00% = 110.00%) exceeds the expected 100.00%
+        recipients[0].shareInBps = 5_000; // 50.00%
+        recipients[1].shareInBps = 3_000; // 30.00%
+        recipients[2].shareInBps = 3_000; // 30.00%
+
+        vm.expectRevert("WRONG_BPS_SUM");
+        new ATokenVaultRevenueSplitterOwner(address(vault), owner, recipients);
+    }
+
+    function test_constructor_revertsIfRecipientsSumIsLessThanTotalBpsSum() public {
+        // Sum of shares (10.00% + 20.00% + 30.00% = 60.00%) is less than the expected 100.00%
+        recipients[0].shareInBps = 5_000; // 10.00%
+        recipients[1].shareInBps = 3_000; // 20.00%
+        recipients[2].shareInBps = 3_000; // 30.00%
+
+        vm.expectRevert("WRONG_BPS_SUM");
+        new ATokenVaultRevenueSplitterOwner(address(vault), owner, recipients);
+    }
+
     function test_withdrawFees_withdrawsAllFeesToOwnerContract(uint256 amount) public {
         vault.mockFees(amount);
 
