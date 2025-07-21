@@ -8,6 +8,7 @@ import {MockDAI} from "./mocks/MockDAI.sol";
 import {ATokenVaultRevenueSplitterOwner} from "../src/ATokenVaultRevenueSplitterOwner.sol";
 import {IATokenVault} from "../src/interfaces/IATokenVault.sol";
 import {Ownable} from "@openzeppelin/access/Ownable.sol";
+import {MockReentrant} from "./mocks/MockReentrant.sol";
 
 contract ATokenVaultRevenueSplitterOwnerTest is Test {
 
@@ -619,4 +620,26 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         assertLe(address(revenueSplitterOwner).balance, recipients.length - 1);
     }
 
+    function test_splitRevenue_revertsUponReentrancy() public {
+        MockReentrant reentrantRecipient = new MockReentrant();
+        
+        recipients.pop();
+        recipients[0].addr = address(reentrantRecipient);
+        recipients[0].shareInBps = 5_000;
+        recipients[1].shareInBps = 5_000;
+
+        revenueSplitterOwner = new ATokenVaultRevenueSplitterOwner(address(vault), owner, recipients);
+        reentrantRecipient.configureReentrancy({
+            target: address(revenueSplitterOwner),
+            data: abi.encodeWithSelector(bytes4(keccak256("splitRevenue()"))),
+            msgValue: 0,
+            times: 1
+        });
+
+        vm.deal(address(revenueSplitterOwner), 100_000);
+        assertEq(address(revenueSplitterOwner).balance, 100_000);
+
+        vm.expectRevert("NATIVE_TRANSFER_FAILED");
+        revenueSplitterOwner.splitRevenue();
+    }
 }
