@@ -462,4 +462,85 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         // The remaining unsplit amount is capped to the be strictly less than the number of recipients
         assertLe(assetToSplit.balanceOf(address(revenueSplitterOwner)), recipients.length - 1);
     }
+
+    function test_splitRevenue_distributesRevenueToAllRecipientsAccordingToTheirShares_NativeCurrency() public {
+        uint256 amountToSplit = 250_000;
+
+        assertEq(address(revenueSplitterOwner).balance, 0);
+        assertEq(address(recipientI).balance, 0);
+        assertEq(address(recipientII).balance, 0);
+        assertEq(address(recipientIII).balance, 0);
+
+        vm.deal(address(revenueSplitterOwner), amountToSplit);
+
+        assertEq(address(revenueSplitterOwner).balance, amountToSplit);
+
+        revenueSplitterOwner.splitRevenue();
+
+        assertEq(address(revenueSplitterOwner).balance, 0);
+        assertEq(address(recipientI).balance, 25_000);
+        assertEq(address(recipientII).balance, 50_000);
+        assertEq(address(recipientIII).balance, 175_000);
+    }
+
+    function test_splitRevenue_emitsExpectedEvents_NativeCurrency() public {    
+        uint256 amountToSplit = 1_000;
+
+        vm.deal(address(revenueSplitterOwner), amountToSplit);
+
+        vm.expectEmit(true, true, true, true);
+        emit RevenueSplit(address(recipientI), address(0), 100);
+        vm.expectEmit(true, true, true, true);
+        emit RevenueSplit(address(recipientII), address(0), 200);
+        vm.expectEmit(true, true, true, true);
+        emit RevenueSplit(address(recipientIII), address(0), 700);
+
+        revenueSplitterOwner.splitRevenue();
+    }
+
+    function test_splitRevenue_canBeCalledByAnyone_NativeCurrency(address msgSender) public {
+        uint256 amountToSplit = 1_000;
+
+        assertEq(address(revenueSplitterOwner).balance, 0);
+        assertEq(address(recipientI).balance, 0);
+        assertEq(address(recipientII).balance, 0);
+        assertEq(address(recipientIII).balance, 0);
+
+        vm.deal(address(revenueSplitterOwner), amountToSplit);
+
+        assertEq(address(revenueSplitterOwner).balance, amountToSplit);
+
+        vm.prank(msgSender);
+        revenueSplitterOwner.splitRevenue();
+
+        assertEq(address(revenueSplitterOwner).balance, 0);
+        assertEq(address(recipientI).balance, 100);
+        assertEq(address(recipientII).balance, 200);
+        assertEq(address(recipientIII).balance, 700);
+    }
+
+    function test_splitRevenue_distributesRevenueToAllRecipientsAccordingToTheirShares_FuzzAmount_NativeCurrency(
+        uint256 amountToSplit
+    ) public {
+        amountToSplit = bound(amountToSplit, 0, type(uint240).max);
+
+        assertEq(address(revenueSplitterOwner).balance, 0);
+        assertEq(address(recipientI).balance, 0);
+        assertEq(address(recipientII).balance, 0);
+        assertEq(address(recipientIII).balance, 0);
+
+        vm.deal(address(revenueSplitterOwner), amountToSplit);
+
+        assertEq(address(revenueSplitterOwner).balance, amountToSplit);
+
+        revenueSplitterOwner.splitRevenue();
+
+        assertEq(address(recipientI).balance, amountToSplit * shareI / 10_000);
+        assertEq(address(recipientII).balance, amountToSplit * shareII / 10_000);
+        assertEq(address(recipientIII).balance, amountToSplit * shareIII / 10_000);
+
+        // The remaining unsplit amount is capped to the be strictly less than the number of recipients
+        assertLe(address(revenueSplitterOwner).balance, recipients.length - 1);
+    }
+
 }
