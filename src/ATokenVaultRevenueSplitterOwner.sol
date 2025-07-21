@@ -60,7 +60,8 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
      * @dev Constructor.
      * @param vault The address of the aToken Vault to own, whose revenue is split.
      * @param owner The address owning this contract, the effective owner of the vault.
-     * @param recipients The recipients to set for the revenue split. Cannot be modified afterwards.
+     * @param recipients The recipients to set for the revenue split. It is the caller's responsibility to avoid
+     * duplicates in the recipients array. The recipients configuration cannot be modified afterwards.
      */
     constructor(address vault, address owner, Recipient[] memory recipients) {
         VAULT = IATokenVault(vault);
@@ -69,6 +70,9 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
         _transferOwnership(owner);
     }
 
+    /**
+     * @dev Rejects native currency transfers.
+     */
     receive() external payable {
         revert("NATIVE_CURRENCY_NOT_SUPPORTED");
     }
@@ -110,6 +114,9 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
         for (uint256 i = 0; i < assets.length; i++) {
             uint256 amountToSplit = IERC20(assets[i]).balanceOf(address(this));
             for (uint256 j = 0; j < recipients.length; j++) {
+                // Due to floor-rounding in integer division, the sum of the amounts transferred may be less than the
+                // total amount to split. This can leave up to `N - 1` units of each asset undistributed in this
+                // contract's balance, where `N` is the number of recipients.
                 uint256 amountForRecipient = amountToSplit * recipients[j].shareInBps / TOTAL_SHARE_IN_BPS;
                 if (amountForRecipient > 0) {
                     IERC20(assets[i]).safeTransfer(recipients[j].addr, amountForRecipient);
