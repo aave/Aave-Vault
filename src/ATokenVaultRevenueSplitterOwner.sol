@@ -69,6 +69,10 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
         _transferOwnership(owner);
     }
 
+    receive() external payable {
+        revert("NATIVE_CURRENCY_NOT_SUPPORTED");
+    }
+
     /**
      * @dev Transfers the ownership of the aToken vault to a new owner. Claims all fees and rewards prior to transfer,
      * to secure already accrued fees and rewards for the configured split recipients.

@@ -502,4 +502,21 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         // The remaining unsplit amount is capped to the be strictly less than the number of recipients
         assertLe(assetToSplit.balanceOf(address(revenueSplitterOwner)), recipients.length - 1);
     }
+
+    function test_receive_revertsUponNativeTransfer(address msgSender, uint256 amount) public {
+        vm.assume(amount > 0);
+        vm.assume(msgSender != address(revenueSplitterOwner));
+
+        assertEq(address(revenueSplitterOwner).balance, 0);
+
+        vm.deal(msgSender, amount);
+
+        bool transferSucceeded = false; // Avoid 'Return value of low-level calls not used' warning.
+
+        vm.prank(msgSender);
+        vm.expectRevert("NATIVE_CURRENCY_NOT_SUPPORTED");
+        (transferSucceeded, ) = address(revenueSplitterOwner).call{value: amount}("");
+
+        assertEq(address(revenueSplitterOwner).balance, 0);
+    }
 }
