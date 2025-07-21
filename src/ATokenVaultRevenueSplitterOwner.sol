@@ -115,24 +115,6 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
         }
     }
 
-    // TODO: Should we support splitting native currency revenue or only ERC20s?
-    // TODO: address(0) used in the event instead of ad-hoc event for native revenue?
-    // TODO: Should we assume recipients will succeed at receiving native? If one fails, the whole call fails.
-    /**
-     * @dev Splits the native currency revenue among the configured recipients.
-     */
-    function splitRevenue() public {
-        uint256 amountToSplit = address(this).balance;
-        for (uint256 j = 0; j < _recipients.length; j++) {
-            uint256 amountForRecipient = amountToSplit * _recipients[j].shareInBps / TOTAL_SHARE_IN_BPS;
-            if (amountForRecipient > 0) {
-                (bool transferSucceeded, ) = _recipients[j].addr.call{value: amountForRecipient}("");
-                require(transferSucceeded, "NATIVE_TRANSFER_FAILED");
-            }
-            emit RevenueSplitTransferred(_recipients[j].addr, address(0), amountForRecipient);
-        }
-    }
-
     /**
      * @dev Rescues assets that may have accidentally been transferred to the vault.
      * @dev Only callable by the owner of this contract.

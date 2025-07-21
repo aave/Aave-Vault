@@ -8,7 +8,6 @@ import {MockDAI} from "./mocks/MockDAI.sol";
 import {ATokenVaultRevenueSplitterOwner} from "../src/ATokenVaultRevenueSplitterOwner.sol";
 import {IATokenVault} from "../src/interfaces/IATokenVault.sol";
 import {Ownable} from "@openzeppelin/access/Ownable.sol";
-import {MockReentrant} from "./mocks/MockReentrant.sol";
 
 contract ATokenVaultRevenueSplitterOwnerTest is Test {
 
@@ -464,86 +463,6 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         assertLe(assetToSplit.balanceOf(address(revenueSplitterOwner)), recipients.length - 1);
     }
 
-    function test_splitRevenue_distributesRevenueToAllRecipientsAccordingToTheirShares_NativeCurrency() public {
-        uint256 amountToSplit = 250_000;
-
-        assertEq(address(revenueSplitterOwner).balance, 0);
-        assertEq(address(recipientI).balance, 0);
-        assertEq(address(recipientII).balance, 0);
-        assertEq(address(recipientIII).balance, 0);
-
-        vm.deal(address(revenueSplitterOwner), amountToSplit);
-
-        assertEq(address(revenueSplitterOwner).balance, amountToSplit);
-
-        revenueSplitterOwner.splitRevenue();
-
-        assertEq(address(revenueSplitterOwner).balance, 0);
-        assertEq(address(recipientI).balance, 25_000);
-        assertEq(address(recipientII).balance, 50_000);
-        assertEq(address(recipientIII).balance, 175_000);
-    }
-
-    function test_splitRevenue_emitsExpectedEvents_NativeCurrency() public {    
-        uint256 amountToSplit = 1_000;
-
-        vm.deal(address(revenueSplitterOwner), amountToSplit);
-
-        vm.expectEmit(true, true, true, true);
-        emit RevenueSplitTransferred(address(recipientI), address(0), 100);
-        vm.expectEmit(true, true, true, true);
-        emit RevenueSplitTransferred(address(recipientII), address(0), 200);
-        vm.expectEmit(true, true, true, true);
-        emit RevenueSplitTransferred(address(recipientIII), address(0), 700);
-
-        revenueSplitterOwner.splitRevenue();
-    }
-
-    function test_splitRevenue_canBeCalledByAnyone_NativeCurrency(address msgSender) public {
-        uint256 amountToSplit = 1_000;
-
-        assertEq(address(revenueSplitterOwner).balance, 0);
-        assertEq(address(recipientI).balance, 0);
-        assertEq(address(recipientII).balance, 0);
-        assertEq(address(recipientIII).balance, 0);
-
-        vm.deal(address(revenueSplitterOwner), amountToSplit);
-
-        assertEq(address(revenueSplitterOwner).balance, amountToSplit);
-
-        vm.prank(msgSender);
-        revenueSplitterOwner.splitRevenue();
-
-        assertEq(address(revenueSplitterOwner).balance, 0);
-        assertEq(address(recipientI).balance, 100);
-        assertEq(address(recipientII).balance, 200);
-        assertEq(address(recipientIII).balance, 700);
-    }
-
-    function test_splitRevenue_distributesRevenueToAllRecipientsAccordingToTheirShares_FuzzAmount_NativeCurrency(
-        uint256 amountToSplit
-    ) public {
-        amountToSplit = bound(amountToSplit, 0, type(uint240).max);
-
-        assertEq(address(revenueSplitterOwner).balance, 0);
-        assertEq(address(recipientI).balance, 0);
-        assertEq(address(recipientII).balance, 0);
-        assertEq(address(recipientIII).balance, 0);
-
-        vm.deal(address(revenueSplitterOwner), amountToSplit);
-
-        assertEq(address(revenueSplitterOwner).balance, amountToSplit);
-
-        revenueSplitterOwner.splitRevenue();
-
-        assertEq(address(recipientI).balance, amountToSplit * shareI / 10_000);
-        assertEq(address(recipientII).balance, amountToSplit * shareII / 10_000);
-        assertEq(address(recipientIII).balance, amountToSplit * shareIII / 10_000);
-
-        // The remaining unsplit amount is capped to the be strictly less than the number of recipients
-        assertLe(address(revenueSplitterOwner).balance, recipients.length - 1);
-    }
-
     function test_splitRevenue_distributesRevenueToAllRecipientsAccordingToTheirShares_FuzzShares(
         uint16 fuzzShareI
     ) public {
@@ -582,64 +501,5 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
 
         // The remaining unsplit amount is capped to the be strictly less than the number of recipients
         assertLe(assetToSplit.balanceOf(address(revenueSplitterOwner)), recipients.length - 1);
-    }
-
-    function test_splitRevenue_distributesRevenueToAllRecipientsAccordingToTheirShares_FuzzShares_NativeCurrency(
-        uint16 fuzzShareI
-    ) public {
-        recipients.pop();
-        assertEq(recipients.length, 2);
-
-        fuzzShareI = uint16(bound(fuzzShareI, 1, 10_000 - 1));
-        uint16 fuzzShareII = 10_000 - fuzzShareI;
-
-        recipients[0].shareInBps = fuzzShareI;
-        recipients[1].shareInBps = fuzzShareII;
-
-        // Redeploys the splitter with the new recipients configuration
-        revenueSplitterOwner = new ATokenVaultRevenueSplitterOwner(address(vault), owner, recipients);
-
-        uint256 amountToSplit = 100_000;
-
-        assertEq(address(revenueSplitterOwner).balance, 0);
-        assertEq(address(recipientI).balance, 0);
-        assertEq(address(recipientII).balance, 0);
-        assertEq(address(recipientIII).balance, 0); // Not set as recipient
-
-        vm.deal(address(revenueSplitterOwner), amountToSplit);
-
-        assertEq(address(revenueSplitterOwner).balance, amountToSplit);
-
-        revenueSplitterOwner.splitRevenue();
-
-        assertEq(address(recipientI).balance, amountToSplit * fuzzShareI / 10_000);
-        assertEq(address(recipientII).balance, amountToSplit * fuzzShareII / 10_000);
-        assertEq(address(recipientIII).balance, 0); // Not set as recipient
-
-        // The remaining unsplit amount is capped to the be strictly less than the number of recipients
-        assertLe(address(revenueSplitterOwner).balance, recipients.length - 1);
-    }
-
-    function test_splitRevenue_revertsUponReentrancy() public {
-        MockReentrant reentrantRecipient = new MockReentrant();
-        
-        recipients.pop();
-        recipients[0].addr = address(reentrantRecipient);
-        recipients[0].shareInBps = 5_000;
-        recipients[1].shareInBps = 5_000;
-
-        revenueSplitterOwner = new ATokenVaultRevenueSplitterOwner(address(vault), owner, recipients);
-        reentrantRecipient.configureReentrancy({
-            target: address(revenueSplitterOwner),
-            data: abi.encodeWithSelector(bytes4(keccak256("splitRevenue()"))),
-            msgValue: 0,
-            times: 1
-        });
-
-        vm.deal(address(revenueSplitterOwner), 100_000);
-        assertEq(address(revenueSplitterOwner).balance, 100_000);
-
-        vm.expectRevert("NATIVE_TRANSFER_FAILED");
-        revenueSplitterOwner.splitRevenue();
     }
 }
