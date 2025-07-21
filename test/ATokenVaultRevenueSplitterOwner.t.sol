@@ -543,4 +543,80 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         assertLe(address(revenueSplitterOwner).balance, recipients.length - 1);
     }
 
+    function test_splitRevenue_distributesRevenueToAllRecipientsAccordingToTheirShares_FuzzShares(
+        uint16 fuzzShareI
+    ) public {
+        recipients.pop();
+        assertEq(recipients.length, 2);
+
+        fuzzShareI = uint16(bound(fuzzShareI, 1, 10_000 - 1));
+        uint16 fuzzShareII = 10_000 - fuzzShareI;
+
+        recipients[0].shareInBps = fuzzShareI;
+        recipients[1].shareInBps = fuzzShareII;
+
+        // Redeploys the splitter with the new recipients configuration
+        revenueSplitterOwner = new ATokenVaultRevenueSplitterOwner(address(vault), owner, recipients);
+
+        uint256 amountToSplit = 100_000;
+        MockDAI assetToSplit = new MockDAI();
+
+        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), 0);
+        assertEq(assetToSplit.balanceOf(address(recipientI)), 0);
+        assertEq(assetToSplit.balanceOf(address(recipientII)), 0);
+        assertEq(assetToSplit.balanceOf(address(recipientIII)), 0); // Not set as recipient
+
+        assetToSplit.mint(address(revenueSplitterOwner), amountToSplit);
+
+        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), amountToSplit);
+
+        address[] memory assetsToSplit = new address[](1);
+        assetsToSplit[0] = address(assetToSplit);
+
+        revenueSplitterOwner.splitRevenue(assetsToSplit);
+
+        assertEq(assetToSplit.balanceOf(address(recipientI)), amountToSplit * fuzzShareI / 10_000);
+        assertEq(assetToSplit.balanceOf(address(recipientII)), amountToSplit * fuzzShareII / 10_000);
+        assertEq(assetToSplit.balanceOf(address(recipientIII)), 0); // Not set as recipient
+
+        // The remaining unsplit amount is capped to the be strictly less than the number of recipients
+        assertLe(assetToSplit.balanceOf(address(revenueSplitterOwner)), recipients.length - 1);
+    }
+
+    function test_splitRevenue_distributesRevenueToAllRecipientsAccordingToTheirShares_FuzzShares_NativeCurrency(
+        uint16 fuzzShareI
+    ) public {
+        recipients.pop();
+        assertEq(recipients.length, 2);
+
+        fuzzShareI = uint16(bound(fuzzShareI, 1, 10_000 - 1));
+        uint16 fuzzShareII = 10_000 - fuzzShareI;
+
+        recipients[0].shareInBps = fuzzShareI;
+        recipients[1].shareInBps = fuzzShareII;
+
+        // Redeploys the splitter with the new recipients configuration
+        revenueSplitterOwner = new ATokenVaultRevenueSplitterOwner(address(vault), owner, recipients);
+
+        uint256 amountToSplit = 100_000;
+
+        assertEq(address(revenueSplitterOwner).balance, 0);
+        assertEq(address(recipientI).balance, 0);
+        assertEq(address(recipientII).balance, 0);
+        assertEq(address(recipientIII).balance, 0); // Not set as recipient
+
+        vm.deal(address(revenueSplitterOwner), amountToSplit);
+
+        assertEq(address(revenueSplitterOwner).balance, amountToSplit);
+
+        revenueSplitterOwner.splitRevenue();
+
+        assertEq(address(recipientI).balance, amountToSplit * fuzzShareI / 10_000);
+        assertEq(address(recipientII).balance, amountToSplit * fuzzShareII / 10_000);
+        assertEq(address(recipientIII).balance, 0); // Not set as recipient
+
+        // The remaining unsplit amount is capped to the be strictly less than the number of recipients
+        assertLe(address(revenueSplitterOwner).balance, recipients.length - 1);
+    }
+
 }
