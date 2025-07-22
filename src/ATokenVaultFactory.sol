@@ -7,6 +7,7 @@ import {IERC20} from "@openzeppelin/interfaces/IERC20.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {ATokenVault} from "./ATokenVault.sol";
+import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title ATokenVaultImplDeploymentLib
@@ -35,6 +36,8 @@ library ATokenVaultImplDeploymentLib {
  * @notice Factory contract for deploying ATokenVault instances
  */
 contract ATokenVaultFactory {
+    using SafeERC20 for IERC20;
+
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -123,7 +126,7 @@ contract ATokenVaultFactory {
         require(bytes(params.shareSymbol).length > 0, "EMPTY_SHARE_SYMBOL");
 
         // Transfer the initial lock deposit from caller to this contract
-        IERC20(params.underlying).transferFrom(
+        IERC20(params.underlying).safeTransferFrom(
             msg.sender,
             address(this),
             params.initialLockDeposit
