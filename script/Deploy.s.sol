@@ -8,18 +8,21 @@ import {IERC20Upgradeable} from "@openzeppelin-upgradeable/interfaces/IERC20Upgr
 
 import "../src/ATokenVault.sol";
 
+// source .env && forge script script/Deploy.s.sol:Deploy --rpc-url ${ARBITRUM_RPC_URL} --broadcast --verify --legacy -vvv
+
 contract Deploy is Script {
     // DEPLOYMENT PARAMETERS - CHANGE THESE FOR YOUR VAULT
     // ===================================================
-    address UNDERLYING_ASSET_ADDRESS = address(0); // Underlying asset listed in the Aave Protocol
+    // USDC deployment
+    address UNDERLYING_ASSET_ADDRESS = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831; // Underlying asset listed in the Aave Protocol
     uint16 REFERRAL_CODE = 0; // Referral code to use
-    address AAVE_POOL_ADDRESSES_PROVIDER_ADDRESS = address(0); // PoolAddressesProvider contract of the Aave Pool
-    address constant PROXY_ADMIN_ADDRESS = address(0); // Address of the proxy admin
-    address constant OWNER_ADDRESS = address(0); // Address of the vault owner
-    string constant SHARE_NAME = "Wrapped aDAI"; // Name of the token shares
-    string constant SHARE_SYMBOL = "waDAI"; // Symbol of the token shares
-    uint256 constant FEE = 0.1e18; // Vault Fee bps in wad (e.g. 0.1e18 results in 10%)
-    uint256 constant INITIAL_LOCK_DEPOSIT = 10e18; // Initial deposit on behalf of the vault
+    address AAVE_POOL_ADDRESSES_PROVIDER_ADDRESS = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb; // PoolAddressesProvider contract of the Aave Pool
+    address constant PROXY_ADMIN_ADDRESS = 0xCA28ca01bBA5D72EAbB46a48CAf46c3055ae9f4b; // Address of the proxy admin
+    address constant OWNER_ADDRESS = 0x69C2d63BC4Fcd16CD616D22089B58de3796E1F5c; // Address of the vault owner
+    string constant SHARE_NAME = "Wrapped uUSDC"; // Name of the token shares
+    string constant SHARE_SYMBOL = "waUSDC"; // Symbol of the token shares
+    uint256 constant FEE = 0; // Vault Fee bps in wad (e.g. 0.1e18 results in 10%)
+    uint256 constant INITIAL_LOCK_DEPOSIT = 10e6; // Initial deposit on behalf of the vault
     // ===================================================
 
     ATokenVault public vault;
