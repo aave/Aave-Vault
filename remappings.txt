@@ -6,3 +6,5 @@ forge-std/=lib/forge-std/src/
 solmate/=lib/solmate/src/
 @openzeppelin-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
 @openzeppelin/=lib/openzeppelin-contracts/contracts
+@bgd-labs/solidity-utils/=lib/solidity-utils/src/contracts/
+@bgd-labs/aave-address-book/=lib/aave-address-book/src/
