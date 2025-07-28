@@ -72,9 +72,6 @@ contract ATokenVaultFactoryTest is Test {
         vm.stopPrank();
 
         assertTrue(vault != address(0));
-        assertTrue(factory.isDeployedVault(vault));
-        assertEq(factory.getAllVaultsLength(), 1);
-        assertEq(factory.getAllVaults()[0], vault);
 
         ATokenVault vaultContract = ATokenVault(vault);
         assertEq(address(vaultContract.UNDERLYING()), address(dai));
@@ -83,14 +80,6 @@ contract ATokenVaultFactoryTest is Test {
         assertEq(vaultContract.name(), "Test Vault");
         assertEq(vaultContract.symbol(), "tVault");
         assertEq(vaultContract.getFee(), 0);
-
-        address[] memory aliceVaults = factory.getVaultsByDeployer(ALICE);
-        assertEq(aliceVaults.length, 1);
-        assertEq(aliceVaults[0], vault);
-
-        address[] memory daiVaults = factory.getVaultsByUnderlying(address(dai));
-        assertEq(daiVaults.length, 1);
-        assertEq(daiVaults[0], vault);
     }
 
     function testDeployVaultWithFee() public {
@@ -172,19 +161,6 @@ contract ATokenVaultFactoryTest is Test {
         assertEq(allVaults[1], vault2);
 
         assertTrue(vault1 != vault2);
-
-        address[] memory daiVaults = factory.getVaultsByUnderlying(address(dai));
-        assertEq(daiVaults.length, 2);
-        assertEq(daiVaults[0], vault1);
-        assertEq(daiVaults[1], vault2);
-
-        address[] memory aliceVaults = factory.getVaultsByDeployer(ALICE);
-        assertEq(aliceVaults.length, 1);
-        assertEq(aliceVaults[0], vault1);
-
-        address[] memory bobVaults = factory.getVaultsByDeployer(BOB);
-        assertEq(bobVaults.length, 1);
-        assertEq(bobVaults[0], vault2);
 
         ATokenVault vault1Contract = ATokenVault(vault1);
         ATokenVault vault2Contract = ATokenVault(vault2);
@@ -327,17 +303,6 @@ contract ATokenVaultFactoryTest is Test {
 
         ATokenVault vaultContract = ATokenVault(vault);
         assertEq(vaultContract.owner(), BOB);
-
-        address[] memory aliceVaults = factory.getVaultsByDeployer(ALICE);
-        assertEq(aliceVaults.length, 1);
-        assertEq(aliceVaults[0], vault);
-
-        address[] memory bobVaults = factory.getVaultsByDeployer(BOB);
-        assertEq(bobVaults.length, 0);
-
-        address[] memory daiVaults = factory.getVaultsByUnderlying(address(dai));
-        assertEq(daiVaults.length, 1);
-        assertEq(daiVaults[0], vault);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -616,43 +581,6 @@ contract ATokenVaultFactoryTest is Test {
         assertEq(underlying2, address(dai));
     }
 
-    function testIsDeployedVault() public {
-        uint256 initialDeposit = 1000 * 1e18;
-        deal(address(dai), ALICE, initialDeposit);
-
-        vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
-
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
-            underlying: address(dai),
-            referralCode: 0,
-            poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
-            owner: ALICE,
-            initialFee: 0,
-            shareName: "Test Vault",
-            shareSymbol: "tVault",
-            initialLockDeposit: initialDeposit
-        });
-
-        address vault = factory.deployVault(params);
-        vm.stopPrank();
-
-        assertTrue(factory.isDeployedVault(vault));
-        assertFalse(factory.isDeployedVault(address(0x999)));
-        assertFalse(factory.isDeployedVault(address(0)));
-        assertFalse(factory.isDeployedVault(address(factory)));
-    }
-
-    function testGetVaultsByUnderlyingEmpty() public {
-        address[] memory vaults = factory.getVaultsByUnderlying(address(dai));
-        assertEq(vaults.length, 0);
-    }
-
-    function testGetVaultsByDeployerEmpty() public {
-        address[] memory vaults = factory.getVaultsByDeployer(ALICE);
-        assertEq(vaults.length, 0);
-    }
-
     function testGetAllVaultsEmpty() public {
         address[] memory vaults = factory.getAllVaults();
         assertEq(vaults.length, 0);
@@ -742,14 +670,6 @@ contract ATokenVaultFactoryTest is Test {
 
         assertTrue(daiVault != usdcVault);
         assertEq(factory.getAllVaultsLength(), 2);
-
-        address[] memory daiVaults = factory.getVaultsByUnderlying(address(dai));
-        address[] memory usdcVaults = factory.getVaultsByUnderlying(address(usdc));
-
-        assertEq(daiVaults.length, 1);
-        assertEq(usdcVaults.length, 1);
-        assertEq(daiVaults[0], daiVault);
-        assertEq(usdcVaults[0], usdcVault);
     }
 
     function testDeploymentCounterIncreases() public {
@@ -812,7 +732,6 @@ contract ATokenVaultFactoryTest is Test {
         vm.stopPrank();
 
         assertTrue(vault != address(0));
-        assertTrue(factory.isDeployedVault(vault));
     }
 
     function testDeployVaultEdgeCaseZeroFee() public {
@@ -897,7 +816,6 @@ contract ATokenVaultFactoryTest is Test {
         vm.stopPrank();
 
         assertTrue(vault != address(0));
-        assertTrue(factory.isDeployedVault(vault));
 
         ATokenVault vaultContract = ATokenVault(vault);
         assertEq(vaultContract.REFERRAL_CODE(), referralCode);
@@ -931,7 +849,6 @@ contract ATokenVaultFactoryTest is Test {
         vm.stopPrank();
 
         assertTrue(vault != address(0));
-        assertTrue(factory.isDeployedVault(vault));
 
         ATokenVault vaultContract = ATokenVault(vault);
         assertEq(vaultContract.REFERRAL_CODE(), referralCode);

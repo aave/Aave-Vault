@@ -65,15 +65,6 @@ contract ATokenVaultFactory {
     /// @notice Array of all deployed vaults
     address[] internal _allVaults;
 
-    /// @notice Mapping from underlying asset to deployed vaults
-    mapping(address => address[]) internal _vaultsByUnderlying;
-
-    /// @notice Mapping from deployer to deployed vaults
-    mapping(address => address[]) internal _vaultsByDeployer;
-
-    /// @notice Mapping to check if a vault was deployed by this factory
-    mapping(address => bool) internal _isVaultDeployed;
-
     /// @notice Proxy admin address for all deployed vaults
     address public immutable PROXY_ADMIN;
 
@@ -156,9 +147,6 @@ contract ATokenVaultFactory {
         );
 
         _allVaults.push(vault);
-        _vaultsByUnderlying[params.underlying].push(vault);
-        _vaultsByDeployer[msg.sender].push(vault);
-        _isVaultDeployed[vault] = true;
 
         emit VaultDeployed(
             vault,
@@ -190,24 +178,6 @@ contract ATokenVaultFactory {
     }
 
     /**
-     * @notice Get vaults by underlying asset
-     * @param underlying The underlying asset address
-     * @return Array of vault addresses for the underlying asset
-     */
-    function getVaultsByUnderlying(address underlying) external view returns (address[] memory) {
-        return _vaultsByUnderlying[underlying];
-    }
-
-    /**
-     * @notice Get vaults by deployer
-     * @param deployer The deployer address
-     * @return Array of vault addresses deployed by the deployer
-     */
-    function getVaultsByDeployer(address deployer) external view returns (address[] memory) {
-        return _vaultsByDeployer[deployer];
-    }
-
-    /**
      * @notice Get vault deployment info
      * @param vaultIndex The index of the vault in allVaults array
      * @return vault The vault address
@@ -221,14 +191,5 @@ contract ATokenVaultFactory {
         vault = _allVaults[vaultIndex];
         ATokenVault vaultContract = ATokenVault(vault);
         underlying = address(vaultContract.UNDERLYING());
-    }
-
-    /**
-     * @notice Check if a vault was deployed by this factory
-     * @param vault The vault address to check
-     * @return True if the vault was deployed by this factory
-     */
-    function isDeployedVault(address vault) external view returns (bool) {
-        return _isVaultDeployed[vault];
     }
 }
