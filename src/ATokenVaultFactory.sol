@@ -8,6 +8,7 @@ import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesPro
 import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {ATokenVault} from "./ATokenVault.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {IOwnable} from "@bgd-labs/aave-address-book/common/IOwnable.sol";
 
 /**
  * @title ATokenVaultImplDeploymentLib
@@ -65,8 +66,9 @@ contract ATokenVaultFactory {
     /// @notice Array of all deployed vaults
     address[] internal _allVaults;
 
-    /// @notice Proxy admin address for all deployed vaults
-    address public immutable PROXY_ADMIN;
+    /// @notice Proxy admin address for all deployed vaults, with renounced ownership.
+    /// @dev Future version will deploy a plain immutable vault without proxy.
+    address internal immutable RENOUNCED_PROXY_ADMIN;
 
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
@@ -92,11 +94,11 @@ contract ATokenVaultFactory {
 
     /**
      * @dev Constructor
-     * @param proxyAdmin The address that will be the admin of all deployed proxies
+     * @param proxyAdmin The address that will be the admin of all deployed proxies. Must have renounced ownership.
      */
     constructor(address proxyAdmin) {
-        require(proxyAdmin != address(0), "ZERO_ADDRESS_NOT_VALID");
-        PROXY_ADMIN = proxyAdmin;
+        RENOUNCED_PROXY_ADMIN = proxyAdmin;
+        require(IOwnable(proxyAdmin).owner() == address(0), "PROXY_ADMIN_OWNERSHIP_NOT_RENOUNCED");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -116,7 +118,6 @@ contract ATokenVaultFactory {
         require(bytes(params.shareName).length > 0, "EMPTY_SHARE_NAME");
         require(bytes(params.shareSymbol).length > 0, "EMPTY_SHARE_SYMBOL");
 
-        // Transfer the initial lock deposit from caller to this contract
         IERC20(params.underlying).safeTransferFrom(
             msg.sender,
             address(this),
@@ -131,13 +132,12 @@ contract ATokenVaultFactory {
 
         vault = address(new TransparentUpgradeableProxy(
             implementation,
-            PROXY_ADMIN,
+            RENOUNCED_PROXY_ADMIN,
             ""
         ));
 
         IERC20(params.underlying).approve(vault, params.initialLockDeposit);
 
-        // Initialize the proxy (this will trigger the token transfer)
         ATokenVault(vault).initialize(
             params.owner,
             params.initialFee,

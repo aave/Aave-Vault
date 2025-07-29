@@ -13,6 +13,8 @@ import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesPro
 import {ATokenVault} from "../src/ATokenVault.sol";
 import {ATokenVaultFactory} from "../src/ATokenVaultFactory.sol";
 
+import {ProxyAdmin as ProxyAdmin_v4_7} from "@openzeppelin/proxy/transparent/ProxyAdmin.sol";
+
 contract ATokenVaultFactoryTest is Test {
     ATokenVaultFactory factory;
     MockAavePoolAddressesProvider poolAddrProvider;
@@ -20,7 +22,7 @@ contract ATokenVaultFactoryTest is Test {
     MockAToken aDai;
     MockDAI dai;
 
-    address proxyAdmin = makeAddr("proxyAdmin");
+    address proxyAdmin;
 
     address constant ALICE = address(0x1);
     address constant BOB = address(0x2);
@@ -40,6 +42,8 @@ contract ATokenVaultFactoryTest is Test {
         dai = new MockDAI();
         aDai = new MockAToken(address(dai));
         pool = new MockAavePool(aDai);
+        proxyAdmin = address(new ProxyAdmin_v4_7());
+        ProxyAdmin_v4_7(proxyAdmin).renounceOwnership();
         poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));
         factory = new ATokenVaultFactory(proxyAdmin);
 
@@ -491,13 +495,53 @@ contract ATokenVaultFactoryTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function testConstructorZeroProxyAdminReverts() public {
-        vm.expectRevert("ZERO_ADDRESS_NOT_VALID");
+        vm.expectRevert();
         new ATokenVaultFactory(address(0));
     }
 
+    function testConstructorNonRenouncedProxyAdminReverts(address deployer) public {
+        vm.assume(deployer != address(0));
+
+        vm.prank(deployer);
+        ProxyAdmin_v4_7 nonRenouncedProxyAdmin = new ProxyAdmin_v4_7();
+
+        assertEq(nonRenouncedProxyAdmin.owner(), deployer);
+
+        vm.expectRevert();
+        new ATokenVaultFactory(address(nonRenouncedProxyAdmin));
+    }
+
     function testConstructorSetsProxyAdmin() public {
-        ATokenVaultFactory newFactory = new ATokenVaultFactory(CHARLIE);
-        assertEq(newFactory.PROXY_ADMIN(), CHARLIE);
+        proxyAdmin = address(new ProxyAdmin_v4_7());
+
+        ProxyAdmin_v4_7(proxyAdmin).renounceOwnership();
+            
+        ATokenVaultFactory newFactory = new ATokenVaultFactory(proxyAdmin);
+
+        uint256 initialDeposit = 1000 * 1e18;
+        dai.mint(address(this), initialDeposit);
+
+        dai.approve(address(newFactory), initialDeposit);
+
+        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+            underlying: address(dai),
+            referralCode: 0,
+            poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
+            owner: address(this),
+            initialFee: 0,
+            shareName: "Test Vault",
+            shareSymbol: "tVault",
+            initialLockDeposit: initialDeposit
+        });
+
+        address vault = newFactory.deployVault(params);
+
+        bytes32 value = vm.load(
+            vault,
+            0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103 // Transparent proxy's admin slot
+        );
+
+        assertEq(value, bytes32(uint256(uint160(proxyAdmin))));
     }
 
     /*//////////////////////////////////////////////////////////////
