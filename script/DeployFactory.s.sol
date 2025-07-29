@@ -26,38 +26,9 @@ contract DeployFactory is Script {
     address constant FACTORY_PROXY_ADMIN_OWNER = address(0);
     ////////////////////////////////////////////////////////////////////
 
-    ////////////////// VERIFICATION PARAMETERS /////////////////////////
-    /**
-     * @notice Expected address for the deployed Renounced Proxy Admin, using CREATE3
-     */
-    address constant EXPECTED_RENOUNCED_PROXY_ADMIN_ADDRESS = address(0xd9734c69cCE8777514062e603aF211D429Ae328C);
-    /**
-     * @notice Expected address for deployed aTokenVaultFactory, using CREATE3
-     */
-    address constant EXPECTED_FACTORY_ADDRESS = address(0x7954d5c3ECaA0A8F3f373BBA88cE38f4Fa27616A);
-    ////////////////////////////////////////////////////////////////////
+    address constant EXPECTED_FACTORY_ADDRESS = address(0xa35995bb2fFC5F2b33379C2e95d00C20FbF71E70);
 
     address constant DEPLOYER_ADDRESS = address(0xFAC70d880Da5923673C502dbC8CeD1675c57e155);
-
-    /**
-     * @notice CREATE3 Salt for the Vault'sRenounced Ownership Proxy Admin deployment
-     * 
-     * @dev Generated through following steps:
-     * 
-     * Base Salt: keccak256("aave.aTokenVaultFactory.vault.renouncedProxyAdmin")
-     *              = 0x2bb59d5d1bfe60f97765faf35a14525d450d29788deb958f5afddb864ebc4929
-     * 
-     *  0x 2bb59d5d1bfe60f97765faf35a14525d450d2978 8d eb958f5afddb864ebc4929
-     * 
-     * Add deployer address (0xFAC70d880Da5923673C502dbC8CeD1675c57e155) at the beginning for protection:
-     *  0x FAC70d880Da5923673C502dbC8CeD1675c57e155 8d eb958f5afddb864ebc4929
-     * 
-     * Set the next byte to 0x00 in order to turn off the cross-chain protection:
-     *  0x FAC70d880Da5923673C502dbC8CeD1675c57e155 00 eb958f5afddb864ebc4929
-     * 
-     * Keep the final bytes from the base salt
-     */
-    bytes32 constant RENOUNCED_PROXY_ADMIN_SALT = 0xFAC70d880Da5923673C502dbC8CeD1675c57e15500eb958f5afddb864ebc4929;
 
     /**
      * @notice CREATE3 Salt for the deterministic aTokenVaultFactory deployment
@@ -97,10 +68,7 @@ contract DeployFactory is Script {
         console.log("ChainId: ", block.chainid);
 
         require(FACTORY_PROXY_ADMIN_OWNER != address(0), "FACTORY_PROXY_ADMIN_OWNER is not set");
-        console.log("Proxy admin for deployed vaults: ", FACTORY_PROXY_ADMIN_OWNER);
-
-        require(EXPECTED_FACTORY_ADDRESS != address(0), "EXPECTED_FACTORY_ADDRESS is not set");
-        console.log("Expected deployed factory address: ", EXPECTED_FACTORY_ADDRESS);
+        console.log("Factory proxy admin owner: ", FACTORY_PROXY_ADMIN_OWNER);
 
 
         vm.startBroadcast();
@@ -108,16 +76,11 @@ contract DeployFactory is Script {
 
         /////// Deploy Renounced ProxyAdmin (using OpenZeppelin v4.7)
 
-        console.log("Deploying vault's renounced proxy admin - Expected at: ", address(EXPECTED_RENOUNCED_PROXY_ADMIN_ADDRESS));
+        console.log("Deploying vault's renounced proxy admin");
 
-        address renouncedProxyAdmin = CREATE3_FACTORY.deployCreate3({
-            salt: RENOUNCED_PROXY_ADMIN_SALT,
-            initCode: abi.encodePacked(type(ProxyAdmin_v4_7).creationCode)
-        });
+        address renouncedProxyAdmin = address(new ProxyAdmin_v4_7());
 
         console.log("Renounced proxy admin deployed at: ", renouncedProxyAdmin);
-
-        require(renouncedProxyAdmin == EXPECTED_RENOUNCED_PROXY_ADMIN_ADDRESS, "Renounced proxy admin address mismatch");
 
         ProxyAdmin_v4_7(renouncedProxyAdmin).renounceOwnership();
 
