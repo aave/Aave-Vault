@@ -10,7 +10,7 @@
 [submodule "lib/aave-v3-core"]
 	path = lib/aave-v3-core
 	url = https://github.com/aave/aave-v3-core
-	branch = v1.17.1
+	branch = v1.19.4
 [submodule "lib/aave-v3-periphery"]
 	path = lib/aave-v3-periphery
 	url = https://github.com/aave/aave-v3-periphery
@@ -31,3 +31,7 @@
 [submodule "lib/createx"]
 	path = lib/createx
 	url = https://github.com/pcaversaccio/createx
+[submodule "lib/openzeppelin-contracts-v5.3.0"]
+	path = lib/openzeppelin-contracts-v5.3.0
+	url = https://github.com/openzeppelin/openzeppelin-contracts
+	branch = v5.3.0
