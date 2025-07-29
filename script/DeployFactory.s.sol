@@ -4,37 +4,150 @@ pragma solidity ^0.8.10;
 
 import "forge-std/Script.sol";
 import {ATokenVaultFactory} from "../src/ATokenVaultFactory.sol";
+import {ICreateX} from "@pcaversaccio/createx/ICreateX.sol";
+import {ProxyAdmin as ProxyAdmin_v4_7} from "@openzeppelin/proxy/transparent/ProxyAdmin.sol";
+import {TransparentUpgradeableProxy as TransparentUpgradeableProxy_v5_3} from "@openzeppelin-v5/proxy/transparent/TransparentUpgradeableProxy.sol";
 
+/**
+ * @title DeployFactory
+ * @author Aave Labs
+ * @notice Script to deploy the aTokenVaultFactory contract with deterministic address even when future versions change
+ * @dev Run the script with the following command first:
+ * 
+ *      forge script script/DeployFactory.s.sol:DeployFactory -vvvv --rpc-url {$RPC_URL} --account ${ACCOUNT} --slow 
+ *  
+ * If succeeds, then add the --broadcast flag in order to send the transaction to the network.
+ */
 contract DeployFactory is Script {
-    // DEPLOYMENT PARAMETERS - CHANGE THESE FOR YOUR FACTORY
-    // ===================================================
-    address constant PROXY_ADMIN_ADDRESS = address(0); // Address of the factory proxy admin
-    // ===================================================
+    /////////////////// DEPLOYMENT PARAMETERS //////////////////////////
+    /**
+     * @notice Owner of the aTokenVaultFactory's Proxy Admin 
+     */
+    address constant FACTORY_PROXY_ADMIN_OWNER = address(0);
+    ////////////////////////////////////////////////////////////////////
 
-    function getChainId() public view returns (uint256) {
-        uint256 chainId;
-        assembly {
-            chainId := chainid()
-        }
-        return chainId;
-    }
+    ////////////////// VERIFICATION PARAMETERS /////////////////////////
+    /**
+     * @notice Expected address for the deployed Renounced Proxy Admin, using CREATE3
+     */
+    address constant EXPECTED_RENOUNCED_PROXY_ADMIN_ADDRESS = address(0xd9734c69cCE8777514062e603aF211D429Ae328C);
+    /**
+     * @notice Expected address for deployed aTokenVaultFactory, using CREATE3
+     */
+    address constant EXPECTED_FACTORY_ADDRESS = address(0x7954d5c3ECaA0A8F3f373BBA88cE38f4Fa27616A);
+    ////////////////////////////////////////////////////////////////////
+
+    address constant DEPLOYER_ADDRESS = address(0xFAC70d880Da5923673C502dbC8CeD1675c57e155);
+
+    /**
+     * @notice CREATE3 Salt for the Vault'sRenounced Ownership Proxy Admin deployment
+     * 
+     * @dev Generated through following steps:
+     * 
+     * Base Salt: keccak256("aave.aTokenVaultFactory.vault.renouncedProxyAdmin")
+     *              = 0x2bb59d5d1bfe60f97765faf35a14525d450d29788deb958f5afddb864ebc4929
+     * 
+     *  0x 2bb59d5d1bfe60f97765faf35a14525d450d2978 8d eb958f5afddb864ebc4929
+     * 
+     * Add deployer address (0xFAC70d880Da5923673C502dbC8CeD1675c57e155) at the beginning for protection:
+     *  0x FAC70d880Da5923673C502dbC8CeD1675c57e155 8d eb958f5afddb864ebc4929
+     * 
+     * Set the next byte to 0x00 in order to turn off the cross-chain protection:
+     *  0x FAC70d880Da5923673C502dbC8CeD1675c57e155 00 eb958f5afddb864ebc4929
+     * 
+     * Keep the final bytes from the base salt
+     */
+    bytes32 constant RENOUNCED_PROXY_ADMIN_SALT = 0xFAC70d880Da5923673C502dbC8CeD1675c57e15500eb958f5afddb864ebc4929;
+
+    /**
+     * @notice CREATE3 Salt for the deterministic aTokenVaultFactory deployment
+     * 
+     * @dev Generated through following steps:
+     * 
+     * Base Salt: keccak256("aave.aTokenVaultFactory")
+     *              = 0x36275659667d979dfee1891a4bc3f4c14e3c2bb6a5b996d2f8dec69a6f19c4be
+     * 
+     *  0x 36275659667d979dfee1891a4bc3f4c14e3c2bb6 a5 b996d2f8dec69a6f19c4be
+     * 
+     * Add deployer address (0xFAC70d880Da5923673C502dbC8CeD1675c57e155) at the beginning for protection:
+     *  0x FAC70d880Da5923673C502dbC8CeD1675c57e155 a5 b996d2f8dec69a6f19c4be
+     * 
+     * Set the next byte to 0x00 in order to turn off the cross-chain protection:
+     *  0x FAC70d880Da5923673C502dbC8CeD1675c57e155 00 b996d2f8dec69a6f19c4be
+     * 
+     * Keep the final bytes from the base salt
+     */
+    bytes32 constant FACTORY_SALT = 0xFAC70d880Da5923673C502dbC8CeD1675c57e15500b996d2f8dec69a6f19c4be;
+
+    /**
+     * @notice @pcaversaccio/createx's address
+     * 
+     * @dev Used as CREATE3 factory for deterministic deployments, not depending on the init code.
+     */
+    address constant CREATEX_ADDRESS = address(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
+
+    ICreateX CREATE3_FACTORY = ICreateX(CREATEX_ADDRESS);
 
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
-        address deployerAddress = vm.addr(deployerPrivateKey);
-        console.log("Deployer address: ", deployerAddress);
-        console.log("Deployer balance: ", deployerAddress.balance);
+        console.log("Deployer balance: ", address(DEPLOYER_ADDRESS).balance);
+
         console.log("BlockNumber: ", block.number);
-        console.log("ChainId: ", getChainId());
-        console.log("Proxy admin for deployed vaults: ", PROXY_ADMIN_ADDRESS);
-        console.log("Deploying vault factory...");
 
-        vm.startBroadcast(deployerPrivateKey);
+        console.log("ChainId: ", block.chainid);
 
-        // Deploy the implementation, which disables initializers on construction
-        ATokenVaultFactory factory = new ATokenVaultFactory({proxyAdmin: PROXY_ADMIN_ADDRESS});
-        console.log("Factory deployed at: ", address(factory));
+        require(FACTORY_PROXY_ADMIN_OWNER != address(0), "FACTORY_PROXY_ADMIN_OWNER is not set");
+        console.log("Proxy admin for deployed vaults: ", FACTORY_PROXY_ADMIN_OWNER);
+
+        require(EXPECTED_FACTORY_ADDRESS != address(0), "EXPECTED_FACTORY_ADDRESS is not set");
+        console.log("Expected deployed factory address: ", EXPECTED_FACTORY_ADDRESS);
+
+
+        vm.startBroadcast();
+
+
+        /////// Deploy Renounced ProxyAdmin (using OpenZeppelin v4.7)
+
+        console.log("Deploying vault's renounced proxy admin - Expected at: ", address(EXPECTED_RENOUNCED_PROXY_ADMIN_ADDRESS));
+
+        address renouncedProxyAdmin = CREATE3_FACTORY.deployCreate3({
+            salt: RENOUNCED_PROXY_ADMIN_SALT,
+            initCode: abi.encodePacked(type(ProxyAdmin_v4_7).creationCode)
+        });
+
+        console.log("Renounced proxy admin deployed at: ", renouncedProxyAdmin);
+
+        require(renouncedProxyAdmin == EXPECTED_RENOUNCED_PROXY_ADMIN_ADDRESS, "Renounced proxy admin address mismatch");
+
+        ProxyAdmin_v4_7(renouncedProxyAdmin).renounceOwnership();
+
+
+        /////// Deploy aTokenVaultFactory Implementation (pass Renounced ProxyAdmin as argument)
+
+        console.log("Deploying aTokenVaultFactory implementation...");
+
+        ATokenVaultFactory factoryImplementation = new ATokenVaultFactory({proxyAdmin: renouncedProxyAdmin});
+
+        console.log("aTokenVaultFactory implementation deployed at: ", address(factoryImplementation));
+
+
+
+        /////// Deploy aTokenVaultFactory Proxy (using OpenZeppelin v5.3)
+
+        console.log("Deploying aTokenVaultFactory proxy - Expected at: ", address(EXPECTED_FACTORY_ADDRESS));
+
+        address factoryProxy = CREATE3_FACTORY.deployCreate3({
+            salt: FACTORY_SALT,
+            initCode: abi.encodePacked(
+                type(TransparentUpgradeableProxy_v5_3).creationCode,
+                abi.encode(factoryImplementation, FACTORY_PROXY_ADMIN_OWNER, "")
+            )
+        });
+
+        console.log("aTokenVaultFactory proxy deployed at: ", factoryProxy);
+
+        require(address(factoryProxy) == EXPECTED_FACTORY_ADDRESS, "aTokenVaultFactory Proxy address mismatch");
+
 
         vm.stopBroadcast();
     }
