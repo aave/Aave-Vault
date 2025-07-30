@@ -8,7 +8,7 @@ import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesPro
 import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {ATokenVault} from "./ATokenVault.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
-import {IOwnable} from "@bgd-labs/aave-address-book/common/IOwnable.sol";
+import {ProxyAdmin} from "@openzeppelin/proxy/transparent/ProxyAdmin.sol";
 
 /**
  * @title ATokenVaultImplDeploymentLib
@@ -98,7 +98,7 @@ contract ATokenVaultFactory {
      */
     constructor(address proxyAdmin) {
         RENOUNCED_PROXY_ADMIN = proxyAdmin;
-        require(IOwnable(proxyAdmin).owner() == address(0), "PROXY_ADMIN_OWNERSHIP_NOT_RENOUNCED");
+        require(ProxyAdmin(proxyAdmin).owner() == address(0), "PROXY_ADMIN_OWNERSHIP_NOT_RENOUNCED");
     }
 
     /*//////////////////////////////////////////////////////////////
