@@ -5,8 +5,8 @@ pragma solidity ^0.8.10;
 import "forge-std/Script.sol";
 import {ATokenVaultFactory} from "../src/ATokenVaultFactory.sol";
 import {ICreateX} from "@pcaversaccio/createx/ICreateX.sol";
-import {ProxyAdmin as ProxyAdmin_v4_7} from "@openzeppelin/proxy/transparent/ProxyAdmin.sol";
-import {TransparentUpgradeableProxy as TransparentUpgradeableProxy_v5_3} from "@openzeppelin-v5/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ProxyAdmin} from "@openzeppelin/proxy/transparent/ProxyAdmin.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /**
  * @title DeployFactory
@@ -21,9 +21,9 @@ import {TransparentUpgradeableProxy as TransparentUpgradeableProxy_v5_3} from "@
 contract DeployFactory is Script {
     /////////////////// DEPLOYMENT PARAMETERS //////////////////////////
     /**
-     * @notice Owner of the aTokenVaultFactory's Proxy Admin 
+     * @notice The aTokenVaultFactory's Proxy Admin 
      */
-    address constant FACTORY_PROXY_ADMIN_OWNER = address(0);
+    address constant FACTORY_PROXY_ADMIN = address(0);
     ////////////////////////////////////////////////////////////////////
 
     address constant EXPECTED_FACTORY_ADDRESS = address(0xa35995bb2fFC5F2b33379C2e95d00C20FbF71E70);
@@ -67,22 +67,22 @@ contract DeployFactory is Script {
 
         console.log("ChainId: ", block.chainid);
 
-        require(FACTORY_PROXY_ADMIN_OWNER != address(0), "FACTORY_PROXY_ADMIN_OWNER is not set");
-        console.log("Factory proxy admin owner: ", FACTORY_PROXY_ADMIN_OWNER);
+        require(FACTORY_PROXY_ADMIN != address(0), "FACTORY_PROXY_ADMIN is not set");
+        console.log("Factory proxy admin owner: ", FACTORY_PROXY_ADMIN);
 
 
         vm.startBroadcast();
 
 
-        /////// Deploy Renounced ProxyAdmin (using OpenZeppelin v4.7)
+        /////// Deploy Renounced ProxyAdmin
 
         console.log("Deploying vault's renounced proxy admin");
 
-        address renouncedProxyAdmin = address(new ProxyAdmin_v4_7());
+        address renouncedProxyAdmin = address(new ProxyAdmin());
 
         console.log("Renounced proxy admin deployed at: ", renouncedProxyAdmin);
 
-        ProxyAdmin_v4_7(renouncedProxyAdmin).renounceOwnership();
+        ProxyAdmin(renouncedProxyAdmin).renounceOwnership();
 
 
         /////// Deploy aTokenVaultFactory Implementation (pass Renounced ProxyAdmin as argument)
@@ -95,15 +95,15 @@ contract DeployFactory is Script {
 
 
 
-        /////// Deploy aTokenVaultFactory Proxy (using OpenZeppelin v5.3)
+        /////// Deploy aTokenVaultFactory Proxy
 
         console.log("Deploying aTokenVaultFactory proxy - Expected at: ", address(EXPECTED_FACTORY_ADDRESS));
 
         address factoryProxy = CREATE3_FACTORY.deployCreate3({
             salt: FACTORY_SALT,
             initCode: abi.encodePacked(
-                type(TransparentUpgradeableProxy_v5_3).creationCode,
-                abi.encode(factoryImplementation, FACTORY_PROXY_ADMIN_OWNER, "")
+                type(TransparentUpgradeableProxy).creationCode,
+                abi.encode(factoryImplementation, FACTORY_PROXY_ADMIN, "")
             )
         });
 
