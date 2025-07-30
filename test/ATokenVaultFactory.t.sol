@@ -159,11 +159,6 @@ contract ATokenVaultFactoryTest is Test {
         address vault2 = factory.deployVault(params2);
         vm.stopPrank();
 
-        assertEq(factory.getAllVaultsLength(), 2);
-        address[] memory allVaults = factory.getAllVaults();
-        assertEq(allVaults[0], vault1);
-        assertEq(allVaults[1], vault2);
-
         assertTrue(vault1 != vault2);
 
         ATokenVault vault1Contract = ATokenVault(vault1);
@@ -545,93 +540,6 @@ contract ATokenVaultFactoryTest is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTION TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function testGetVaultInfo() public {
-        uint256 initialDeposit = 1000 * 1e18;
-        deal(address(dai), ALICE, initialDeposit);
-
-        vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
-
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
-            underlying: address(dai),
-            referralCode: 0,
-            poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
-            owner: ALICE,
-            initialFee: 0,
-            shareName: "Test Vault",
-            shareSymbol: "tVault",
-            initialLockDeposit: initialDeposit
-        });
-
-        address vault = factory.deployVault(params);
-        vm.stopPrank();
-
-        (address vaultAddr, address underlying) = factory.getVaultInfo(0);
-        assertEq(vaultAddr, vault);
-        assertEq(underlying, address(dai));
-    }
-
-    function testGetVaultInfoInvalidIndexReverts() public {
-        vm.expectRevert("INVALID_VAULT_INDEX");
-        factory.getVaultInfo(0);
-    }
-
-    function testGetVaultInfoMultipleVaults() public {
-        uint256 initialDeposit = 1000 * 1e18;
-
-        deal(address(dai), ALICE, initialDeposit * 2);
-        vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit * 2);
-
-        ATokenVaultFactory.VaultParams memory params1 = ATokenVaultFactory.VaultParams({
-            underlying: address(dai),
-            referralCode: 0,
-            poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
-            owner: ALICE,
-            initialFee: 0,
-            shareName: "First Vault",
-            shareSymbol: "FV",
-            initialLockDeposit: initialDeposit
-        });
-
-        address vault1 = factory.deployVault(params1);
-
-        vm.roll(block.number + 1);
-        vm.warp(block.timestamp + 1);
-
-        ATokenVaultFactory.VaultParams memory params2 = ATokenVaultFactory.VaultParams({
-            underlying: address(dai),
-            referralCode: 0,
-            poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
-            owner: ALICE,
-            initialFee: 0,
-            shareName: "Second Vault",
-            shareSymbol: "SV",
-            initialLockDeposit: initialDeposit
-        });
-
-        address vault2 = factory.deployVault(params2);
-        vm.stopPrank();
-
-        (address vaultAddr1, address underlying1) = factory.getVaultInfo(0);
-        (address vaultAddr2, address underlying2) = factory.getVaultInfo(1);
-
-        assertEq(vaultAddr1, vault1);
-        assertEq(underlying1, address(dai));
-        assertEq(vaultAddr2, vault2);
-        assertEq(underlying2, address(dai));
-    }
-
-    function testGetAllVaultsEmpty() public {
-        address[] memory vaults = factory.getAllVaults();
-        assertEq(vaults.length, 0);
-        assertEq(factory.getAllVaultsLength(), 0);
-    }
-
-    /*//////////////////////////////////////////////////////////////
                             INTEGRATION TESTS
     //////////////////////////////////////////////////////////////*/
 
@@ -713,7 +621,6 @@ contract ATokenVaultFactoryTest is Test {
         vm.stopPrank();
 
         assertTrue(daiVault != usdcVault);
-        assertEq(factory.getAllVaultsLength(), 2);
     }
 
     function testDeploymentCounterIncreases() public {
@@ -751,7 +658,6 @@ contract ATokenVaultFactoryTest is Test {
         assertTrue(vault1 != vault2);
         assertTrue(vault2 != vault3);
         assertTrue(vault1 != vault3);
-        assertEq(factory.getAllVaultsLength(), 3);
     }
 
     function testDeployVaultEdgeCaseMinimalDeposit() public {

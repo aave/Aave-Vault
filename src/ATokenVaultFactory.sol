@@ -12,7 +12,7 @@ import {ProxyAdmin} from "@openzeppelin/proxy/transparent/ProxyAdmin.sol";
 
 /**
  * @title ATokenVaultImplDeploymentLib
- * @author Aave Protocol
+ * @author Aave Labs
  * @notice Library that handles the deployment of the ATokenVault implementation contract
  * @dev This library is a helper to avoid holding the ATokenVault bytecode in the factory contract avoiding exceeding
  *      the contract size limit.
@@ -33,7 +33,7 @@ library ATokenVaultImplDeploymentLib {
 
 /**
  * @title ATokenVaultFactory
- * @author Aave Protocol
+ * @author Aave Labs
  * @notice Factory contract for deploying ATokenVault instances
  */
 contract ATokenVaultFactory {
@@ -60,11 +60,8 @@ contract ATokenVaultFactory {
     );
 
     /*//////////////////////////////////////////////////////////////
-                            STATE VARIABLES
+                               CONSTANTS
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Array of all deployed vaults
-    address[] internal _allVaults;
 
     /// @notice Proxy admin address for all deployed vaults, with renounced ownership.
     /// @dev Future version will deploy a plain immutable vault without proxy.
@@ -146,8 +143,6 @@ contract ATokenVaultFactory {
             params.initialLockDeposit
         );
 
-        _allVaults.push(vault);
-
         emit VaultDeployed(
             vault,
             implementation,
@@ -155,41 +150,5 @@ contract ATokenVaultFactory {
             msg.sender,
             params
         );
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                              VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Get the total number of deployed vaults
-     * @return The total number of vaults
-     */
-    function getAllVaultsLength() external view returns (uint256) {
-        return _allVaults.length;
-    }
-
-    /**
-     * @notice Get all deployed vaults
-     * @return Array of all vault addresses
-     */
-    function getAllVaults() external view returns (address[] memory) {
-        return _allVaults;
-    }
-
-    /**
-     * @notice Get vault deployment info
-     * @param vaultIndex The index of the vault in allVaults array
-     * @return vault The vault address
-     * @return underlying The underlying asset
-     */
-    function getVaultInfo(uint256 vaultIndex) external view returns (
-        address vault,
-        address underlying
-    ) {
-        require(vaultIndex < _allVaults.length, "INVALID_VAULT_INDEX");
-        vault = _allVaults[vaultIndex];
-        ATokenVault vaultContract = ATokenVault(vault);
-        underlying = address(vaultContract.UNDERLYING());
     }
 }
