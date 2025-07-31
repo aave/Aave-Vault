@@ -57,6 +57,16 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
     Recipient[] internal _recipients;
 
     /**
+     * @dev Total historical amount held for a given asset in this contract.
+     */
+    mapping(address => uint256) internal _previousAccumulatedBalance;
+
+    /**
+     * @dev Amount already transferred for a given asset to a given recipient.
+     */
+    mapping(address => mapping(address => uint256)) internal _amountAlreadyTransferred;
+
+    /**
      * @dev Constructor.
      * @param vault The address of the aToken Vault to own, whose revenue is split.
      * @param owner The address owning this contract, the effective owner of the vault.
@@ -105,23 +115,36 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
     }
 
     /**
-     * @dev Splits the revenue from the given assets among the configured recipients. Assets must follow the ERC-20
-     * interface and be held by this contract.
+     * @dev Splits the revenue from the given assets among the configured recipients. Assets must follow the ERC-20.
+     * standard and be held by this contract.
      * @param assets The assets to split the revenue from.
      */
     function splitRevenue(address[] calldata assets) public {
         Recipient[] memory recipients = _recipients;
         for (uint256 i = 0; i < assets.length; i++) {
-            uint256 amountToSplit = IERC20(assets[i]).balanceOf(address(this));
+            uint256 assetBalance = IERC20(assets[i]).balanceOf(address(this));
+            uint256 accumulatedAssetBalance = _previousAccumulatedBalance[assets[i]] + assetBalance;
+            _previousAccumulatedBalance[assets[i]] = accumulatedAssetBalance;
+            uint256 undistributedAmount = assetBalance;
             for (uint256 j = 0; j < recipients.length; j++) {
-                // Due to floor-rounding in integer division, the sum of the amounts transferred may be less than the
-                // total amount to split. This can leave up to `N - 1` units of each asset undistributed in this
-                // contract's balance, where `N` is the number of recipients.
-                uint256 amountForRecipient = amountToSplit * recipients[j].shareInBps / TOTAL_SHARE_IN_BPS;
+                /**
+                 * Due to floor-rounding in integer division, the sum of the amounts transferred may be less than the
+                 * total amount to split. For a standard ERC-20 implementation this can leave up to `N - 1` units of 
+                 * each asset undistributed in this contract's balance, where `N` is the number of recipients.
+                 * For aTokens this increases to `N` units.
+                 * These units may be distributed in the next `splitRevenue` call.
+                 */
+                uint256 amountForRecipient = accumulatedAssetBalance * recipients[j].shareInBps / TOTAL_SHARE_IN_BPS
+                    - _amountAlreadyTransferred[assets[i]][recipients[j].addr];
                 if (amountForRecipient > 0) {
+                    _amountAlreadyTransferred[assets[i]][recipients[j].addr] += amountForRecipient;
                     IERC20(assets[i]).safeTransfer(recipients[j].addr, amountForRecipient);
+                    undistributedAmount -= amountForRecipient;
                 }
                 emit RevenueSplitTransferred(recipients[j].addr, assets[i], amountForRecipient);
+            }
+            if (undistributedAmount > 0) {
+                _previousAccumulatedBalance[assets[i]] -= undistributedAmount;
             }
         }
     }
