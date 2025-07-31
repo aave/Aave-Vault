@@ -163,7 +163,9 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
 
     function _withdrawFees() internal {
         uint256 feesToWithdraw = VAULT.getClaimableFees();
-        VAULT.withdrawFees(address(this), feesToWithdraw);
+        if (feesToWithdraw > 0) {
+            VAULT.withdrawFees(address(this), feesToWithdraw);
+        }
     }
 
     /**
