@@ -172,6 +172,7 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
     function _setRecipients(Recipient[] memory recipients) internal {
         uint256 accumulatedShareInBps = 0;
         for (uint256 i = 0; i < recipients.length; i++) {
+            require(recipients[i].addr != address(0), "RECIPIENT_CANNOT_BE_ZERO_ADDRESS");
             require(recipients[i].shareInBps > 0, "BPS_SHARE_CANNOT_BE_ZERO");
             accumulatedShareInBps += recipients[i].shareInBps;
             _recipients.push(recipients[i]);
