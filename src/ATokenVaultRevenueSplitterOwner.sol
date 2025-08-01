@@ -123,10 +123,9 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
         Recipient[] memory recipients = _recipients;
         for (uint256 i = 0; i < assets.length; i++) {
             uint256 assetBalance = IERC20(assets[i]).balanceOf(address(this));
-            if (assetBalance > 0) {
-                // Decrease balance by one unit to ensure aToken transfers will not fail due to scaled balance rounding.
-                assetBalance--;
-            }
+            require(assetBalance > 0, "ASSET_NOT_HELD_BY_SPLITTER");
+            // Decrease balance by one unit to ensure aToken transfers will not fail due to scaled balance rounding.
+            assetBalance--;
             uint256 accumulatedAssetBalance = _previousAccumulatedBalance[assets[i]] + assetBalance;
             _previousAccumulatedBalance[assets[i]] = accumulatedAssetBalance;
             uint256 undistributedAmount = assetBalance;

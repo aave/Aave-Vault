@@ -476,7 +476,7 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
     function test_splitRevenue_distributesRevenueToAllRecipientsAccordingToTheirShares_FuzzAmount(
         uint256 contractBalance
     ) public {
-        contractBalance = bound(contractBalance, 0, type(uint240).max);
+        contractBalance = bound(contractBalance, 1, type(uint240).max);
 
         MockDAI assetToSplit = new MockDAI();
 
@@ -494,7 +494,7 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
 
         revenueSplitterOwner.splitRevenue(assetsToSplit);
 
-        uint256 amountToSplit = contractBalance > 0 ? contractBalance - UNIT_OF_DUST : 0;
+        uint256 amountToSplit = contractBalance - UNIT_OF_DUST;
 
         assertEq(assetToSplit.balanceOf(address(recipientI)), amountToSplit * shareI / TOTAL_SHARE_IN_BPS);
         assertEq(assetToSplit.balanceOf(address(recipientII)), amountToSplit * shareII / TOTAL_SHARE_IN_BPS);
@@ -503,6 +503,17 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         // The remaining unsplit amount is capped to the be less than the number of recipients for standard ERC-20s,
         // and recipients + 1 for aTokens.
         assertLe(assetToSplit.balanceOf(address(revenueSplitterOwner)), recipients.length);
+    }
+
+    function test_splitRevenue_revertsIfAssetHasNoBalance() public {
+        MockDAI assetToSplit = new MockDAI();
+        address[] memory assetsToSplit = new address[](1);
+        assetsToSplit[0] = address(assetToSplit);
+
+        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), 0);
+
+        vm.expectRevert("ASSET_NOT_HELD_BY_SPLITTER");
+        revenueSplitterOwner.splitRevenue(assetsToSplit);
     }
 
     function test_splitRevenue_distributesRevenueToAllRecipientsAccordingToTheirShares_FuzzShares(
