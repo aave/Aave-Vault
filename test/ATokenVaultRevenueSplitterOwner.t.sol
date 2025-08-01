@@ -564,4 +564,83 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
 
         assertEq(address(revenueSplitterOwner).balance, 0);
     }
+
+    function test_splitRevenue_roundingErrorIsNotAccumulatedAfterManySplits() public {
+        shareI = 9_000; // 90.00%
+        shareII = 500; // 5.00%
+        shareIII = 500; // 5.00%
+
+        recipients[0].shareInBps = shareI;
+        recipients[1].shareInBps = shareII;
+        recipients[2].shareInBps = shareIII;
+
+        revenueSplitterOwner = new ATokenVaultRevenueSplitterOwner(address(vault), owner, recipients);
+
+        uint256 accumulatedAmountToSplit;
+
+        MockDAI assetToSplit = new MockDAI();
+        uint256 assetBalance = 4;
+        uint256 amountToSplit = assetBalance - UNIT_OF_DUST; // = 3
+        accumulatedAmountToSplit += amountToSplit;
+        address[] memory assetsToSplit = new address[](1);
+        assetsToSplit[0] = address(assetToSplit);
+
+        /// Split #1: Balance is 4, 3 units of asset to distribute, only recipientI gets revenue
+
+        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), 0, "Unexpected initial splitter balance");
+        assetToSplit.mint(address(revenueSplitterOwner), assetBalance);
+        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), 4, "Unexpected splitter balance");
+
+        revenueSplitterOwner.splitRevenue(assetsToSplit);
+
+        assertEq(assetToSplit.balanceOf(address(recipientI)), 2, "Unexpected recipientI balance after 1st split");
+        assertEq(assetToSplit.balanceOf(address(recipientII)), 0, "Unexpected recipientII balance after 1st split");
+        assertEq(assetToSplit.balanceOf(address(recipientIII)), 0, "Unexpected recipientIII balance after 1st split");
+
+        /// Split #2 - #10: Balance is 4 (2 new + 1 carried from previous rounding error split dust + 1 from the
+        /// reserved unit to not fail in aToken transfers), 3 units of asset to distribute, only recipientI gets revenue
+        for (uint256 i = 1; i <= 10; i++) {
+            amountToSplit = 2;
+            accumulatedAmountToSplit += amountToSplit;
+
+            assetToSplit.mint(address(revenueSplitterOwner), amountToSplit);
+
+            revenueSplitterOwner.splitRevenue(assetsToSplit);
+        }
+        assertEq(assetToSplit.balanceOf(address(recipientI)), 20, "Unexpected recipientI balance after 10th split");
+        assertEq(assetToSplit.balanceOf(address(recipientII)), 1, "Unexpected recipientII balance after 10th split");
+        assertEq(assetToSplit.balanceOf(address(recipientIII)), 1, "Unexpected recipientIII balance after 10th split");
+
+        // Split #11: 3 units of asset (2 new + 1 carried from previous split dust), all get revenue
+
+        amountToSplit = 2;
+        accumulatedAmountToSplit += amountToSplit;
+
+        assetToSplit.mint(address(revenueSplitterOwner), amountToSplit);
+
+        revenueSplitterOwner.splitRevenue(assetsToSplit);
+
+        assertEq(assetToSplit.balanceOf(address(recipientI)), 22, "Unexpected recipientI balance after 11th split");
+        assertEq(assetToSplit.balanceOf(address(recipientII)), 1, "Unexpected recipientII balance after 11th split");
+        assertEq(assetToSplit.balanceOf(address(recipientIII)), 1, "Unexpected recipientIII balance after 11th split");
+
+        assertEq(accumulatedAmountToSplit, 25, "Unexpected accumulated amount to split");
+
+        // The accumulated split is the expected and does not have accumulated rounding errors
+        assertEq(
+            assetToSplit.balanceOf(address(recipientI)), accumulatedAmountToSplit * shareI / TOTAL_SHARE_IN_BPS,
+            "Split has accumulated rounding error for recipientI"
+        );
+        assertEq(
+            assetToSplit.balanceOf(address(recipientII)), accumulatedAmountToSplit * shareII / TOTAL_SHARE_IN_BPS,
+            "Split has accumulated rounding error for recipientII"
+        );
+        assertEq(
+            assetToSplit.balanceOf(address(recipientIII)), accumulatedAmountToSplit * shareIII / TOTAL_SHARE_IN_BPS,
+            "Split has accumulated rounding error for recipientIII"
+        );
+
+        // One unit of rounding error dust + one unit of reserved unit to not fail in aToken transfers
+        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), 2, "Unexpected final splitter balance");
+    }
 }
