@@ -35,6 +35,10 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
 
     ATokenVaultRevenueSplitterOwner revenueSplitterOwner;
 
+    uint256 public constant TOTAL_SHARE_IN_BPS = 10_000;
+
+    uint256 public constant UNIT_OF_DUST = 1;
+
     function setUp() public {
         owner = address(this);
 
@@ -126,10 +130,12 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
 
         assertEq(aToken.balanceOf(address(revenueSplitterOwner)), 0);
 
-        vm.expectCall(
-            address(vault),
-            abi.encodeWithSelector(IATokenVault.withdrawFees.selector, address(revenueSplitterOwner), amount)
-        );
+        if (amount > 0) {
+            vm.expectCall(
+                address(vault),
+                abi.encodeWithSelector(IATokenVault.withdrawFees.selector, address(revenueSplitterOwner), amount)
+            );
+        }
         revenueSplitterOwner.withdrawFees();
 
         assertEq(aToken.balanceOf(address(revenueSplitterOwner)), amount);
@@ -140,10 +146,12 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
 
         assertEq(aToken.balanceOf(address(revenueSplitterOwner)), 0);
 
-        vm.expectCall(
-            address(vault),
-            abi.encodeWithSelector(IATokenVault.withdrawFees.selector, address(revenueSplitterOwner), amount)
-        );
+        if (amount > 0) {
+            vm.expectCall(
+                address(vault),
+                abi.encodeWithSelector(IATokenVault.withdrawFees.selector, address(revenueSplitterOwner), amount)
+            );
+        }
 
         vm.prank(msgSender);
         revenueSplitterOwner.withdrawFees();
@@ -291,10 +299,12 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
             abi.encodeWithSelector(IATokenVault.claimRewards.selector, address(revenueSplitterOwner))
         );
 
-        vm.expectCall(
-            address(vault),
-            abi.encodeWithSelector(IATokenVault.withdrawFees.selector, address(revenueSplitterOwner), feesToWithdraw)
-        );
+        if (feesToWithdraw > 0) {
+            vm.expectCall(
+                address(vault),
+                abi.encodeWithSelector(IATokenVault.withdrawFees.selector, address(revenueSplitterOwner), feesToWithdraw)
+            );
+        }
 
         assertEq(rewardAssetI.balanceOf(address(revenueSplitterOwner)), 0);
         assertEq(rewardAssetII.balanceOf(address(revenueSplitterOwner)), 0);
@@ -329,26 +339,33 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
 
     function test_splitRevenue_distributesRevenueToAllRecipientsAccordingToTheirShares() public {
         MockDAI assetToSplit = new MockDAI();
-        uint256 amountToSplit = 250_000;
+        uint256 assetBalance = 250_001;
+        uint256 amountToSplit = assetBalance - UNIT_OF_DUST;
 
         assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), 0);
         assertEq(assetToSplit.balanceOf(address(recipientI)), 0);
         assertEq(assetToSplit.balanceOf(address(recipientII)), 0);
         assertEq(assetToSplit.balanceOf(address(recipientIII)), 0);
 
-        assetToSplit.mint(address(revenueSplitterOwner), amountToSplit);
+        assetToSplit.mint(address(revenueSplitterOwner), assetBalance);
 
-        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), amountToSplit);
+        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), assetBalance);
 
         address[] memory assetsToSplit = new address[](1);
         assetsToSplit[0] = address(assetToSplit);
 
         revenueSplitterOwner.splitRevenue(assetsToSplit);
 
-        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), 0);
+        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), UNIT_OF_DUST);
         assertEq(assetToSplit.balanceOf(address(recipientI)), 25_000);
         assertEq(assetToSplit.balanceOf(address(recipientII)), 50_000);
         assertEq(assetToSplit.balanceOf(address(recipientIII)), 175_000);
+
+        assertEq(amountToSplit,
+            assetToSplit.balanceOf(address(recipientI)) +
+            assetToSplit.balanceOf(address(recipientII)) +
+            assetToSplit.balanceOf(address(recipientIII))
+        );
     }
 
     function test_splitRevenue_distributesRevenueToAllRecipientsAccordingToTheirShares_MultipleAssets() public {
@@ -369,25 +386,40 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         assertEq(assetToSplitII.balanceOf(address(recipientII)), 0);
         assertEq(assetToSplitII.balanceOf(address(recipientIII)), 0);
 
-        uint256 amountToSplitI = 250_000;
-        assetToSplitI.mint(address(revenueSplitterOwner), amountToSplitI);
-        assertEq(assetToSplitI.balanceOf(address(revenueSplitterOwner)), amountToSplitI);
+        uint256 assetBalanceI = 250_001;
+        uint256 amountToSplitI = assetBalanceI - UNIT_OF_DUST;
+        assetToSplitI.mint(address(revenueSplitterOwner), assetBalanceI);
+        assertEq(assetToSplitI.balanceOf(address(revenueSplitterOwner)), assetBalanceI);
 
-        uint256 amountToSplitII = 100_000;
-        assetToSplitII.mint(address(revenueSplitterOwner), amountToSplitII);
-        assertEq(assetToSplitII.balanceOf(address(revenueSplitterOwner)), amountToSplitII);
+        uint256 assetBalanceII = 100_001;
+        uint256 amountToSplitII = assetBalanceII - UNIT_OF_DUST;
+        assetToSplitII.mint(address(revenueSplitterOwner), assetBalanceII);
+        assertEq(assetToSplitII.balanceOf(address(revenueSplitterOwner)), assetBalanceII);
 
         revenueSplitterOwner.splitRevenue(assetsToSplit);
 
-        assertEq(assetToSplitI.balanceOf(address(revenueSplitterOwner)), 0);
+        assertEq(assetToSplitI.balanceOf(address(revenueSplitterOwner)), UNIT_OF_DUST);
 
         assertEq(assetToSplitI.balanceOf(address(recipientI)), 25_000);
         assertEq(assetToSplitI.balanceOf(address(recipientII)), 50_000);
         assertEq(assetToSplitI.balanceOf(address(recipientIII)), 175_000);
 
+        assertEq(amountToSplitI,
+            assetToSplitI.balanceOf(address(recipientI)) +
+            assetToSplitI.balanceOf(address(recipientII)) +
+            assetToSplitI.balanceOf(address(recipientIII))
+        );
+
+
         assertEq(assetToSplitII.balanceOf(address(recipientI)), 10_000);
         assertEq(assetToSplitII.balanceOf(address(recipientII)), 20_000);
         assertEq(assetToSplitII.balanceOf(address(recipientIII)), 70_000);
+
+        assertEq(amountToSplitII,
+            assetToSplitII.balanceOf(address(recipientI)) +
+            assetToSplitII.balanceOf(address(recipientII)) +
+            assetToSplitII.balanceOf(address(recipientIII))
+        );
     }
 
     function test_splitRevenue_canBeCalledByAnyone(address msgSender) public {
@@ -395,24 +427,31 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         address[] memory assetsToSplit = new address[](1);
         assetsToSplit[0] = address(assetToSplit);
 
-        uint256 amountToSplit = 1_000;
+        uint256 assetBalance = 1_001;
+        uint256 amountToSplit = assetBalance - UNIT_OF_DUST;
 
         assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), 0);
         assertEq(assetToSplit.balanceOf(address(recipientI)), 0);
         assertEq(assetToSplit.balanceOf(address(recipientII)), 0);
         assertEq(assetToSplit.balanceOf(address(recipientIII)), 0);
 
-        assetToSplit.mint(address(revenueSplitterOwner), amountToSplit);
+        assetToSplit.mint(address(revenueSplitterOwner), assetBalance);
 
-        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), amountToSplit);
+        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), assetBalance);
 
         vm.prank(msgSender);
         revenueSplitterOwner.splitRevenue(assetsToSplit);
 
-        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), 0);
+        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), UNIT_OF_DUST);
         assertEq(assetToSplit.balanceOf(address(recipientI)), 100);
         assertEq(assetToSplit.balanceOf(address(recipientII)), 200);
         assertEq(assetToSplit.balanceOf(address(recipientIII)), 700);
+
+        assertEq(assetToSplit.balanceOf(address(recipientI)) +
+            assetToSplit.balanceOf(address(recipientII)) +
+            assetToSplit.balanceOf(address(recipientIII)),
+            amountToSplit
+        );
     }
 
     function test_splitRevenue_emitsExpectedEvents() public {
@@ -420,9 +459,9 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         address[] memory assetsToSplit = new address[](1);
         assetsToSplit[0] = address(assetToSplit);
 
-        uint256 amountToSplit = 1_000;
+        uint256 assetBalance = 1_001;
 
-        assetToSplit.mint(address(revenueSplitterOwner), amountToSplit);
+        assetToSplit.mint(address(revenueSplitterOwner), assetBalance);
 
         vm.expectEmit(true, true, true, true);
         emit RevenueSplitTransferred(address(recipientI), address(assetToSplit), 100);
@@ -435,9 +474,9 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
     }
 
     function test_splitRevenue_distributesRevenueToAllRecipientsAccordingToTheirShares_FuzzAmount(
-        uint256 amountToSplit
+        uint256 contractBalance
     ) public {
-        amountToSplit = bound(amountToSplit, 0, type(uint240).max);
+        contractBalance = bound(contractBalance, 0, type(uint240).max);
 
         MockDAI assetToSplit = new MockDAI();
 
@@ -446,21 +485,24 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         assertEq(assetToSplit.balanceOf(address(recipientII)), 0);
         assertEq(assetToSplit.balanceOf(address(recipientIII)), 0);
 
-        assetToSplit.mint(address(revenueSplitterOwner), amountToSplit);
+        assetToSplit.mint(address(revenueSplitterOwner), contractBalance);
 
-        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), amountToSplit);
+        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), contractBalance);
 
         address[] memory assetsToSplit = new address[](1);
         assetsToSplit[0] = address(assetToSplit);
 
         revenueSplitterOwner.splitRevenue(assetsToSplit);
 
-        assertEq(assetToSplit.balanceOf(address(recipientI)), amountToSplit * shareI / 10_000);
-        assertEq(assetToSplit.balanceOf(address(recipientII)), amountToSplit * shareII / 10_000);
-        assertEq(assetToSplit.balanceOf(address(recipientIII)), amountToSplit * shareIII / 10_000);
+        uint256 amountToSplit = contractBalance > 0 ? contractBalance - UNIT_OF_DUST : 0;
 
-        // The remaining unsplit amount is capped to the be strictly less than the number of recipients
-        assertLe(assetToSplit.balanceOf(address(revenueSplitterOwner)), recipients.length - 1);
+        assertEq(assetToSplit.balanceOf(address(recipientI)), amountToSplit * shareI / TOTAL_SHARE_IN_BPS);
+        assertEq(assetToSplit.balanceOf(address(recipientII)), amountToSplit * shareII / TOTAL_SHARE_IN_BPS);
+        assertEq(assetToSplit.balanceOf(address(recipientIII)), amountToSplit * shareIII / TOTAL_SHARE_IN_BPS);
+
+        // The remaining unsplit amount is capped to the be less than the number of recipients for standard ERC-20s,
+        // and recipients + 1 for aTokens.
+        assertLe(assetToSplit.balanceOf(address(revenueSplitterOwner)), recipients.length);
     }
 
     function test_splitRevenue_distributesRevenueToAllRecipientsAccordingToTheirShares_FuzzShares(
@@ -478,7 +520,9 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         // Redeploys the splitter with the new recipients configuration
         revenueSplitterOwner = new ATokenVaultRevenueSplitterOwner(address(vault), owner, recipients);
 
-        uint256 amountToSplit = 100_000;
+        uint256 assetBalance = 100_001;
+        uint256 amountToSplit = assetBalance - UNIT_OF_DUST;
+
         MockDAI assetToSplit = new MockDAI();
 
         assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), 0);
@@ -486,21 +530,22 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         assertEq(assetToSplit.balanceOf(address(recipientII)), 0);
         assertEq(assetToSplit.balanceOf(address(recipientIII)), 0); // Not set as recipient
 
-        assetToSplit.mint(address(revenueSplitterOwner), amountToSplit);
+        assetToSplit.mint(address(revenueSplitterOwner), assetBalance);
 
-        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), amountToSplit);
+        assertEq(assetToSplit.balanceOf(address(revenueSplitterOwner)), assetBalance);
 
         address[] memory assetsToSplit = new address[](1);
         assetsToSplit[0] = address(assetToSplit);
 
         revenueSplitterOwner.splitRevenue(assetsToSplit);
 
-        assertEq(assetToSplit.balanceOf(address(recipientI)), amountToSplit * fuzzShareI / 10_000);
-        assertEq(assetToSplit.balanceOf(address(recipientII)), amountToSplit * fuzzShareII / 10_000);
+        assertEq(assetToSplit.balanceOf(address(recipientI)), amountToSplit * fuzzShareI / TOTAL_SHARE_IN_BPS);
+        assertEq(assetToSplit.balanceOf(address(recipientII)), amountToSplit * fuzzShareII / TOTAL_SHARE_IN_BPS);
         assertEq(assetToSplit.balanceOf(address(recipientIII)), 0); // Not set as recipient
 
-        // The remaining unsplit amount is capped to the be strictly less than the number of recipients
-        assertLe(assetToSplit.balanceOf(address(revenueSplitterOwner)), recipients.length - 1);
+        // The remaining unsplit amount is capped to the be less than the number of recipients for standard ERC-20s,
+        // and recipients + 1 for aTokens.
+        assertLe(assetToSplit.balanceOf(address(revenueSplitterOwner)), recipients.length);
     }
 
     function test_receive_revertsUponNativeTransfer(address msgSender, uint256 amount) public {
