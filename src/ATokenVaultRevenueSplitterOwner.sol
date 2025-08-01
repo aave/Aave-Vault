@@ -123,6 +123,10 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
         Recipient[] memory recipients = _recipients;
         for (uint256 i = 0; i < assets.length; i++) {
             uint256 assetBalance = IERC20(assets[i]).balanceOf(address(this));
+            if (assetBalance > 0) {
+                // Decrease balance by one unit to ensure aToken transfers will not fail due to scaled balance rounding.
+                assetBalance--;
+            }
             uint256 accumulatedAssetBalance = _previousAccumulatedBalance[assets[i]] + assetBalance;
             _previousAccumulatedBalance[assets[i]] = accumulatedAssetBalance;
             uint256 undistributedAmount = assetBalance;
@@ -131,7 +135,8 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
                  * Due to floor-rounding in integer division, the sum of the amounts transferred may be less than the
                  * total amount to split. For a standard ERC-20 implementation this can leave up to `N - 1` units of 
                  * each asset undistributed in this contract's balance, where `N` is the number of recipients.
-                 * For aTokens this increases to `N` units.
+                 * For aTokens this increases to `N` units. And considering the `assetBalance` adjustment previously
+                 * done by decrementing a unit, the final potential undistributed amount goes up to `N + 1` units.
                  * These units may be distributed in the next `splitRevenue` call.
                  */
                 uint256 amountForRecipient = accumulatedAssetBalance * recipients[j].shareInBps / TOTAL_SHARE_IN_BPS
