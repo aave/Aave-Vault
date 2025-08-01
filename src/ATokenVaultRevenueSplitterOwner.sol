@@ -10,24 +10,24 @@ import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title ATokenVaultRevenueSplitterOwner
- * @author Aave Protocol
+ * @author Aave Labs
  * @notice ATokenVault owner with revenue split capabilities.
  */
 contract ATokenVaultRevenueSplitterOwner is Ownable {
     using SafeERC20 for IERC20;
 
     /**
-     * @dev Emitted at construction time for each recipient set
-     * @param recipient The address of the recipient set
-     * @param shareInBps The recipient's share of the revenue in basis points
+     * @dev Emitted at construction time for each recipient set.
+     * @param recipient The address of the recipient set.
+     * @param shareInBps The recipient's share of the revenue in basis points.
      */
     event RecipientSet(address indexed recipient, uint16 shareInBps);
 
     /**
-     * @dev Emitted when revenue is split for each recipient and asset
-     * @param recipient The address of the recipient receiving the revenue
-     * @param asset The asset being split
-     * @param amount The amount of revenue sent to the recipient in the split asset
+     * @dev Emitted when revenue is split for each recipient and asset.
+     * @param recipient The address of the recipient receiving the revenue.
+     * @param asset The asset being split.
+     * @param amount The amount of revenue sent to the recipient in the split asset.
      */
     event RevenueSplitTransferred(address indexed recipient, address indexed asset, uint256 amount);
 
@@ -43,8 +43,8 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
     
     /**
      * @dev A struct to represent a recipient and its share of the revenue in basis points.
-     * @param addr The address of the recipient
-     * @param shareInBps The recipient's share of the revenue in basis points
+     * @param addr The address of the recipient.
+     * @param shareInBps The recipient's share of the revenue in basis points.
      */
     struct Recipient {
         address addr;
