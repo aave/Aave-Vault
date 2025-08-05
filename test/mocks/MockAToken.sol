@@ -11,12 +11,12 @@ contract MockAToken is ERC20 {
         _underlyingAsset = underlyingAsset;
     }
 
-    function mint(address caller, address onBehalfOf, uint256 amount, uint256 index) external returns (bool) {
+    function mint(address /* caller */, address onBehalfOf, uint256 amount, uint256 /* index */) external returns (bool) {
         _mint(onBehalfOf, amount);
         return true;
     }
 
-    function burn(address from, address receiverOfUnderlying, uint256 amount, uint256 index) external {
+    function burn(address from, address receiverOfUnderlying, uint256 amount, uint256 /* index */) external {
         _burn(from, amount);
         if (receiverOfUnderlying != address(this)) {
             ERC20(_underlyingAsset).transfer(receiverOfUnderlying, amount);
