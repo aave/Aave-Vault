@@ -95,7 +95,7 @@ contract ImmutableATokenVault is ATokenVault {
         valueAtSlot0 &= 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00FF;
 
         // The second byte corresponds to the `_initializing` bool flag.
-        // So this was equivalent to `_initializing = true`, which is what the `initializer()` modifier does
+        // So this was equivalent to `_initializing = false`, which is what the `initializer()` modifier does
         // after initialization is complete.
 
         // Store the altered value back into storage slot 0.
