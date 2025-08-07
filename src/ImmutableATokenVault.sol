@@ -47,9 +47,11 @@ contract ImmutableATokenVault is ATokenVault {
             shareSymbol,
             initialLockDeposit
         );
-        super._disableInitializers();
     }
 
+    /**
+     * @dev Initializes the contract given that the base contract, ATokenVault, uses upgradable contracts.
+     */
     function _initialize(
         address underlying,
         address owner,
@@ -57,7 +59,7 @@ contract ImmutableATokenVault is ATokenVault {
         string memory shareName,
         string memory shareSymbol,
         uint256 initialLockDeposit
-    ) internal initializer {
+    ) internal virtual initializer {
         require(owner != address(0), "ZERO_ADDRESS_NOT_VALID");
         require(initialLockDeposit != 0, "ZERO_INITIAL_LOCK_DEPOSIT");
         _transferOwnership(owner);
@@ -74,5 +76,5 @@ contract ImmutableATokenVault is ATokenVault {
      * This turns the `_disableInitializers` call in ATokenVault's constructor ineffective,
      * allowing initialization at the ImmutableATokenVault's constructor.
      */
-    function _disableInitializers() internal override { }
+    function _disableInitializers() internal virtual override { }
 }
