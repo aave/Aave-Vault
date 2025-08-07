@@ -38,7 +38,6 @@ contract ImmutableATokenVaultBaseTest is Test {
     uint256 constant ONE_AND_HALF_PERCENT = 0.015e18;
     uint256 constant ONE_BPS = 0.0001e18;
 
-    uint256 constant PROXY_ADMIN_PRIV_KEY = 4546;
     uint256 constant OWNER_PRIV_KEY = 11111;
     uint256 constant ALICE_PRIV_KEY = 12345;
     uint256 constant BOB_PRIV_KEY = 54321;
@@ -98,10 +97,6 @@ contract ImmutableATokenVaultBaseTest is Test {
     event YieldAccrued(uint256 accruedYield, uint256 newFeesFromYield, uint256 newVaultBalance);
     event RewardsClaimed(address indexed to, address[] rewardsList, uint256[] claimedAmounts);
     event EmergencyRescue(address indexed token, address indexed to, uint256 amount);
-
-    // ERC1967Proxy Events
-    event Upgraded(address indexed implementation);
-    event Initialized(uint8 version);
 
     function setUp() public virtual {}
 

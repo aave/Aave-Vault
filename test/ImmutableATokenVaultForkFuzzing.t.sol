@@ -2,14 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "./utils/Constants.sol";
-import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
-import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
-import {IPool} from "@aave-v3-core/interfaces/IPool.sol";
-import {MockAavePool} from "./mocks/MockAavePool.sol";
-import {MockAToken} from "./mocks/MockAToken.sol";
 import {ImmutableATokenVaultForkBaseTest} from "./ImmutableATokenVaultForkBaseTest.t.sol";
-import {ImmutableATokenVault} from "../src/ImmutableATokenVault.sol";
 
 contract ImmutableATokenVaultForkFuzzingTest is ImmutableATokenVaultForkBaseTest {
     /*//////////////////////////////////////////////////////////////

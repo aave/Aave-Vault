@@ -184,7 +184,7 @@ contract ImmutableATokenVaultForkTest is ImmutableATokenVaultForkBaseTest {
                                 POSITIVES
     //////////////////////////////////////////////////////////////*/
 
-    function testInitProxyWithInitialDeposit() public {
+    function testInitWithInitialDeposit() public {
         uint256 amount = 1e18;
 
         deal(address(dai), address(this), amount);
