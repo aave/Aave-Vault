@@ -39,9 +39,25 @@ contract ImmutableATokenVault is ATokenVault {
         string memory shareSymbol,
         uint256 initialLockDeposit
     ) ATokenVault(underlying, referralCode, poolAddressesProvider) {
-        // Initializer was disabled by the constructor of ATokenVault, the base contract; we re-enable it back.
-        _reEnableInitializers();
+        _initialize(
+            underlying,
+            owner,
+            initialFee,
+            shareName,
+            shareSymbol,
+            initialLockDeposit
+        );
+        super._disableInitializers();
+    }
 
+    function _initialize(
+        address underlying,
+        address owner,
+        uint256 initialFee,
+        string memory shareName,
+        string memory shareSymbol,
+        uint256 initialLockDeposit
+    ) internal initializer {
         require(owner != address(0), "ZERO_ADDRESS_NOT_VALID");
         require(initialLockDeposit != 0, "ZERO_INITIAL_LOCK_DEPOSIT");
         _transferOwnership(owner);
@@ -51,56 +67,12 @@ contract ImmutableATokenVault is ATokenVault {
         _setFee(initialFee);
         IERC20Upgradeable(underlying).safeApprove(address(AAVE_POOL), type(uint256).max);
         _handleDeposit(initialLockDeposit, address(this), msg.sender, false);
-
-        // Sets the `_initializing` flag to false.
-        _endInitialization();
-        // Disables initializers again.
-        _disableInitializers();
     }
 
-    function _reEnableInitializers() internal {
-        bytes32 valueAtSlot0;
-
-        // Load the value located at storage slot 0 into `valueAtSlot0` variable.
-        assembly {
-            valueAtSlot0 := sload(0x00)
-        }
-
-        // Set the first and second bytes to 0x01, without altering any other bytes:
-        // Step I: Clear the first two bytes by setting them to 0x00.
-        valueAtSlot0 &= 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000; 
-        // Step II: Set the first two bytes to 0x01.
-        valueAtSlot0 |= 0x0000000000000000000000000000000000000000000000000000000000000101;
-
-        // The first byte corresponds to the `_initialized` uint8 flag.
-        // The second byte corresponds to the `_initializing` bool flag.
-        // So this was equivalent to `_initialized = 1` and `_initializing = true`, which is what the `initializer()`
-        // modifier does at the beginning.
-
-        // Store the altered value back into storage slot 0.
-        assembly {
-            sstore(0x00, valueAtSlot0)
-        }
-    }
-
-    function _endInitialization() internal {
-        bytes32 valueAtSlot0;
-
-        // Load the value located at storage slot 0 into `valueAtSlot0` variable.
-        assembly {
-            valueAtSlot0 := sload(0x00)
-        }
-
-        // Set the second byte to 0x00, without altering any other bytes.
-        valueAtSlot0 &= 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00FF;
-
-        // The second byte corresponds to the `_initializing` bool flag.
-        // So this was equivalent to `_initializing = false`, which is what the `initializer()` modifier does
-        // after initialization is complete.
-
-        // Store the altered value back into storage slot 0.
-        assembly {
-            sstore(0x00, valueAtSlot0)
-        }
-    }
+    /**
+     * @dev Overrides the base contract's `_disableInitializers` function to do nothing.
+     * This turns the `_disableInitializers` call in ATokenVault's constructor ineffective,
+     * allowing initialization at the ImmutableATokenVault's constructor.
+     */
+    function _disableInitializers() internal override { }
 }
