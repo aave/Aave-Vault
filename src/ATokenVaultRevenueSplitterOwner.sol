@@ -70,8 +70,8 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
      * @dev Constructor.
      * @param vault The address of the aToken Vault to own, whose revenue is split.
      * @param owner The address owning this contract, the effective owner of the vault.
-     * @param recipients The recipients to set for the revenue split. It is the caller's responsibility to avoid
-     * duplicates in the recipients array. The recipients configuration cannot be modified afterwards.
+     * @param recipients The recipients to set for the revenue split. Duplicates are not allowed. The recipients
+     * configuration cannot be modified afterwards.
      */
     constructor(address vault, address owner, Recipient[] memory recipients) {
         VAULT = IATokenVault(vault);
@@ -196,7 +196,7 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
     }
 
     /**
-     * @dev Does not check for duplicates in the recipients array. Sum of shares must represent 100.00% in basis points.
+     * @dev Sum of shares must represent 100.00% in basis points.
      */
     function _setRecipients(Recipient[] memory recipients) internal {
         uint256 accumulatedShareInBps = 0;
@@ -206,6 +206,9 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
             accumulatedShareInBps += recipients[i].shareInBps;
             _recipients.push(recipients[i]);
             emit RecipientSet(recipients[i].addr, recipients[i].shareInBps);
+            for (uint256 j = 0; j < i; j++) {
+                require(recipients[i].addr != recipients[j].addr, "DUPLICATED_RECIPIENT");
+            }
         }
         require(accumulatedShareInBps == TOTAL_SHARE_IN_BPS, "WRONG_BPS_SUM");
     }
