@@ -115,7 +115,7 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
     }
 
     /**
-     * @dev Splits the revenue from the given assets among the configured recipients. Assets must follow the ERC-20.
+     * @dev Splits the revenue from the given assets among the configured recipients. Assets must follow the ERC-20
      * standard and be held by this contract.
      * @param assets The assets to split the revenue from.
      */
@@ -131,12 +131,11 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
             uint256 undistributedAmount = assetBalance;
             for (uint256 j = 0; j < recipients.length; j++) {
                 /**
-                 * Due to floor-rounding in integer division, the sum of the amounts transferred may be less than the
-                 * total amount to split. For a standard ERC-20 implementation this can leave up to `N - 1` units of 
-                 * each asset undistributed in this contract's balance, where `N` is the number of recipients.
-                 * For aTokens this increases to `N` units. And considering the `assetBalance` adjustment previously
-                 * done by decrementing a unit, the final potential undistributed amount goes up to `N + 1` units.
-                 * These units may be distributed in the next `splitRevenue` call.
+                 * The `assetBalance` adjustment previously done by decrementing one unit will leave that unit of the
+                 * asset undistributed in this contract's balance.
+                 * However, due to floor-rounding in integer division, the sum of the amounts transferred may be less
+                 * than the intended total amount to split, leaving a few more units of the asset undistributed.
+                 * These units (also known as 'dust') may be distributed in the next `splitRevenue` call.
                  */
                 uint256 amountForRecipient = accumulatedAssetBalance * recipients[j].shareInBps / TOTAL_SHARE_IN_BPS
                     - _amountAlreadyTransferred[assets[i]][recipients[j].addr];
