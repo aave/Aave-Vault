@@ -10,24 +10,24 @@ import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title ATokenVaultRevenueSplitterOwner
- * @author Aave Protocol
+ * @author Aave Labs
  * @notice ATokenVault owner with revenue split capabilities.
  */
 contract ATokenVaultRevenueSplitterOwner is Ownable {
     using SafeERC20 for IERC20;
 
     /**
-     * @dev Emitted at construction time for each recipient set
-     * @param recipient The address of the recipient set
-     * @param shareInBps The recipient's share of the revenue in basis points
+     * @dev Emitted at construction time for each recipient set.
+     * @param recipient The address of the recipient set.
+     * @param shareInBps The recipient's share of the revenue in basis points.
      */
     event RecipientSet(address indexed recipient, uint16 shareInBps);
 
     /**
-     * @dev Emitted when revenue is split for each recipient and asset
-     * @param recipient The address of the recipient receiving the revenue
-     * @param asset The asset being split
-     * @param amount The amount of revenue sent to the recipient in the split asset
+     * @dev Emitted when revenue is split for each recipient and asset.
+     * @param recipient The address of the recipient receiving the revenue.
+     * @param asset The asset being split.
+     * @param amount The amount of revenue sent to the recipient in the split asset.
      */
     event RevenueSplitTransferred(address indexed recipient, address indexed asset, uint256 amount);
 
@@ -43,8 +43,8 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
     
     /**
      * @dev A struct to represent a recipient and its share of the revenue in basis points.
-     * @param addr The address of the recipient
-     * @param shareInBps The recipient's share of the revenue in basis points
+     * @param addr The address of the recipient.
+     * @param shareInBps The recipient's share of the revenue in basis points.
      */
     struct Recipient {
         address addr;
@@ -57,11 +57,21 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
     Recipient[] internal _recipients;
 
     /**
+     * @dev Total historical amount held for a given asset in this contract.
+     */
+    mapping(address => uint256) internal _previousAccumulatedBalance;
+
+    /**
+     * @dev Amount already transferred for a given asset to a given recipient.
+     */
+    mapping(address => mapping(address => uint256)) internal _amountAlreadyTransferred;
+
+    /**
      * @dev Constructor.
      * @param vault The address of the aToken Vault to own, whose revenue is split.
      * @param owner The address owning this contract, the effective owner of the vault.
-     * @param recipients The recipients to set for the revenue split. It is the caller's responsibility to avoid
-     * duplicates in the recipients array. The recipients configuration cannot be modified afterwards.
+     * @param recipients The recipients to set for the revenue split. Duplicates are not allowed. The recipients
+     * configuration cannot be modified afterwards.
      */
     constructor(address vault, address owner, Recipient[] memory recipients) {
         VAULT = IATokenVault(vault);
@@ -106,22 +116,38 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
 
     /**
      * @dev Splits the revenue from the given assets among the configured recipients. Assets must follow the ERC-20
-     * interface and be held by this contract.
+     * standard and be held by this contract.
      * @param assets The assets to split the revenue from.
      */
     function splitRevenue(address[] calldata assets) public {
         Recipient[] memory recipients = _recipients;
         for (uint256 i = 0; i < assets.length; i++) {
-            uint256 amountToSplit = IERC20(assets[i]).balanceOf(address(this));
+            uint256 assetBalance = IERC20(assets[i]).balanceOf(address(this));
+            require(assetBalance > 0, "ASSET_NOT_HELD_BY_SPLITTER");
+            // Decrease balance by one unit to ensure aToken transfers will not fail due to scaled balance rounding.
+            assetBalance--;
+            uint256 accumulatedAssetBalance = _previousAccumulatedBalance[assets[i]] + assetBalance;
+            _previousAccumulatedBalance[assets[i]] = accumulatedAssetBalance;
+            uint256 undistributedAmount = assetBalance;
             for (uint256 j = 0; j < recipients.length; j++) {
-                // Due to floor-rounding in integer division, the sum of the amounts transferred may be less than the
-                // total amount to split. This can leave up to `N - 1` units of each asset undistributed in this
-                // contract's balance, where `N` is the number of recipients.
-                uint256 amountForRecipient = amountToSplit * recipients[j].shareInBps / TOTAL_SHARE_IN_BPS;
+                /**
+                 * The `assetBalance` adjustment previously done by decrementing one unit will leave that unit of the
+                 * asset undistributed in this contract's balance.
+                 * However, due to floor-rounding in integer division, the sum of the amounts transferred may be less
+                 * than the intended total amount to split, leaving a few more units of the asset undistributed.
+                 * These units (also known as 'dust') may be distributed in the next `splitRevenue` call.
+                 */
+                uint256 amountForRecipient = accumulatedAssetBalance * recipients[j].shareInBps / TOTAL_SHARE_IN_BPS
+                    - _amountAlreadyTransferred[assets[i]][recipients[j].addr];
                 if (amountForRecipient > 0) {
+                    _amountAlreadyTransferred[assets[i]][recipients[j].addr] += amountForRecipient;
                     IERC20(assets[i]).safeTransfer(recipients[j].addr, amountForRecipient);
+                    undistributedAmount -= amountForRecipient;
                 }
                 emit RevenueSplitTransferred(recipients[j].addr, assets[i], amountForRecipient);
+            }
+            if (undistributedAmount > 0) {
+                _previousAccumulatedBalance[assets[i]] -= undistributedAmount;
             }
         }
     }
@@ -163,19 +189,25 @@ contract ATokenVaultRevenueSplitterOwner is Ownable {
 
     function _withdrawFees() internal {
         uint256 feesToWithdraw = VAULT.getClaimableFees();
-        VAULT.withdrawFees(address(this), feesToWithdraw);
+        if (feesToWithdraw > 0) {
+            VAULT.withdrawFees(address(this), feesToWithdraw);
+        }
     }
 
     /**
-     * @dev Does not check for duplicates in the recipients array. Sum of shares must represent 100.00% in basis points.
+     * @dev Sum of shares must represent 100.00% in basis points.
      */
     function _setRecipients(Recipient[] memory recipients) internal {
         uint256 accumulatedShareInBps = 0;
         for (uint256 i = 0; i < recipients.length; i++) {
+            require(recipients[i].addr != address(0), "RECIPIENT_CANNOT_BE_ZERO_ADDRESS");
             require(recipients[i].shareInBps > 0, "BPS_SHARE_CANNOT_BE_ZERO");
             accumulatedShareInBps += recipients[i].shareInBps;
             _recipients.push(recipients[i]);
             emit RecipientSet(recipients[i].addr, recipients[i].shareInBps);
+            for (uint256 j = 0; j < i; j++) {
+                require(recipients[i].addr != recipients[j].addr, "DUPLICATED_RECIPIENT");
+            }
         }
         require(accumulatedShareInBps == TOTAL_SHARE_IN_BPS, "WRONG_BPS_SUM");
     }
