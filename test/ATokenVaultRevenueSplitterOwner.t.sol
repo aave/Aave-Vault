@@ -105,6 +105,34 @@ contract ATokenVaultRevenueSplitterOwnerTest is Test {
         new ATokenVaultRevenueSplitterOwner(address(vault), owner, recipients);
     }
 
+    function test_constructor_revertsIfSomeRecipientIsDuplicated(
+        uint8 recipientsLength, uint8 setDuplicatedAt, uint8 copyFrom
+    ) public {
+        recipientsLength = uint8(bound(recipientsLength, 2, 15));
+        setDuplicatedAt = uint8(bound(setDuplicatedAt, 0, recipientsLength - 1));
+        copyFrom = uint8(bound(copyFrom, 0, recipientsLength - 1));
+        vm.assume(setDuplicatedAt != copyFrom);
+
+
+        uint16 eachRecipientShare = uint16(TOTAL_SHARE_IN_BPS / recipientsLength);
+        uint16 accumulatedShares = 0;
+        
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory recipientsWithDuplicate =
+            new ATokenVaultRevenueSplitterOwner.Recipient[](recipientsLength);
+        for (uint8 i = 0; i < recipientsLength - 1; i++) {
+            recipientsWithDuplicate[i].addr = makeAddr(string(abi.encodePacked("recipient", i)));
+            recipientsWithDuplicate[i].shareInBps = eachRecipientShare;
+            accumulatedShares += eachRecipientShare;
+        }
+        recipientsWithDuplicate[recipientsLength - 1].addr = makeAddr(string(abi.encodePacked("recipient", recipientsLength - 1)));
+        recipientsWithDuplicate[recipientsLength - 1].shareInBps = uint16(TOTAL_SHARE_IN_BPS - accumulatedShares);
+
+        recipientsWithDuplicate[setDuplicatedAt].addr = recipientsWithDuplicate[copyFrom].addr;
+
+        vm.expectRevert("DUPLICATED_RECIPIENT");
+        new ATokenVaultRevenueSplitterOwner(address(vault), owner, recipientsWithDuplicate);
+    }
+
     function test_constructor_revertsIfRecipientsSumExceedsTotalBpsSum() public {
         // Sum of shares (50.00% + 30.00% + 30.00% = 110.00%) exceeds the expected 100.00%
         recipients[0].shareInBps = 5_000; // 50.00%
