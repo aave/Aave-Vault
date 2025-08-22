@@ -5,29 +5,56 @@ pragma solidity ^0.8.10;
 
 import {IERC20} from "@openzeppelin/interfaces/IERC20.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
-import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {ATokenVault} from "./ATokenVault.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
-import {ProxyAdmin} from "@openzeppelin/proxy/transparent/ProxyAdmin.sol";
+import {ATokenVaultRevenueSplitterOwner} from "./ATokenVaultRevenueSplitterOwner.sol";
+import {ImmutableATokenVault} from "./ImmutableATokenVault.sol";
+import {CREATE3} from "@solmate/utils/CREATE3.sol";
 
 /**
- * @title ATokenVaultImplDeploymentLib
+ * @dev Struct containing constructor parameters for vault deployment
+ */
+struct VaultParams {
+    address underlying;
+    uint16 referralCode;
+    IPoolAddressesProvider poolAddressesProvider;
+    address owner;
+    uint256 initialFee;
+    string shareName;
+    string shareSymbol;
+    uint256 initialLockDeposit;
+    ATokenVaultRevenueSplitterOwner.Recipient[] revenueRecipients;
+}
+
+/**
+ * @title ATokenVaultDeploymentLib
  * @author Aave Labs
  * @notice Library that handles the deployment of the ATokenVault implementation contract
  * @dev This library is a helper to avoid holding the ATokenVault bytecode in the factory contract avoiding exceeding
  *      the contract size limit.
  */
-library ATokenVaultImplDeploymentLib {
-    function deployVaultImpl(
-        address underlying,
-        uint16 referralCode,
-        IPoolAddressesProvider poolAddressesProvider
+library ATokenVaultDeploymentLib {
+    function deployVault(
+        bytes32 salt,
+        address vaultOwner,
+        VaultParams memory params
     ) external returns (address vault) {
-        return address(new ATokenVault(
-            underlying,
-            referralCode,
-            poolAddressesProvider
-        ));
+        return CREATE3.deploy(
+            salt,
+            abi.encodePacked(
+                type(ImmutableATokenVault).creationCode,
+                abi.encode(
+                    params.underlying,
+                    params.referralCode,
+                    params.poolAddressesProvider,
+                    vaultOwner,
+                    params.initialFee,
+                    params.shareName,
+                    params.shareSymbol,
+                    params.initialLockDeposit
+                )
+            ),
+            0
+        );
     }
 }
 
@@ -39,75 +66,42 @@ library ATokenVaultImplDeploymentLib {
 contract ATokenVaultFactory {
     using SafeERC20 for IERC20;
 
-    /*//////////////////////////////////////////////////////////////
-                                 EVENTS
-    //////////////////////////////////////////////////////////////*/
-
     /**
      * @dev Emitted when a new vault is deployed
-     * @param vault The address of the deployed vault proxy
-     * @param implementation The address of the vault implementation
+     * @param vault The address of the deployed vault
      * @param underlying The underlying asset address
      * @param deployer The address that deployed the vault
      * @param params The parameters used to deploy the vault
      */
     event VaultDeployed(
         address indexed vault,
-        address indexed implementation,
         address indexed underlying,
         address deployer,
         VaultParams params
     );
 
-    /*//////////////////////////////////////////////////////////////
-                               CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Proxy admin address for all deployed vaults, with renounced ownership.
-    /// @dev Future version will deploy a plain immutable vault without proxy.
-    address internal immutable RENOUNCED_PROXY_ADMIN;
-
-    /*//////////////////////////////////////////////////////////////
-                                STRUCTS
-    //////////////////////////////////////////////////////////////*/
-
     /**
-     * @dev Struct containing constructor parameters for vault deployment
+     * @dev Emitted when a new revenue splitter owner is deployed
+     * @param revenueSplitterOwner The address of the deployed revenue splitter owner
+     * @param vault The address of the vault to split the revenue from
+     * @param owner The address of the owner of the revenue splitter, effective owner of the vault
+     * @param revenueRecipients The recipients of the revenue
      */
-    struct VaultParams {
-        address underlying;
-        uint16 referralCode;
-        IPoolAddressesProvider poolAddressesProvider;
-        address owner;
-        uint256 initialFee;
-        string shareName;
-        string shareSymbol;
-        uint256 initialLockDeposit;
-    }
+    event RevenueSplitterOwnerDeployed(
+        address indexed revenueSplitterOwner,
+        address indexed vault,
+        address indexed owner,
+        ATokenVaultRevenueSplitterOwner.Recipient[] revenueRecipients
+    );
 
-    /*//////////////////////////////////////////////////////////////
-                               CONSTRUCTOR
-    //////////////////////////////////////////////////////////////*/
+    uint256 internal _nextSalt;
 
     /**
-     * @dev Constructor
-     * @param proxyAdmin The address that will be the admin of all deployed proxies. Must have renounced ownership.
-     */
-    constructor(address proxyAdmin) {
-        RENOUNCED_PROXY_ADMIN = proxyAdmin;
-        require(ProxyAdmin(proxyAdmin).owner() == address(0), "PROXY_ADMIN_OWNERSHIP_NOT_RENOUNCED");
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            EXTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Deploy a new ATokenVault with the given parameters
+     * @notice Deploys a new ATokenVault with the given parameters
      * @param params All parameters needed for vault deployment and initialization
      * @return vault The address of the deployed vault proxy
      */
-    function deployVault(VaultParams memory params) public returns (address vault) {
+    function deployVault(VaultParams memory params) public returns (address) {
         require(params.underlying != address(0), "ZERO_ADDRESS_NOT_VALID");
         require(address(params.poolAddressesProvider) != address(0), "ZERO_ADDRESS_NOT_VALID");
         require(params.owner != address(0), "ZERO_ADDRESS_NOT_VALID");
@@ -121,34 +115,51 @@ contract ATokenVaultFactory {
             params.initialLockDeposit
         );
 
-        address implementation = ATokenVaultImplDeploymentLib.deployVaultImpl(
-            params.underlying,
-            params.referralCode,
-            params.poolAddressesProvider
-        );
+        bytes32 salt = bytes32(_nextSalt++);
 
-        vault = address(new TransparentUpgradeableProxy(
-            implementation,
-            RENOUNCED_PROXY_ADMIN,
-            ""
-        ));
+        address vaultAddress = CREATE3.getDeployed(salt);
 
-        IERC20(params.underlying).approve(vault, params.initialLockDeposit);
+        address owner = params.owner;
+        if (params.revenueRecipients.length > 0) {
+            owner = _deployRevenueSplitterOwner(vaultAddress, params.owner, params.revenueRecipients);
+        }
 
-        ATokenVault(vault).initialize(
-            params.owner,
-            params.initialFee,
-            params.shareName,
-            params.shareSymbol,
-            params.initialLockDeposit
-        );
+        IERC20(params.underlying).approve(vaultAddress, params.initialLockDeposit);
+
+        ATokenVaultDeploymentLib.deployVault(salt, owner, params);
 
         emit VaultDeployed(
-            vault,
-            implementation,
+            vaultAddress,
             params.underlying,
             msg.sender,
             params
         );
+
+        return vaultAddress;
+    }
+
+    /**
+     * @notice Deploys a new ATokenVaultRevenueSplitterOwner with the given parameters
+     * @param vaultAddress The address of the vault to split the revenue from
+     * @param owner The address of the owner of the revenue splitter, effective owner of the vault
+     * @param revenueRecipients The recipients of the revenue
+     * @return revenueSplitter The address of the deployed revenue splitter
+     */
+    function deployRevenueSplitterOwner(
+        address vaultAddress,
+        address owner,
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory revenueRecipients
+    ) external returns (address) {
+        return _deployRevenueSplitterOwner(vaultAddress, owner, revenueRecipients);
+    }
+
+    function _deployRevenueSplitterOwner(
+        address vaultAddress,
+        address owner,
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory revenueRecipients
+    ) internal returns (address) {
+        address revenueSplitter = address(new ATokenVaultRevenueSplitterOwner(vaultAddress, owner, revenueRecipients));
+        emit RevenueSplitterOwnerDeployed(revenueSplitter, vaultAddress, owner, revenueRecipients);
+        return revenueSplitter;
     }
 }
