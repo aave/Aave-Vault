@@ -3,7 +3,7 @@
 ds-test/=lib/solmate/lib/ds-test/src/
 erc4626-tests/=lib/erc4626-tests/
 forge-std/=lib/forge-std/src/
-solmate/=lib/solmate/src/
+@solmate/=lib/solmate/src/
 @openzeppelin-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
 @openzeppelin-v5/=lib/openzeppelin-contracts-v5.3.0/contracts
 @openzeppelin/=lib/openzeppelin-contracts/contracts
