@@ -9,6 +9,7 @@ import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {ATokenVaultRevenueSplitterOwner} from "./ATokenVaultRevenueSplitterOwner.sol";
 import {ImmutableATokenVault} from "./ImmutableATokenVault.sol";
 import {CREATE3} from "@solmate/utils/CREATE3.sol";
+import {SSTORE2} from "@solmate/utils/SSTORE2.sol";
 
 /**
  * @dev Struct containing constructor parameters for vault deployment
@@ -23,39 +24,6 @@ struct VaultParams {
     string shareSymbol;
     uint256 initialLockDeposit;
     ATokenVaultRevenueSplitterOwner.Recipient[] revenueRecipients;
-}
-
-/**
- * @title ATokenVaultDeploymentLib
- * @author Aave Labs
- * @notice Library that handles the deployment of the ATokenVault implementation contract
- * @dev This library is a helper to avoid holding the ATokenVault bytecode in the factory contract avoiding exceeding
- *      the contract size limit.
- */
-library ATokenVaultDeploymentLib {
-    function deployVault(
-        bytes32 salt,
-        address vaultOwner,
-        VaultParams memory params
-    ) external returns (address vault) {
-        return CREATE3.deploy(
-            salt,
-            abi.encodePacked(
-                type(ImmutableATokenVault).creationCode,
-                abi.encode(
-                    params.underlying,
-                    params.referralCode,
-                    params.poolAddressesProvider,
-                    vaultOwner,
-                    params.initialFee,
-                    params.shareName,
-                    params.shareSymbol,
-                    params.initialLockDeposit
-                )
-            ),
-            0
-        );
-    }
 }
 
 /**
@@ -94,7 +62,13 @@ contract ATokenVaultFactory {
         ATokenVaultRevenueSplitterOwner.Recipient[] revenueRecipients
     );
 
+    address immutable VAULT_CREATION_CODE_SSTORE2_POINTER;
+
     uint256 internal _nextSalt;
+
+    constructor() {
+        VAULT_CREATION_CODE_SSTORE2_POINTER = SSTORE2.write(type(ImmutableATokenVault).creationCode);
+    }
 
     /**
      * @notice Deploys a new ATokenVault with the given parameters
@@ -126,7 +100,23 @@ contract ATokenVaultFactory {
 
         IERC20(params.underlying).approve(vaultAddress, params.initialLockDeposit);
 
-        ATokenVaultDeploymentLib.deployVault(salt, owner, params);
+        CREATE3.deploy(
+            salt,
+            abi.encodePacked(
+                SSTORE2.read(VAULT_CREATION_CODE_SSTORE2_POINTER),
+                abi.encode(
+                    params.underlying,
+                    params.referralCode,
+                    params.poolAddressesProvider,
+                    owner,
+                    params.initialFee,
+                    params.shareName,
+                    params.shareSymbol,
+                    params.initialLockDeposit
+                )
+            ),
+            0
+        );
 
         emit VaultDeployed(
             vaultAddress,
