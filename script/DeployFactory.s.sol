@@ -23,7 +23,7 @@ contract DeployFactory is Script {
     /**
      * @notice The aTokenVaultFactory's Proxy Admin 
      */
-    address constant FACTORY_PROXY_ADMIN = address(DEPLOYER_ADDRESS);
+    address constant FACTORY_PROXY_ADMIN = address(0);
     ////////////////////////////////////////////////////////////////////
 
     address constant EXPECTED_FACTORY_ADDRESS = address(0xa35995bb2fFC5F2b33379C2e95d00C20FbF71E70);
