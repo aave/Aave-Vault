@@ -40,6 +40,14 @@ contract ATokenVaultFactoryTest is Test {
                             DEPLOYMENT TESTS
     //////////////////////////////////////////////////////////////*/
 
+    function testVaultCreationCodeSstore2PointerBytecodeIsUnderSizeLimit() public {
+        // Spurious Dragon contract size limit of 24,576 bytes
+        uint256 contractSizeLimit = 24_576;
+        address sstore2Pointer = factory.VAULT_CREATION_CODE_SSTORE2_POINTER();
+        bytes memory bytecode = sstore2Pointer.code;
+        assertLt(bytecode.length, contractSizeLimit);
+    }
+
     function testDeployVault() public {
         uint256 initialDeposit = 1000 * 1e18;
         deal(address(dai), ALICE, initialDeposit);
