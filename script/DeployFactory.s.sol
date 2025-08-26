@@ -23,7 +23,7 @@ contract DeployFactory is Script {
     /**
      * @notice The aTokenVaultFactory's Proxy Admin 
      */
-    address constant FACTORY_PROXY_ADMIN = address(0);
+    address constant FACTORY_PROXY_ADMIN = address(DEPLOYER_ADDRESS);
     ////////////////////////////////////////////////////////////////////
 
     address constant EXPECTED_FACTORY_ADDRESS = address(0xa35995bb2fFC5F2b33379C2e95d00C20FbF71E70);
@@ -73,23 +73,11 @@ contract DeployFactory is Script {
 
         vm.startBroadcast();
 
-
-        /////// Deploy Renounced ProxyAdmin
-
-        console.log("Deploying vault's renounced proxy admin");
-
-        address renouncedProxyAdmin = address(new ProxyAdmin());
-
-        console.log("Renounced proxy admin deployed at: ", renouncedProxyAdmin);
-
-        ProxyAdmin(renouncedProxyAdmin).renounceOwnership();
-
-
         /////// Deploy aTokenVaultFactory Implementation (pass Renounced ProxyAdmin as argument)
 
         console.log("Deploying aTokenVaultFactory implementation...");
 
-        ATokenVaultFactory factoryImplementation = new ATokenVaultFactory({proxyAdmin: renouncedProxyAdmin});
+        ATokenVaultFactory factoryImplementation = new ATokenVaultFactory();
 
         console.log("aTokenVaultFactory implementation deployed at: ", address(factoryImplementation));
 
