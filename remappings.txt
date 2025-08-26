@@ -8,3 +8,4 @@ forge-std/=lib/forge-std/src/
 @openzeppelin-v5/=lib/openzeppelin-contracts-v5.3.0/contracts
 @openzeppelin/=lib/openzeppelin-contracts/contracts
 @pcaversaccio/createx/=lib/createx/src/
+@solady/=lib/createx/lib/solady/src/
