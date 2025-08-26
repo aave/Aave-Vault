@@ -8,8 +8,8 @@ import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesPro
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {ATokenVaultRevenueSplitterOwner} from "./ATokenVaultRevenueSplitterOwner.sol";
 import {ImmutableATokenVault} from "./ImmutableATokenVault.sol";
-import {CREATE3} from "@solmate/utils/CREATE3.sol";
 import {SSTORE2} from "@solmate/utils/SSTORE2.sol";
+import {Create2} from "@openzeppelin//utils/Create2.sol";
 
 /**
  * @dev Struct containing constructor parameters for vault deployment
@@ -62,7 +62,7 @@ contract ATokenVaultFactory {
         ATokenVaultRevenueSplitterOwner.Recipient[] revenueRecipients
     );
 
-    address immutable VAULT_CREATION_CODE_SSTORE2_POINTER;
+    address immutable public VAULT_CREATION_CODE_SSTORE2_POINTER;
 
     uint256 internal _nextSalt;
 
@@ -91,32 +91,31 @@ contract ATokenVaultFactory {
 
         bytes32 salt = bytes32(_nextSalt++);
 
-        address vaultAddress = CREATE3.getDeployed(salt);
+        bytes memory vaultInitCode = abi.encodePacked(
+            SSTORE2.read(VAULT_CREATION_CODE_SSTORE2_POINTER),
+            abi.encode(
+                params.underlying,
+                params.referralCode,
+                params.poolAddressesProvider,
+                address(this),
+                params.initialFee,
+                params.shareName,
+                params.shareSymbol,
+                params.initialLockDeposit
+            )
+        );
+
+        address vaultAddress = _computeVaultAddress(vaultInitCode, salt);
+
+        IERC20(params.underlying).approve(vaultAddress, params.initialLockDeposit);
+
+        _deployVault(vaultInitCode, salt);
 
         address owner = params.owner;
         if (params.revenueRecipients.length > 0) {
             owner = _deployRevenueSplitterOwner(vaultAddress, params.owner, params.revenueRecipients);
         }
-
-        IERC20(params.underlying).approve(vaultAddress, params.initialLockDeposit);
-
-        CREATE3.deploy(
-            salt,
-            abi.encodePacked(
-                SSTORE2.read(VAULT_CREATION_CODE_SSTORE2_POINTER),
-                abi.encode(
-                    params.underlying,
-                    params.referralCode,
-                    params.poolAddressesProvider,
-                    owner,
-                    params.initialFee,
-                    params.shareName,
-                    params.shareSymbol,
-                    params.initialLockDeposit
-                )
-            ),
-            0
-        );
+        ImmutableATokenVault(vaultAddress).transferOwnership(owner);
 
         emit VaultDeployed(
             vaultAddress,
@@ -151,5 +150,23 @@ contract ATokenVaultFactory {
         address revenueSplitter = address(new ATokenVaultRevenueSplitterOwner(vaultAddress, owner, revenueRecipients));
         emit RevenueSplitterOwnerDeployed(revenueSplitter, vaultAddress, owner, revenueRecipients);
         return revenueSplitter;
+    }
+
+    function _computeVaultAddress(bytes memory vaultInitCode, bytes32 salt) internal view returns (address) {
+        return Create2.computeAddress(salt, keccak256(vaultInitCode));
+    }
+
+    function _deployVault(bytes memory vaultInitCode, bytes32 salt) internal returns (address) {
+        address vaultAddress;
+        assembly {
+            vaultAddress := create2(0, add(vaultInitCode, 32), mload(vaultInitCode), salt)
+            // If the deployment fails, revert bubbling up the error
+            if iszero(vaultAddress) {
+                let returnDataSize := returndatasize()
+                returndatacopy(0, 0, returnDataSize)
+                revert(0, returnDataSize)
+            }
+        }
+        return vaultAddress;
     }
 }
