@@ -9,7 +9,8 @@ import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {ATokenVaultRevenueSplitterOwner} from "./ATokenVaultRevenueSplitterOwner.sol";
 import {ImmutableATokenVault} from "./ImmutableATokenVault.sol";
 import {SSTORE2} from "@solmate/utils/SSTORE2.sol";
-import {Create2} from "@openzeppelin//utils/Create2.sol";
+import {Create2} from "@openzeppelin/utils/Create2.sol";
+import {LibZip} from "@solady/utils/LibZip.sol";
 
 /**
  * @dev Struct containing constructor parameters for vault deployment
@@ -67,7 +68,7 @@ contract ATokenVaultFactory {
     uint256 internal _nextSalt;
 
     constructor() {
-        VAULT_CREATION_CODE_SSTORE2_POINTER = SSTORE2.write(type(ImmutableATokenVault).creationCode);
+        VAULT_CREATION_CODE_SSTORE2_POINTER = SSTORE2.write(LibZip.flzCompress(type(ImmutableATokenVault).creationCode));
     }
 
     /**
@@ -92,7 +93,7 @@ contract ATokenVaultFactory {
         bytes32 salt = bytes32(_nextSalt++);
 
         bytes memory vaultInitCode = abi.encodePacked(
-            SSTORE2.read(VAULT_CREATION_CODE_SSTORE2_POINTER),
+            LibZip.flzDecompress(SSTORE2.read(VAULT_CREATION_CODE_SSTORE2_POINTER)),
             abi.encode(
                 params.underlying,
                 params.referralCode,
