@@ -55,7 +55,7 @@ contract ATokenVaultFactoryTest is Test {
         pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
     }
 
-    function _deployUnderlying() internal returns (address) {
+    function _deployUnderlying() internal virtual returns (address) {
         return address(new MockDAI());
     }
 
