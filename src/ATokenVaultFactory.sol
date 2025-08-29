@@ -133,7 +133,7 @@ contract ATokenVaultFactory {
             ""
         ));
 
-        IERC20(params.underlying).approve(vault, params.initialLockDeposit);
+        IERC20(params.underlying).safeApprove(vault, params.initialLockDeposit);
 
         ATokenVault(vault).initialize(
             params.owner,
