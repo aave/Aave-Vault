@@ -506,7 +506,8 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
 
     function testDepositFailsWithExceedsMax() public {
         // mock call to Aave Pool
-        MockAavePool mp = new MockAavePool(new MockAToken(address(dai)));
+        MockAavePool mp = new MockAavePool();
+        mp.mockReserve(address(dai), new MockAToken(address(dai)));
         mp.setReserveConfigMap(RESERVE_CONFIG_MAP_INACTIVE);
         vm.mockCall(
             address(vault.AAVE_POOL()),
@@ -564,7 +565,8 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
 
     function testDepositATokensWithExceedsMax() public {
         // mock call to Aave Pool
-        MockAavePool mp = new MockAavePool(new MockAToken(address(dai)));
+        MockAavePool mp = new MockAavePool();
+        mp.mockReserve(address(dai), new MockAToken(address(dai)));
         mp.setReserveConfigMap(RESERVE_CONFIG_MAP_INACTIVE);
         vm.mockCall(
             address(vault.AAVE_POOL()),
@@ -619,7 +621,8 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
 
     function testMintFailsWithExceedsMax() public {
         // mock call to Aave Pool
-        MockAavePool mp = new MockAavePool(new MockAToken(address(dai)));
+        MockAavePool mp = new MockAavePool();
+        mp.mockReserve(address(dai), new MockAToken(address(dai)));
         mp.setReserveConfigMap(RESERVE_CONFIG_MAP_INACTIVE);
         vm.mockCall(
             address(vault.AAVE_POOL()),
@@ -658,7 +661,8 @@ contract ATokenVaultForkTest is ATokenVaultForkBaseTest {
 
     function testMintATokensWithExceedsMax() public {
         // mock call to Aave Pool
-        MockAavePool mp = new MockAavePool(new MockAToken(address(dai)));
+        MockAavePool mp = new MockAavePool();
+        mp.mockReserve(address(dai), new MockAToken(address(dai)));
         mp.setReserveConfigMap(RESERVE_CONFIG_MAP_INACTIVE);
         vm.mockCall(
             address(vault.AAVE_POOL()),
