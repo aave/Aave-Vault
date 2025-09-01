@@ -18,7 +18,8 @@ contract ImmutableATokenVaultMocksTest is ImmutableATokenVaultBaseTest {
     function setUp() public override {
         dai = new MockDAI();
         aDai = new MockAToken(address(dai));
-        pool = new MockAavePool(aDai);
+        pool = new MockAavePool();
+        pool.mockReserve(address(dai), aDai);
         poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));
 
         pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);

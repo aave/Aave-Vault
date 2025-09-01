@@ -4,6 +4,7 @@ pragma solidity ^0.8.10;
 
 import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
 import {DataTypes} from "@aave-v3-core/protocol/libraries/types/DataTypes.sol";
+import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {MockAToken} from "./MockAToken.sol";
 
 // NOTE: Yield Simulation Design
@@ -14,14 +15,16 @@ import {MockAToken} from "./MockAToken.sol";
 // implement utility functions which retain 1:1 asset:aToken parity
 
 contract MockAavePool {
+    using SafeERC20 for ERC20;
+
     uint256 constant SCALE = 1e18;
 
-    MockAToken public aToken;
+    mapping(address => MockAToken) internal _reserves;
 
     uint256 public reserveConfigMap;
 
-    constructor(MockAToken _aToken) {
-        aToken = _aToken;
+    function mockReserve(address asset, MockAToken aToken) public {
+        _reserves[asset] = aToken;
     }
 
     // For mock test purposes
@@ -29,7 +32,7 @@ contract MockAavePool {
         reserveConfigMap = _reserveConfigMap;
     }
 
-    function getReserveData(address) public view returns (DataTypes.ReserveData memory) {
+    function getReserveData(address asset) public view returns (DataTypes.ReserveData memory) {
         return
             DataTypes.ReserveData({
                 //stores the reserve configuration
@@ -49,7 +52,7 @@ contract MockAavePool {
                 //the id of the reserve. Represents the position in the list of the active reserves
                 id: 0,
                 //aToken address
-                aTokenAddress: address(aToken),
+                aTokenAddress: address(_reserves[asset]),
                 //stableDebtToken address
                 stableDebtTokenAddress: address(0),
                 //variableDebtToken address
@@ -66,23 +69,23 @@ contract MockAavePool {
     }
 
     function supply(address _asset, uint256 _amount, address _onBehalfOf, uint16) public {
-        ERC20(_asset).transferFrom(msg.sender, address(this), _amount);
-        aToken.mint(address(this), _onBehalfOf, _amount, 0);
-        ERC20(_asset).transfer(address(aToken), _amount);
+        ERC20(_asset).safeTransferFrom(msg.sender, address(this), _amount);
+        _reserves[_asset].mint(address(this), _onBehalfOf, _amount, 0);
+        ERC20(_asset).safeTransfer(address(_reserves[_asset]), _amount);
     }
 
-    function withdraw(address /* _asset */, uint256 _amount, address _receiver) public returns (uint256) {
-        aToken.burn(msg.sender, _receiver, _amount, 0);
+    function withdraw(address _asset, uint256 _amount, address _receiver) public returns (uint256) {
+        _reserves[_asset].burn(msg.sender, _receiver, _amount, 0);
         return _amount;
     }
 
     // Mints recipient new tokens based on current aToken balance
     // to simulate new yield accrued
     // _yield is fraction > 1 using SCALE as denominator
-    function simulateYield(address _recipient, uint256 _yield) public {
-        uint256 balanceBefore = aToken.balanceOf(_recipient);
+    function simulateYield(address _asset, address _recipient, uint256 _yield) public {
+        uint256 balanceBefore = _reserves[_asset].balanceOf(_recipient);
         uint256 balanceAfter = (balanceBefore * _yield) / SCALE;
 
-        aToken.mint(address(this), _recipient, balanceAfter - balanceBefore, 0);
+        _reserves[_asset].mint(address(this), _recipient, balanceAfter - balanceBefore, 0);
     }
 }
