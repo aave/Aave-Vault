@@ -22,7 +22,8 @@ contract ATokenVaultPropertiesTest is ERC4626Test, ATokenVaultBaseTest {
     function setUp() public override(ERC4626Test, ATokenVaultBaseTest) {
         dai = new MockDAI();
         aDai = new MockAToken(address(dai));
-        pool = new MockAavePool(aDai);
+        pool = new MockAavePool();
+        pool.mockReserve(address(dai), aDai);
         poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));
 
         pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);

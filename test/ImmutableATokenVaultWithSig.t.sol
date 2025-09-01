@@ -27,7 +27,8 @@ contract ImmutableATokenVaultWithSigTest is ImmutableATokenVaultBaseTest {
         dai = new MockDAI();
 
         aDai = new MockAToken(address(dai));
-        pool = new MockAavePool(aDai);
+        pool = new MockAavePool();
+        pool.mockReserve(address(dai), aDai);
         poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));
 
         vaultAssetAddress = address(aDai);

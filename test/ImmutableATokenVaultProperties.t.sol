@@ -20,7 +20,8 @@ contract ImmutableATokenVaultPropertiesTest is ERC4626Test, ImmutableATokenVault
     function setUp() public override(ERC4626Test, ImmutableATokenVaultBaseTest) {
         dai = new MockDAI();
         aDai = new MockAToken(address(dai));
-        pool = new MockAavePool(aDai);
+        pool = new MockAavePool();
+        pool.mockReserve(address(dai), aDai);
         poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));
 
         pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);

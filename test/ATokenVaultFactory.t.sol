@@ -12,28 +12,36 @@ import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesPro
 
 import {ATokenVault} from "../src/ATokenVault.sol";
 import {ATokenVaultFactory, VaultParams} from "../src/ATokenVaultFactory.sol";
+import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
 import {ATokenVaultRevenueSplitterOwner} from "../src/ATokenVaultRevenueSplitterOwner.sol";
 
 contract ATokenVaultFactoryTest is Test {
+    using SafeERC20 for IERC20;
+
     ATokenVaultFactory factory;
     MockAavePoolAddressesProvider poolAddrProvider;
     MockAavePool pool;
-    MockAToken aDai;
-    MockDAI dai;
+    MockAToken aToken;
+    address underlying;
 
     address constant ALICE = address(0x1);
     address constant BOB = address(0x2);
     address constant CHARLIE = address(0x3);
 
     function setUp() public {
-        dai = new MockDAI();
-        aDai = new MockAToken(address(dai));
-        pool = new MockAavePool(aDai);
+        underlying = _deployUnderlying();
+        aToken = new MockAToken(address(underlying));
+        pool = new MockAavePool();
+        pool.mockReserve(address(underlying), aToken);
+        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
         poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));
         factory = new ATokenVaultFactory();
+    }
 
-        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
+    function _deployUnderlying() internal virtual returns (address) {
+        return address(new MockDAI());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -50,13 +58,13 @@ contract ATokenVaultFactoryTest is Test {
 
     function testDeployVault() public {
         uint256 initialDeposit = 1000 * 1e18;
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 42,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -73,7 +81,7 @@ contract ATokenVaultFactoryTest is Test {
         assertTrue(vault != address(0));
 
         ATokenVault vaultContract = ATokenVault(vault);
-        assertEq(address(vaultContract.UNDERLYING()), address(dai));
+        assertEq(address(vaultContract.UNDERLYING()), address(underlying));
         assertEq(vaultContract.REFERRAL_CODE(), 42);
         assertEq(vaultContract.owner(), ALICE);
         assertEq(vaultContract.name(), "Test Vault");
@@ -84,13 +92,13 @@ contract ATokenVaultFactoryTest is Test {
     function testDeployVaultWithFee() public {
         uint256 initialDeposit = 1000 * 1e18;
         uint256 fee = 1e17; // 10%
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 123,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -107,7 +115,7 @@ contract ATokenVaultFactoryTest is Test {
         assertTrue(vault != address(0));
         ATokenVault vaultContract = ATokenVault(vault);
         assertEq(vaultContract.REFERRAL_CODE(), 123);
-        assertEq(address(vaultContract.UNDERLYING()), address(dai));
+        assertEq(address(vaultContract.UNDERLYING()), address(underlying));
         assertEq(vaultContract.getFee(), fee);
         assertEq(vaultContract.name(), "Fee Vault");
         assertEq(vaultContract.symbol(), "fVault");
@@ -116,12 +124,12 @@ contract ATokenVaultFactoryTest is Test {
     function testDeployMultipleVaults() public {
         uint256 initialDeposit = 1000 * 1e18;
 
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params1 = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -138,12 +146,12 @@ contract ATokenVaultFactoryTest is Test {
         vm.roll(block.number + 1);
         vm.warp(block.timestamp + 1);
 
-        deal(address(dai), BOB, initialDeposit);
+        deal(address(underlying), BOB, initialDeposit);
         vm.startPrank(BOB);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params2 = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: BOB,
@@ -167,13 +175,13 @@ contract ATokenVaultFactoryTest is Test {
 
     function testDeployVaultEmitsEvent() public {
         uint256 initialDeposit = 1000 * 1e18;
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 42,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -207,9 +215,9 @@ contract ATokenVaultFactoryTest is Test {
 
                 // Verify event data
                 assertEq(eventVault, vault);
-                assertEq(eventUnderlying, address(dai));
+                assertEq(eventUnderlying, address(underlying));
                 assertEq(eventDeployer, ALICE);
-                assertEq(eventVaultParams.underlying, address(dai));
+                assertEq(eventVaultParams.underlying, address(underlying));
                 assertEq(eventVaultParams.referralCode, 42);
                 assertEq(address(eventVaultParams.poolAddressesProvider), address(poolAddrProvider));
                 assertEq(eventVaultParams.owner, ALICE);
@@ -227,13 +235,13 @@ contract ATokenVaultFactoryTest is Test {
     function testDeployVaultWithMaxReferralCode() public {
         uint256 initialDeposit = 1000 * 1e18;
         uint16 maxReferralCode = type(uint16).max;
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: maxReferralCode,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -254,13 +262,13 @@ contract ATokenVaultFactoryTest is Test {
     function testDeployVaultWithMaxFee() public {
         uint256 initialDeposit = 1000 * 1e18;
         uint256 maxFee = 1e18; // 100%
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -280,13 +288,13 @@ contract ATokenVaultFactoryTest is Test {
 
     function testDeployVaultWithDifferentOwner() public {
         uint256 initialDeposit = 1000 * 1e18;
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: BOB, // Different owner than deployer
@@ -331,7 +339,7 @@ contract ATokenVaultFactoryTest is Test {
         uint256 initialDeposit = 1000 * 1e18;
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: address(0),
@@ -348,7 +356,7 @@ contract ATokenVaultFactoryTest is Test {
 
     function testDeployVaultZeroDepositReverts() public {
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -367,7 +375,7 @@ contract ATokenVaultFactoryTest is Test {
         uint256 initialDeposit = 1000 * 1e18;
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -386,7 +394,7 @@ contract ATokenVaultFactoryTest is Test {
         uint256 initialDeposit = 1000 * 1e18;
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -405,7 +413,7 @@ contract ATokenVaultFactoryTest is Test {
         uint256 initialDeposit = 1000 * 1e18;
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(0)),
             owner: ALICE,
@@ -422,13 +430,13 @@ contract ATokenVaultFactoryTest is Test {
 
     function testDeployVaultInsufficientAllowanceReverts() public {
         uint256 initialDeposit = 1000 * 1e18;
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit - 1); // Insufficient approval
+        IERC20(underlying).safeApprove(address(factory), initialDeposit - 1); // Insufficient approval
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -446,13 +454,13 @@ contract ATokenVaultFactoryTest is Test {
 
     function testDeployVaultInsufficientBalanceReverts() public {
         uint256 initialDeposit = 1000 * 1e18;
-        deal(address(dai), ALICE, initialDeposit - 1); // Insufficient balance
+        deal(address(underlying), ALICE, initialDeposit - 1); // Insufficient balance
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -472,13 +480,13 @@ contract ATokenVaultFactoryTest is Test {
         initialDeposit = _boundInitialDeposit(initialDeposit);
         initFee = bound(initFee, 1e18 + 1, type(uint256).max);
 
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -506,13 +514,13 @@ contract ATokenVaultFactoryTest is Test {
 
     function testVaultBasicProperties() public {
         uint256 initialDeposit = 1000 * 1e18;
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -528,7 +536,7 @@ contract ATokenVaultFactoryTest is Test {
 
         ATokenVault vaultContract = ATokenVault(vault);
 
-        assertEq(address(vaultContract.UNDERLYING()), address(dai));
+        assertEq(address(vaultContract.UNDERLYING()), address(underlying));
         assertEq(address(vaultContract.AAVE_POOL()), address(pool));
         assertEq(address(vaultContract.POOL_ADDRESSES_PROVIDER()), address(poolAddrProvider));
         assertEq(vaultContract.REFERRAL_CODE(), 0);
@@ -542,31 +550,32 @@ contract ATokenVaultFactoryTest is Test {
 
         MockDAI usdc = new MockDAI();
         MockAToken aUsdc = new MockAToken(address(usdc));
-        MockAavePool usdcPool = new MockAavePool(aUsdc);
+        MockAavePool usdcPool = new MockAavePool();
+        usdcPool.mockReserve(address(usdc), aUsdc);
         MockAavePoolAddressesProvider usdcPoolProvider = new MockAavePoolAddressesProvider(address(usdcPool));
 
         usdcPool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
 
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
         deal(address(usdc), ALICE, initialDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
-        usdc.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
+        IERC20(usdc).safeApprove(address(factory), initialDeposit);
 
-        VaultParams memory daiParams = VaultParams({
-            underlying: address(dai),
+        VaultParams memory underlyingParams = VaultParams({
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
             initialFee: 0,
-            shareName: "DAI Vault",
+            shareName: "underlying Vault",
             shareSymbol: "dVault",
             initialLockDeposit: initialDeposit,
             revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
-        address daiVault = factory.deployVault(daiParams);
+        address underlyingVault = factory.deployVault(underlyingParams);
 
         VaultParams memory usdcParams = VaultParams({
             underlying: address(usdc),
@@ -584,18 +593,18 @@ contract ATokenVaultFactoryTest is Test {
 
         vm.stopPrank();
 
-        assertTrue(daiVault != usdcVault);
+        assertTrue(underlyingVault != usdcVault);
     }
 
     function testDeploymentCounterIncreases() public {
         uint256 initialDeposit = 1000 * 1e18;
-        deal(address(dai), ALICE, initialDeposit * 3);
+        deal(address(underlying), ALICE, initialDeposit * 3);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit * 3);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit * 3);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -627,13 +636,13 @@ contract ATokenVaultFactoryTest is Test {
 
     function testDeployVaultEdgeCaseMinimalDeposit() public {
         uint256 minDeposit = 1;
-        deal(address(dai), ALICE, minDeposit);
+        deal(address(underlying), ALICE, minDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), minDeposit);
+        IERC20(underlying).safeApprove(address(factory), minDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -652,13 +661,13 @@ contract ATokenVaultFactoryTest is Test {
 
     function testDeployVaultEdgeCaseZeroFee() public {
         uint256 initialDeposit = 1000 * 1e18;
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -678,13 +687,13 @@ contract ATokenVaultFactoryTest is Test {
 
     function testDeployVaultEdgeCaseMaxFee() public {
         uint256 initialDeposit = 1000 * 1e18;
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -714,13 +723,13 @@ contract ATokenVaultFactoryTest is Test {
         initialDeposit = _boundInitialDeposit(initialDeposit);
         initialFee = _boundInitialFee(initialFee);
 
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: referralCode,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -748,13 +757,13 @@ contract ATokenVaultFactoryTest is Test {
         uint256 minDeposit = 1;
         initialFee = _boundInitialFee(initialFee);
 
-        deal(address(dai), ALICE, minDeposit);
+        deal(address(underlying), ALICE, minDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), minDeposit);
+        IERC20(underlying).safeApprove(address(factory), minDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: referralCode,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -781,13 +790,13 @@ contract ATokenVaultFactoryTest is Test {
     ) public {
         initialDeposit = _boundInitialDeposit(initialDeposit);
 
-        deal(address(dai), ALICE, initialDeposit);
+        deal(address(underlying), ALICE, initialDeposit);
 
         vm.startPrank(ALICE);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         VaultParams memory params = VaultParams({
-            underlying: address(dai),
+            underlying: address(underlying),
             referralCode: referralCode,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
             owner: ALICE,
@@ -804,9 +813,9 @@ contract ATokenVaultFactoryTest is Test {
         ATokenVault vaultContract1 = ATokenVault(vault1);
         assertEq(vaultContract1.getFee(), 0);
 
-        deal(address(dai), BOB, initialDeposit);
+        deal(address(underlying), BOB, initialDeposit);
         vm.startPrank(BOB);
-        dai.approve(address(factory), initialDeposit);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
         params.owner = BOB;
         params.initialFee = 1e18;

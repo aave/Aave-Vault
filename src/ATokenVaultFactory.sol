@@ -108,7 +108,7 @@ contract ATokenVaultFactory {
 
         address vaultAddress = _computeVaultAddress(vaultInitCode, salt);
 
-        IERC20(params.underlying).approve(vaultAddress, params.initialLockDeposit);
+        IERC20(params.underlying).safeApprove(vaultAddress, params.initialLockDeposit);
 
         _deployVault(vaultInitCode, salt);
 
