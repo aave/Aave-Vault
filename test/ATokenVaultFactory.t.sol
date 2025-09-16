@@ -89,6 +89,109 @@ contract ATokenVaultFactoryTest is Test {
         assertEq(vaultContract.getFee(), 0);
     }
 
+    function testDeployVaultWithRevenueSplitter() public {
+        uint256 initialDeposit = 1000 * 1e18;
+        deal(address(underlying), ALICE, initialDeposit);
+
+        vm.startPrank(ALICE);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
+
+        VaultParams memory params = VaultParams({
+            underlying: address(underlying),
+            referralCode: 42,
+            poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
+            owner: ALICE,
+            initialFee: 0,
+            shareName: "Test Vault",
+            shareSymbol: "tVault",
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
+        });
+
+        address vault = factory.deployVault(params);
+
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory revenueRecipients = new ATokenVaultRevenueSplitterOwner.Recipient[](2);
+        revenueRecipients[0] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: BOB,
+            shareInBps: 50_00
+        });
+        revenueRecipients[1] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: CHARLIE,
+            shareInBps: 50_00
+        });
+
+        address revenueSplitter = factory.deployRevenueSplitterOwner(vault, ALICE, revenueRecipients);
+
+        assertEq(ATokenVaultRevenueSplitterOwner(payable(revenueSplitter)).owner(), ALICE);
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory actualRecipients = ATokenVaultRevenueSplitterOwner(payable(revenueSplitter)).getRecipients();
+        assertEq(actualRecipients.length, revenueRecipients.length);
+        for (uint256 i = 0; i < actualRecipients.length; i++) {
+            assertEq(actualRecipients[i].addr, revenueRecipients[i].addr);
+            assertEq(actualRecipients[i].shareInBps, revenueRecipients[i].shareInBps);
+        }
+
+        assertEq(ATokenVault(payable(vault)).owner(), ALICE);
+
+        ATokenVault(payable(vault)).transferOwnership(revenueSplitter);
+
+        assertEq(ATokenVault(payable(vault)).owner(), revenueSplitter);
+    }
+
+    function testDeployRevenueSplitter() public {
+        uint256 initialDeposit = 1000 * 1e18;
+        deal(address(underlying), ALICE, initialDeposit);
+
+        vm.startPrank(ALICE);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
+
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory revenueRecipients = new ATokenVaultRevenueSplitterOwner.Recipient[](3);
+        revenueRecipients[0] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: ALICE,
+            shareInBps: 20_00
+        });
+        revenueRecipients[1] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: BOB,
+            shareInBps: 20_00
+        });
+        revenueRecipients[2] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: CHARLIE,
+            shareInBps: 60_00
+        });
+
+        VaultParams memory params = VaultParams({
+            underlying: address(underlying),
+            referralCode: 42,
+            poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
+            owner: ALICE,
+            initialFee: 0,
+            shareName: "Test Vault",
+            shareSymbol: "tVault",
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: revenueRecipients
+        });
+
+        address vault = factory.deployVault(params);
+        vm.stopPrank();
+
+        assertTrue(vault != address(0));
+
+        ATokenVault vaultContract = ATokenVault(vault);
+        assertEq(address(vaultContract.UNDERLYING()), address(underlying));
+        assertEq(vaultContract.REFERRAL_CODE(), 42);
+        assertEq(vaultContract.name(), "Test Vault");
+        assertEq(vaultContract.symbol(), "tVault");
+        assertEq(vaultContract.getFee(), 0);
+        
+        address owner = vaultContract.owner();
+        assertEq(ATokenVaultRevenueSplitterOwner(payable(owner)).owner(), ALICE);
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory actualRecipients = ATokenVaultRevenueSplitterOwner(payable(owner)).getRecipients();
+        assertEq(actualRecipients.length, revenueRecipients.length);
+        for (uint256 i = 0; i < actualRecipients.length; i++) {
+            assertEq(actualRecipients[i].addr, revenueRecipients[i].addr);
+            assertEq(actualRecipients[i].shareInBps, revenueRecipients[i].shareInBps);
+        }
+    }
+
     function testDeployVaultWithFee() public {
         uint256 initialDeposit = 1000 * 1e18;
         uint256 fee = 1e17; // 10%
