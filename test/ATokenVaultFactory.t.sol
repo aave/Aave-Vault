@@ -11,11 +11,11 @@ import "./utils/Constants.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
 
 import {ATokenVault} from "../src/ATokenVault.sol";
-import {ATokenVaultFactory} from "../src/ATokenVaultFactory.sol";
+import {ATokenVaultFactory, VaultParams} from "../src/ATokenVaultFactory.sol";
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
-import {ProxyAdmin as ProxyAdmin_v4_7} from "@openzeppelin/proxy/transparent/ProxyAdmin.sol";
+import {ATokenVaultRevenueSplitterOwner} from "../src/ATokenVaultRevenueSplitterOwner.sol";
 
 contract ATokenVaultFactoryTest is Test {
     using SafeERC20 for IERC20;
@@ -26,33 +26,18 @@ contract ATokenVaultFactoryTest is Test {
     MockAToken aToken;
     address underlying;
 
-    address proxyAdmin;
-
     address constant ALICE = address(0x1);
     address constant BOB = address(0x2);
     address constant CHARLIE = address(0x3);
-
-    event VaultDeployed(
-        address indexed vault,
-        address indexed implementation,
-        address indexed underlying,
-        address deployer,
-        address owner,
-        uint16 referralCode,
-        address poolAddressesProvider
-    );
 
     function setUp() public {
         underlying = _deployUnderlying();
         aToken = new MockAToken(address(underlying));
         pool = new MockAavePool();
         pool.mockReserve(address(underlying), aToken);
-        proxyAdmin = address(new ProxyAdmin_v4_7());
-        ProxyAdmin_v4_7(proxyAdmin).renounceOwnership();
-        poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));
-        factory = new ATokenVaultFactory(proxyAdmin);
-
         pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
+        poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));
+        factory = new ATokenVaultFactory();
     }
 
     function _deployUnderlying() internal virtual returns (address) {
@@ -63,6 +48,14 @@ contract ATokenVaultFactoryTest is Test {
                             DEPLOYMENT TESTS
     //////////////////////////////////////////////////////////////*/
 
+    function testVaultCreationCodeSstore2PointerBytecodeIsUnderSizeLimit() public {
+        // Spurious Dragon contract size limit of 24,576 bytes
+        uint256 contractSizeLimit = 24_576;
+        address sstore2Pointer = factory.VAULT_CREATION_CODE_SSTORE2_POINTER();
+        bytes memory bytecode = sstore2Pointer.code;
+        assertLt(bytecode.length, contractSizeLimit);
+    }
+
     function testDeployVault() public {
         uint256 initialDeposit = 1000 * 1e18;
         deal(address(underlying), ALICE, initialDeposit);
@@ -70,7 +63,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 42,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -78,7 +71,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test Vault",
             shareSymbol: "tVault",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -95,6 +89,109 @@ contract ATokenVaultFactoryTest is Test {
         assertEq(vaultContract.getFee(), 0);
     }
 
+    function testDeployVaultWithRevenueSplitter() public {
+        uint256 initialDeposit = 1000 * 1e18;
+        deal(address(underlying), ALICE, initialDeposit);
+
+        vm.startPrank(ALICE);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
+
+        VaultParams memory params = VaultParams({
+            underlying: address(underlying),
+            referralCode: 42,
+            poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
+            owner: ALICE,
+            initialFee: 0,
+            shareName: "Test Vault",
+            shareSymbol: "tVault",
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
+        });
+
+        address vault = factory.deployVault(params);
+
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory revenueRecipients = new ATokenVaultRevenueSplitterOwner.Recipient[](2);
+        revenueRecipients[0] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: BOB,
+            shareInBps: 50_00
+        });
+        revenueRecipients[1] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: CHARLIE,
+            shareInBps: 50_00
+        });
+
+        address revenueSplitter = factory.deployRevenueSplitterOwner(vault, ALICE, revenueRecipients);
+
+        assertEq(ATokenVaultRevenueSplitterOwner(payable(revenueSplitter)).owner(), ALICE);
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory actualRecipients = ATokenVaultRevenueSplitterOwner(payable(revenueSplitter)).getRecipients();
+        assertEq(actualRecipients.length, revenueRecipients.length);
+        for (uint256 i = 0; i < actualRecipients.length; i++) {
+            assertEq(actualRecipients[i].addr, revenueRecipients[i].addr);
+            assertEq(actualRecipients[i].shareInBps, revenueRecipients[i].shareInBps);
+        }
+
+        assertEq(ATokenVault(payable(vault)).owner(), ALICE);
+
+        ATokenVault(payable(vault)).transferOwnership(revenueSplitter);
+
+        assertEq(ATokenVault(payable(vault)).owner(), revenueSplitter);
+    }
+
+    function testDeployRevenueSplitter() public {
+        uint256 initialDeposit = 1000 * 1e18;
+        deal(address(underlying), ALICE, initialDeposit);
+
+        vm.startPrank(ALICE);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
+
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory revenueRecipients = new ATokenVaultRevenueSplitterOwner.Recipient[](3);
+        revenueRecipients[0] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: ALICE,
+            shareInBps: 20_00
+        });
+        revenueRecipients[1] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: BOB,
+            shareInBps: 20_00
+        });
+        revenueRecipients[2] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: CHARLIE,
+            shareInBps: 60_00
+        });
+
+        VaultParams memory params = VaultParams({
+            underlying: address(underlying),
+            referralCode: 42,
+            poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
+            owner: ALICE,
+            initialFee: 0,
+            shareName: "Test Vault",
+            shareSymbol: "tVault",
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: revenueRecipients
+        });
+
+        address vault = factory.deployVault(params);
+        vm.stopPrank();
+
+        assertTrue(vault != address(0));
+
+        ATokenVault vaultContract = ATokenVault(vault);
+        assertEq(address(vaultContract.UNDERLYING()), address(underlying));
+        assertEq(vaultContract.REFERRAL_CODE(), 42);
+        assertEq(vaultContract.name(), "Test Vault");
+        assertEq(vaultContract.symbol(), "tVault");
+        assertEq(vaultContract.getFee(), 0);
+        
+        address owner = vaultContract.owner();
+        assertEq(ATokenVaultRevenueSplitterOwner(payable(owner)).owner(), ALICE);
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory actualRecipients = ATokenVaultRevenueSplitterOwner(payable(owner)).getRecipients();
+        assertEq(actualRecipients.length, revenueRecipients.length);
+        for (uint256 i = 0; i < actualRecipients.length; i++) {
+            assertEq(actualRecipients[i].addr, revenueRecipients[i].addr);
+            assertEq(actualRecipients[i].shareInBps, revenueRecipients[i].shareInBps);
+        }
+    }
+
     function testDeployVaultWithFee() public {
         uint256 initialDeposit = 1000 * 1e18;
         uint256 fee = 1e17; // 10%
@@ -103,7 +200,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 123,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -111,7 +208,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: fee,
             shareName: "Fee Vault",
             shareSymbol: "fVault",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -133,7 +231,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params1 = ATokenVaultFactory.VaultParams({
+        VaultParams memory params1 = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -141,7 +239,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Vault 1",
             shareSymbol: "V1",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault1 = factory.deployVault(params1);
@@ -154,7 +253,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(BOB);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params2 = ATokenVaultFactory.VaultParams({
+        VaultParams memory params2 = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -162,7 +261,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Vault 2",
             shareSymbol: "V2",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault2 = factory.deployVault(params2);
@@ -183,7 +283,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 42,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -191,7 +291,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test Vault",
             shareSymbol: "tVault",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.recordLogs();
@@ -203,22 +304,20 @@ contract ATokenVaultFactoryTest is Test {
         // Find the VaultDeployed event (should be the last one)
         bool eventFound = false;
         for (uint i = 0; i < logs.length; i++) {
-            if (logs[i].topics[0] == keccak256("VaultDeployed(address,address,address,address,(address,uint16,address,address,uint256,string,string,uint256))")) {
+            if (logs[i].topics[0] == keccak256("VaultDeployed(address,address,address,(address,uint16,address,address,uint256,string,string,uint256,(address,uint16)[]))")) {
                 eventFound = true;
 
                 // Decode the event data
                 address eventVault = address(uint160(uint256(logs[i].topics[1])));
-                address eventImplementation = address(uint160(uint256(logs[i].topics[2])));
-                address eventUnderlying = address(uint160(uint256(logs[i].topics[3])));
+                address eventUnderlying = address(uint160(uint256(logs[i].topics[2])));
 
-                (address eventDeployer, ATokenVaultFactory.VaultParams memory eventVaultParams) = abi.decode(
+                (address eventDeployer, VaultParams memory eventVaultParams) = abi.decode(
                     logs[i].data,
-                    (address, ATokenVaultFactory.VaultParams)
+                    (address, VaultParams)
                 );
 
                 // Verify event data
                 assertEq(eventVault, vault);
-                assertTrue(eventImplementation != address(0));
                 assertEq(eventUnderlying, address(underlying));
                 assertEq(eventDeployer, ALICE);
                 assertEq(eventVaultParams.underlying, address(underlying));
@@ -244,7 +343,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: maxReferralCode,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -252,7 +351,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Max Referral Vault",
             shareSymbol: "MRV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -270,7 +370,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -278,7 +378,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: maxFee,
             shareName: "Max Fee Vault",
             shareSymbol: "MFV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -295,7 +396,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -303,7 +404,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Different Owner Vault",
             shareSymbol: "DOV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -320,7 +422,7 @@ contract ATokenVaultFactoryTest is Test {
     function testDeployVaultZeroUnderlyingReverts() public {
         uint256 initialDeposit = 1000 * 1e18;
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(0),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -328,7 +430,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test",
             shareSymbol: "TEST",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("ZERO_ADDRESS_NOT_VALID");
@@ -338,7 +441,7 @@ contract ATokenVaultFactoryTest is Test {
     function testDeployVaultZeroOwnerReverts() public {
         uint256 initialDeposit = 1000 * 1e18;
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -346,7 +449,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test",
             shareSymbol: "TEST",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("ZERO_ADDRESS_NOT_VALID");
@@ -354,7 +458,7 @@ contract ATokenVaultFactoryTest is Test {
     }
 
     function testDeployVaultZeroDepositReverts() public {
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -362,7 +466,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test",
             shareSymbol: "TEST",
-            initialLockDeposit: 0
+            initialLockDeposit: 0,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("ZERO_INITIAL_LOCK_DEPOSIT");
@@ -372,7 +477,7 @@ contract ATokenVaultFactoryTest is Test {
     function testDeployVaultEmptyNameReverts() public {
         uint256 initialDeposit = 1000 * 1e18;
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -380,7 +485,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "",
             shareSymbol: "TEST",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("EMPTY_SHARE_NAME");
@@ -390,7 +496,7 @@ contract ATokenVaultFactoryTest is Test {
     function testDeployVaultEmptySymbolReverts() public {
         uint256 initialDeposit = 1000 * 1e18;
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -398,7 +504,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test",
             shareSymbol: "",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("EMPTY_SHARE_SYMBOL");
@@ -408,7 +515,7 @@ contract ATokenVaultFactoryTest is Test {
     function testDeployVaultZeroPoolProviderReverts() public {
         uint256 initialDeposit = 1000 * 1e18;
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(0)),
@@ -416,7 +523,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test",
             shareSymbol: "TEST",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("ZERO_ADDRESS_NOT_VALID");
@@ -430,7 +538,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit - 1); // Insufficient approval
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -438,7 +546,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test",
             shareSymbol: "TEST",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("ERC20: insufficient allowance");
@@ -453,7 +562,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -461,7 +570,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test",
             shareSymbol: "TEST",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("ERC20: transfer amount exceeds balance");
@@ -478,7 +588,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -486,7 +596,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: initFee,
             shareName: "Max Fee Vault",
             shareSymbol: "MFV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("FEE_TOO_HIGH");
@@ -498,55 +609,7 @@ contract ATokenVaultFactoryTest is Test {
                             CONSTRUCTOR TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testConstructorZeroProxyAdminReverts() public {
-        vm.expectRevert();
-        new ATokenVaultFactory(address(0));
-    }
-
-    function testConstructorNonRenouncedProxyAdminReverts(address deployer) public {
-        vm.assume(deployer != address(0));
-
-        vm.prank(deployer);
-        ProxyAdmin_v4_7 nonRenouncedProxyAdmin = new ProxyAdmin_v4_7();
-
-        assertEq(nonRenouncedProxyAdmin.owner(), deployer);
-
-        vm.expectRevert();
-        new ATokenVaultFactory(address(nonRenouncedProxyAdmin));
-    }
-
-    function testConstructorSetsProxyAdmin() public {
-        proxyAdmin = address(new ProxyAdmin_v4_7());
-
-        ProxyAdmin_v4_7(proxyAdmin).renounceOwnership();
-            
-        ATokenVaultFactory newFactory = new ATokenVaultFactory(proxyAdmin);
-
-        uint256 initialDeposit = 1000 * 1e18;
-        MockDAI(underlying).mint(address(this), initialDeposit);
-
-        IERC20(underlying).safeApprove(address(newFactory), initialDeposit);
-
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
-            underlying: address(underlying),
-            referralCode: 0,
-            poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
-            owner: address(this),
-            initialFee: 0,
-            shareName: "Test Vault",
-            shareSymbol: "tVault",
-            initialLockDeposit: initialDeposit
-        });
-
-        address vault = newFactory.deployVault(params);
-
-        bytes32 value = vm.load(
-            vault,
-            0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103 // Transparent proxy's admin slot
-        );
-
-        assertEq(value, bytes32(uint256(uint160(proxyAdmin))));
-    }
+    // TODO: . . .
 
     /*//////////////////////////////////////////////////////////////
                             INTEGRATION TESTS
@@ -559,7 +622,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -567,7 +630,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test Vault",
             shareSymbol: "tVault",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -602,7 +666,7 @@ contract ATokenVaultFactoryTest is Test {
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
         IERC20(usdc).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory underlyingParams = ATokenVaultFactory.VaultParams({
+        VaultParams memory underlyingParams = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -610,12 +674,13 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "underlying Vault",
             shareSymbol: "dVault",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address underlyingVault = factory.deployVault(underlyingParams);
 
-        ATokenVaultFactory.VaultParams memory usdcParams = ATokenVaultFactory.VaultParams({
+        VaultParams memory usdcParams = VaultParams({
             underlying: address(usdc),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(usdcPoolProvider)),
@@ -623,7 +688,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "USDC Vault",
             shareSymbol: "uVault",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address usdcVault = factory.deployVault(usdcParams);
@@ -640,7 +706,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit * 3);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -648,7 +714,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test Vault",
             shareSymbol: "TV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault1 = factory.deployVault(params);
@@ -677,7 +744,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), minDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -685,7 +752,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Minimal Deposit Vault",
             shareSymbol: "MDV",
-            initialLockDeposit: minDeposit
+            initialLockDeposit: minDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -701,7 +769,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -709,7 +777,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Zero Fee Vault",
             shareSymbol: "ZFV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -726,7 +795,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: 0,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -734,7 +803,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 1e18,
             shareName: "Max Fee Vault",
             shareSymbol: "MFV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -761,7 +831,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: referralCode,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -769,7 +839,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: initialFee,
             shareName: "Fuzz Vault",
             shareSymbol: "FV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -794,7 +865,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), minDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: referralCode,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -802,7 +873,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: initialFee,
             shareName: "Fuzz Edge Case Vault",
             shareSymbol: "FECV",
-            initialLockDeposit: minDeposit
+            initialLockDeposit: minDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -826,7 +898,7 @@ contract ATokenVaultFactoryTest is Test {
         vm.startPrank(ALICE);
         IERC20(underlying).safeApprove(address(factory), initialDeposit);
 
-        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+        VaultParams memory params = VaultParams({
             underlying: address(underlying),
             referralCode: referralCode,
             poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
@@ -834,7 +906,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Zero Fee Fuzz Vault",
             shareSymbol: "ZFFV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault1 = factory.deployVault(params);
