@@ -65,7 +65,7 @@ contract ATokenVaultFactory {
 
     address immutable public VAULT_CREATION_CODE_SSTORE2_POINTER;
 
-    uint256 internal _nextSalt;
+    uint256 internal _nextSaltNonce;
 
     constructor() {
         VAULT_CREATION_CODE_SSTORE2_POINTER = SSTORE2.write(LibZip.flzCompress(type(ImmutableATokenVault).creationCode));
@@ -90,7 +90,7 @@ contract ATokenVaultFactory {
             params.initialLockDeposit
         );
 
-        bytes32 salt = bytes32(_nextSalt++);
+        bytes32 salt = bytes32(_nextSaltNonce++);
 
         bytes memory vaultInitCode = abi.encodePacked(
             LibZip.flzDecompress(SSTORE2.read(VAULT_CREATION_CODE_SSTORE2_POINTER)),
