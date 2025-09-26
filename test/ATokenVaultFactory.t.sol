@@ -87,7 +87,7 @@ contract ATokenVaultFactoryTest is Test {
         assertEq(vaultContract.getFee(), 0);
     }
 
-    function testDeployVaultWithRevenueSplitter() public {
+    function testDeployRevenueSplitterAndSetAsVaultOwnerAfterwards() public {
         uint256 initialDeposit = 1000 * 1e18;
         deal(address(underlying), ALICE, initialDeposit);
 
@@ -135,7 +135,7 @@ contract ATokenVaultFactoryTest is Test {
         assertEq(ATokenVault(payable(vault)).owner(), revenueSplitter);
     }
 
-    function testDeployRevenueSplitter() public {
+    function testDeployVaultWithRevenueSplitter() public {
         uint256 initialDeposit = 1000 * 1e18;
         deal(address(underlying), ALICE, initialDeposit);
 
