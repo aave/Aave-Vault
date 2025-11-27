@@ -1,0 +1,26 @@
+{
+  "lib/aave-v3-core": {
+    "branch": {
+      "name": "v1.19.4",
+      "rev": "b74526a7bc67a3a117a1963fc871b3eb8cea8435"
+    }
+  },
+  "lib/aave-v3-periphery": {
+    "branch": {
+      "name": "v1.23.0",
+      "rev": "0e7b7d929a7f1b26fb4d5a8cc1ab870fc3d85cd9"
+    }
+  },
+  "lib/createx": {
+    "rev": "cbac803268835138f86a69bfe01fcf05a50e0447"
+  },
+  "lib/erc4626-tests": {
+    "rev": "232ff9ba8194e406967f52ecc5cb52ed764209e9"
+  },
+  "lib/openzeppelin-contracts-upgradeable": {
+    "branch": {
+      "name": "v4.8.1",
+      "rev": "7ec6d2a3117eb3487a5f9029203e80ceb89bd984"
+    }
+  }
+}

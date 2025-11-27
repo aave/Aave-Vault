@@ -28,13 +28,17 @@ This test suite also includes a16z's [ERC-4626 Property Tests](https://a16zcrypt
 
 ## Deployment
 
+ERC-2335 is used to encode the private key using `cast wallet`. To be sure to never reveal it.
+
+```bash
+cast wallet import deployerKey --interactive
+```
+
 To deploy the vault contract, first check that the deployment parameters in `script/Deploy.s.sol` are configured correctly, then check that your `.env` file contains these keys:
 
 ```
-POLYGON_RPC_URL=xxx
-MUMBAI_RPC_URL=xxx
 ETHERSCAN_API_KEY=xxx
-PRIVATE_KEY=xxx
+DEPLOYER_ADDRESS=xxx
 ```
 
 Then run:
@@ -45,17 +49,18 @@ source .env
 
 Then run one of the following commands:
 
-Mumbai Testnet:
+Localhost (Forked Network):
 
 ```bash
-forge script script/Deploy.s.sol:Deploy --rpc-url $MUMBAI_RPC_URL --broadcast --verify --legacy -vvvv
+forge script script/DeployUSDeVault.s.sol:Deploy --rpc-url http://localhost:8545 --broadcast --legacy -vvvv
 ```
 
-Polygon Mainnet:
+Ethereum:
 
 ```bash
-forge script script/Deploy.s.sol:Deploy --rpc-url $POLYGON_RPC_URL --broadcast --verify --legacy -vvvv
+forge script script/DeployUSDeVault.s.sol:Deploy --rpc-url $RPC_URL --broadcast --verify --legacy -vvvv
 ```
+
 
 ## Audits
 

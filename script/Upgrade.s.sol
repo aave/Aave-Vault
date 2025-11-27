@@ -26,16 +26,16 @@ contract Upgrade is Script {
     }
 
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        // require(vm.envExists("DEPLOYER_ADDRESS"), "DEPLOYER_ADDRESS env var not set");
+        address deployerAddress = vm.envAddress("DEPLOYER_ADDRESS");
 
-        address deployerAddress = vm.addr(deployerPrivateKey);
         console.log("Deployer address: ", deployerAddress);
         console.log("Deployer balance: ", deployerAddress.balance);
         console.log("BlockNumber: ", block.number);
         console.log("ChainId: ", getChainId());
         console.log("Deploying vault...");
 
-        vm.startBroadcast(deployerPrivateKey);
+        vm.startBroadcast(deployerAddress);
 
         // Deploy new implementation
         ATokenVaultV2 newImple = new ATokenVaultV2(
