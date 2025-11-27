@@ -50,16 +50,16 @@ source .env
 
 Then run one of the following commands:
 
-Localhost (Forked Network):
+Simulate Deploy:
 
 ```bash
-forge script script/DeployUSDeVault.s.sol:DeployUSDeVault --rpc-url http://localhost:8545 --broadcast --legacy -vvvv
+make simulate
 ```
 
-Ethereum:
+Deploy:
 
 ```bash
-forge script script/DeployUSDeVault.s.sol:DeployUSDeVault --rpc-url $PROVIDER_URL --broadcast --verify --legacy -vvvv
+make deploy
 ```
 
 
