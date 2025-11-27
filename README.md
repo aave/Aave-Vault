@@ -37,6 +37,7 @@ cast wallet import deployerKey --interactive
 To deploy the vault contract, first check that the deployment parameters in `script/Deploy.s.sol` are configured correctly, then check that your `.env` file contains these keys:
 
 ```
+PROVIDER_URL=xxx
 ETHERSCAN_API_KEY=xxx
 DEPLOYER_ADDRESS=xxx
 ```
@@ -52,13 +53,13 @@ Then run one of the following commands:
 Localhost (Forked Network):
 
 ```bash
-forge script script/DeployUSDeVault.s.sol:Deploy --rpc-url http://localhost:8545 --broadcast --legacy -vvvv
+forge script script/DeployUSDeVault.s.sol:DeployUSDeVault --rpc-url http://localhost:8545 --broadcast --legacy -vvvv
 ```
 
 Ethereum:
 
 ```bash
-forge script script/DeployUSDeVault.s.sol:Deploy --rpc-url $RPC_URL --broadcast --verify --legacy -vvvv
+forge script script/DeployUSDeVault.s.sol:DeployUSDeVault --rpc-url $PROVIDER_URL --broadcast --verify --legacy -vvvv
 ```
 
 

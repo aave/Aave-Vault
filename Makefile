@@ -4,7 +4,7 @@
 MAKEFLAGS += --no-print-directory
 
 default:
-	forge fmt && forge build
+	forge build
 
 
 simulate:
