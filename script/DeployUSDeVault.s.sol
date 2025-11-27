@@ -14,8 +14,8 @@ contract DeployUSDeVault is Script {
     address UNDERLYING_ASSET_ADDRESS = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3; // USDe
     uint16 REFERRAL_CODE = 0; // Referral code to use
     address AAVE_POOL_ADDRESSES_PROVIDER_ADDRESS = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e; // PoolAddressesProvider contract of the Aave Pool
-    address constant PROXY_ADMIN_ADDRESS = 0xf817cb3092179083c48c014688D98B72fB61464f; // Timelock
-    address constant OWNER_ADDRESS = 0xf817cb3092179083c48c014688D98B72fB61464f; // Timelock
+    address constant PROXY_ADMIN_ADDRESS = 0x35918cDE7233F2dD33fA41ae3Cb6aE0e42E0e69F; // Timelock
+    address constant OWNER_ADDRESS = 0x35918cDE7233F2dD33fA41ae3Cb6aE0e42E0e69F; // Timelock
     string constant SHARE_NAME = "Wrapped aUSDe"; // Name of the token shares
     string constant SHARE_SYMBOL = "waUSDe"; // Symbol of the token shares
     uint256 constant FEE = 0; // Vault Fee bps in wad (e.g. 0.1e18 results in 10%)
