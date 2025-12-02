@@ -23,4 +23,5 @@ jobs:
         env: 
           POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
           AVALANCHE_RPC_URL: ${{ secrets.AVALANCHE_RPC_URL }}
+          ETHEREUM_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL }}
         run: forge test -vvv
