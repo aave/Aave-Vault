@@ -20,7 +20,7 @@ abstract contract ATokenVaultStorage {
         uint40 __deprecated_gap;
         // as a fraction of 1e18
         uint64 fee;
-        // Merkl distributor contract address called to claim Merkl rewards
+        // Merkl distributor contract
         address merklDistributor;
         // Reserved storage space to allow for layout changes in the future
         uint256[49] __gap;
