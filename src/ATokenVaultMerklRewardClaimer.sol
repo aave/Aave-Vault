@@ -53,8 +53,8 @@ contract ATokenVaultMerklRewardClaimer is ATokenVault, IATokenVaultMerklRewardCl
     }
 
     /// @inheritdoc IATokenVaultMerklRewardClaimer
+    /// @dev Allow setting address(0) to reset the Merkl distributor
     function setMerklDistributor(address merklDistributor) external override onlyOwner {
-        require(merklDistributor != address(0), "ZERO_ADDRESS_NOT_VALID");
         address currentMerklDistributor = _s.merklDistributor;
         _s.merklDistributor = merklDistributor;
         emit MerklDistributorUpdated(currentMerklDistributor, merklDistributor);

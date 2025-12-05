@@ -15,12 +15,12 @@ import {IATokenVaultMerklRewardClaimer} from "../src/interfaces/IATokenVaultMerk
 import {IATokenVault} from "../src/interfaces/IATokenVault.sol";
 
 /**
- * @title ATokenVaultMerklRewardClaimerTest
- * @notice Test suite for claiming Merkl rewards from the ATokenVault
- * @dev Forks Ethereum mainnet to etch the ATokenVault onto an address that has claimable rewards as of the forked block
+ * @title ATokenVaultMerklRewardClaimerForkTest
+ * @notice Test suite for claiming Merkl rewards from the ATokenVault on a forked Ethereum mainnet
+ * @dev Etches the ATokenVault onto an address that has claimable rewards as of the forked block
  * @dev foundry.toml must use evm_version = 'cancun' to run this test
  */
-contract ATokenVaultMerklRewardClaimerTest is ATokenVaultBaseTest {
+contract ATokenVaultMerklRewardClaimerForkTest is ATokenVaultBaseTest {
     using stdStorage for StdStorage;
     uint256 ethereumFork;
     // The block before rewards claim in tx: https://etherscan.io/tx/0x42ef6b499d1b6e96a4250f2d5a005b60173386e2ac3a3e424aa407db3da802ea
@@ -134,10 +134,13 @@ contract ATokenVaultMerklRewardClaimerTest is ATokenVaultBaseTest {
         IATokenVaultMerklRewardClaimer(address(vault)).setMerklDistributor(MERKL_DISTRIBUTOR);
     }
 
-    function testSetMerklDistributorRevertsIfZeroAddress() public {
+    function testSetMerklDistributorAllowsZeroAddress() public {
         vm.prank(OWNER);
-        vm.expectRevert(bytes("ZERO_ADDRESS_NOT_VALID"));
+        IATokenVaultMerklRewardClaimer(address(vault)).setMerklDistributor(MERKL_DISTRIBUTOR);
+        assertEq(IATokenVaultMerklRewardClaimer(address(vault)).getMerklDistributor(), MERKL_DISTRIBUTOR);
+        vm.prank(OWNER);
         IATokenVaultMerklRewardClaimer(address(vault)).setMerklDistributor(address(0));
+        assertEq(IATokenVaultMerklRewardClaimer(address(vault)).getMerklDistributor(), address(0));
     }
 
     function testSetMerklDistributorRevertsIfNotOwner() public {
