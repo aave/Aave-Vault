@@ -17,10 +17,10 @@ import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 import "./utils/Constants.sol";
 
 /**
- * @title ATokenVaultMerklRewardsClaimerTest
+ * @title ATokenVaultMerklRewardClaimerTest
  * @notice Unit test suite for claiming Merkl rewards from the ATokenVault
  */
-contract ATokenVaultMerklRewardsClaimerTest is ATokenVaultBaseTest {    
+contract ATokenVaultMerklRewardClaimerTest is ATokenVaultBaseTest {    
     MockMerklDistributor merklDistributor;
     MockAavePoolAddressesProvider poolAddrProvider;
     MockAavePool pool;
