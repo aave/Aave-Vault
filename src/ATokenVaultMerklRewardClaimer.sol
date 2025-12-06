@@ -49,7 +49,7 @@ contract ATokenVaultMerklRewardClaimer is ATokenVault, IATokenVaultMerklRewardCl
         // We do not need to accrue after claiming because any subsequent call will trigger an accrual before state updates
         // and preview functions read the balance of aTokens on the vault at runtime.
 
-        emit MerklRewardsClaimed(rewardTokens, amounts);
+        emit MerklRewardsClaimed(_s.merklDistributor, rewardTokens, amounts);
     }
 
     /// @inheritdoc IATokenVaultMerklRewardClaimer
@@ -65,7 +65,7 @@ contract ATokenVaultMerklRewardClaimer is ATokenVault, IATokenVaultMerklRewardCl
         require(_s.merklDistributor != address(0), "MERKL_DISTRIBUTOR_NOT_SET");
         require(operator != address(0), "ZERO_ADDRESS_NOT_VALID");
         IMerklDistributor(_s.merklDistributor).toggleOperator(address(this), operator);
-        emit MerklRewardsOperatorToggled(operator);
+        emit MerklRewardsOperatorToggled(_s.merklDistributor, operator);
     }
 
     /// @inheritdoc IATokenVaultMerklRewardClaimer

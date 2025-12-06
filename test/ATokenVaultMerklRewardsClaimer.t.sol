@@ -74,7 +74,7 @@ contract ATokenVaultMerklRewardsClaimerTest is ATokenVaultBaseTest {
         (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData(address(dai), 1000, proof);
         vm.prank(OWNER);
         vm.expectEmit(true, true, false, true, address(vaultMerklRewardClaimer));
-        emit IATokenVaultMerklRewardClaimer.MerklRewardsClaimed(rewardTokens, amounts);
+        emit IATokenVaultMerklRewardClaimer.MerklRewardsClaimed(address(merklDistributor), rewardTokens, amounts);
         vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
     }
 
@@ -123,7 +123,7 @@ contract ATokenVaultMerklRewardsClaimerTest is ATokenVaultBaseTest {
         address operator = makeAddr("newOperator");
         vm.prank(OWNER);
         vm.expectEmit(true, true, false, true, address(vaultMerklRewardClaimer));
-        emit IATokenVaultMerklRewardClaimer.MerklRewardsOperatorToggled(operator);
+        emit IATokenVaultMerklRewardClaimer.MerklRewardsOperatorToggled(address(merklDistributor), operator);
         vaultMerklRewardClaimer.toggleOperator(operator);
     }
 

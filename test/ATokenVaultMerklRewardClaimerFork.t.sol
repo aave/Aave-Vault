@@ -96,8 +96,8 @@ contract ATokenVaultMerklRewardClaimerForkTest is ATokenVaultBaseTest {
         (address[] memory tokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData();
 
         vm.prank(OWNER);
-        vm.expectEmit(true, false, false, true, ADDRESS_WITH_CLAIMABLE_REWARDS);
-        emit IATokenVaultMerklRewardClaimer.MerklRewardsClaimed(tokens, amounts);
+        vm.expectEmit(true, true, false, true, ADDRESS_WITH_CLAIMABLE_REWARDS);
+        emit IATokenVaultMerklRewardClaimer.MerklRewardsClaimed(MERKL_DISTRIBUTOR, tokens, amounts);
         IATokenVaultMerklRewardClaimer(ADDRESS_WITH_CLAIMABLE_REWARDS).claimMerklRewards(tokens, amounts, proofs);
     }
 
@@ -129,7 +129,7 @@ contract ATokenVaultMerklRewardClaimerForkTest is ATokenVaultBaseTest {
     
     function testSetMerklDistributorEmitsEvent() public {
         vm.prank(OWNER);
-        vm.expectEmit(true, false, false, true, address(vault));
+        vm.expectEmit(true, true, false, true, address(vault));
         emit IATokenVaultMerklRewardClaimer.MerklDistributorUpdated(address(0), MERKL_DISTRIBUTOR);
         IATokenVaultMerklRewardClaimer(address(vault)).setMerklDistributor(MERKL_DISTRIBUTOR);
     }

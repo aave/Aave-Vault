@@ -14,16 +14,18 @@ interface IATokenVaultMerklRewardClaimer {
      * @dev Emitted when Merkl rewards are claimed by the vault contract
      * @dev The token addresses do not always match the actual tokens received by the vault contract after rewards are claimed
      * @dev The amounts do not always match the actual amounts received (the amounts may be the cumulative rewards earned by the user)
+     * @param distributor Address of the Merkl distributor contract
      * @param tokens Addresses of the ERC-20 reward tokens claimed (the tokens passed as params to the Merkl distributor contract)
      * @param amounts Amounts of the reward tokens claimed for each token (the amounts passed as params to the Merkl distributor contract)
      */
-    event MerklRewardsClaimed(address[] tokens, uint256[] amounts);
+    event MerklRewardsClaimed(address indexed distributor, address[] tokens, uint256[] amounts);
 
     /**
      * @dev Emitted when the operator status for the vault is toggled
+     * @param distributor Address of the Merkl distributor contract
      * @param operator Address of the operator to toggle
      */
-    event MerklRewardsOperatorToggled(address indexed operator);
+    event MerklRewardsOperatorToggled(address indexed distributor, address indexed operator);
 
     /**
      * @dev Emitted when the Merkl distributor address is updated
@@ -52,7 +54,6 @@ interface IATokenVaultMerklRewardClaimer {
      */
     function setMerklDistributor(address merklDistributor) external;
 
-    
     /**
      * @notice Toggles the operator status for the vault
      * @dev Only callable by the owner
