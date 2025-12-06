@@ -20,6 +20,12 @@ interface IATokenVaultMerklRewardClaimer {
     event MerklRewardsClaimed(address[] tokens, uint256[] amounts);
 
     /**
+     * @dev Emitted when the operator status for the vault is toggled
+     * @param operator Address of the operator to toggle
+     */
+    event MerklRewardsOperatorToggled(address indexed operator);
+
+    /**
      * @dev Emitted when the Merkl distributor address is updated
      * @param oldMerklDistributor The old address of the Merkl distributor contract
      * @param newMerklDistributor The new address of the Merkl distributor contract
@@ -45,6 +51,14 @@ interface IATokenVaultMerklRewardClaimer {
      * @param merklDistributor Address of the new Merkl distributor contract
      */
     function setMerklDistributor(address merklDistributor) external;
+
+    
+    /**
+     * @notice Toggles the operator status for the vault
+     * @dev Only callable by the owner
+     * @param operator Address of the operator to toggle
+     */
+    function toggleOperator(address operator) external;
 
     /**
      * @notice Getter for the contract address called to claim Merkl rewards

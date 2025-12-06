@@ -61,6 +61,14 @@ contract ATokenVaultMerklRewardClaimer is ATokenVault, IATokenVaultMerklRewardCl
     }
 
     /// @inheritdoc IATokenVaultMerklRewardClaimer
+    function toggleOperator(address operator) external override onlyOwner {
+        require(_s.merklDistributor != address(0), "MERKL_DISTRIBUTOR_NOT_SET");
+        require(operator != address(0), "ZERO_ADDRESS_NOT_VALID");
+        IMerklDistributor(_s.merklDistributor).toggleOperator(address(this), operator);
+        emit MerklRewardsOperatorToggled(operator);
+    }
+
+    /// @inheritdoc IATokenVaultMerklRewardClaimer
     function getMerklDistributor() external view override returns (address) {
         return _s.merklDistributor;
     }

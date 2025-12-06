@@ -73,7 +73,7 @@ contract ATokenVaultMerklRewardsClaimerTest is ATokenVaultBaseTest {
         bytes32 proof = keccak256("proof1");
         (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData(address(dai), 1000, proof);
         vm.prank(OWNER);
-        vm.expectEmit(true, false, false, true, address(vaultMerklRewardClaimer));
+        vm.expectEmit(true, true, false, true, address(vaultMerklRewardClaimer));
         emit IATokenVaultMerklRewardClaimer.MerklRewardsClaimed(rewardTokens, amounts);
         vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
     }
@@ -105,6 +105,42 @@ contract ATokenVaultMerklRewardsClaimerTest is ATokenVaultBaseTest {
         vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
     }
 
+    function testToggleOperator() public {
+        _setMerklDistributor();
+        address operator = makeAddr("newOperator");
+        vm.prank(OWNER);
+        vaultMerklRewardClaimer.toggleOperator(operator);
+
+        assertEq(merklDistributor.getOperator(address(vaultMerklRewardClaimer), operator), true);
+
+        vm.prank(OWNER);
+        vaultMerklRewardClaimer.toggleOperator(operator);
+        assertEq(merklDistributor.getOperator(address(vaultMerklRewardClaimer), operator), false);
+    }
+
+    function testToggleOperatorEmitsEvent() public {
+        _setMerklDistributor();
+        address operator = makeAddr("newOperator");
+        vm.prank(OWNER);
+        vm.expectEmit(true, true, false, true, address(vaultMerklRewardClaimer));
+        emit IATokenVaultMerklRewardClaimer.MerklRewardsOperatorToggled(operator);
+        vaultMerklRewardClaimer.toggleOperator(operator);
+    }
+
+    function testToggleOperatorRevertsIfOperatorIsZeroAddress() public {
+        _setMerklDistributor();
+        vm.prank(OWNER);
+        vm.expectRevert(bytes("ZERO_ADDRESS_NOT_VALID"));
+        vaultMerklRewardClaimer.toggleOperator(address(0));
+    }
+
+    function testToggleOperatorRevertsIfMerklDistributorNotSet() public {
+        address operator = makeAddr("operator");
+        vm.prank(OWNER);
+        vm.expectRevert(bytes("MERKL_DISTRIBUTOR_NOT_SET"));
+        vaultMerklRewardClaimer.toggleOperator(operator);
+    }
+
     function testSetMerklDistributor() public {
         vm.prank(OWNER);
         vaultMerklRewardClaimer.setMerklDistributor(address(merklDistributor));
@@ -113,13 +149,13 @@ contract ATokenVaultMerklRewardsClaimerTest is ATokenVaultBaseTest {
 
     function testSetMerklDistributorEmitsEvent() public {
         vm.prank(OWNER);
-        vm.expectEmit(true, false, false, true, address(vaultMerklRewardClaimer));
+        vm.expectEmit(true, true, false, true, address(vaultMerklRewardClaimer));
         emit IATokenVaultMerklRewardClaimer.MerklDistributorUpdated(address(0), address(merklDistributor));
         vaultMerklRewardClaimer.setMerklDistributor(address(merklDistributor));
 
         address newMerklDistributor = makeAddr("newMerklDistributor");
         vm.prank(OWNER);
-        vm.expectEmit(true, false, false, true, address(vaultMerklRewardClaimer));
+        vm.expectEmit(true, true, false, true, address(vaultMerklRewardClaimer));
         emit IATokenVaultMerklRewardClaimer.MerklDistributorUpdated(address(merklDistributor), newMerklDistributor);
         vaultMerklRewardClaimer.setMerklDistributor(newMerklDistributor);
     }
@@ -143,7 +179,11 @@ contract ATokenVaultMerklRewardsClaimerTest is ATokenVaultBaseTest {
         vaultMerklRewardClaimer.setMerklDistributor(address(merklDistributor));
     }
 
-    function _buildMerklRewardsClaimData(address token, uint256 amount, bytes32 proof) internal returns (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) {
+    function _buildMerklRewardsClaimData(
+        address token,
+        uint256 amount,
+        bytes32 proof
+    ) internal pure returns (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) {
         rewardTokens = new address[](1);
         rewardTokens[0] = token;
         amounts = new uint256[](1);

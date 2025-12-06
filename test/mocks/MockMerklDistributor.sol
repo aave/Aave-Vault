@@ -2,12 +2,17 @@
 
 pragma solidity ^0.8.10;
 
-contract MockMerklDistributor {
+import {IMerklDistributor} from "../../src/dependencies/merkl/DistributorInterface.sol";
+
+contract MockMerklDistributor is IMerklDistributor {
     bool public claimCalled = false;
     address[] public lastUsers;
     address[] public lastTokens;
     uint256[] public lastAmounts;
     bytes32[][] public lastProofs;
+
+    mapping(address => mapping(address => bool)) public operators;
+
     bool public shouldRevert = false;
     string public revertReason = "";
 
@@ -42,6 +47,10 @@ contract MockMerklDistributor {
         }
     }
 
+    function toggleOperator(address user, address operator) external {
+        operators[user][operator] = !operators[user][operator];
+    }
+
     function setShouldRevert(bool _shouldRevert, string memory _reason) external {
         shouldRevert = _shouldRevert;
         revertReason = _reason;
@@ -61,5 +70,9 @@ contract MockMerklDistributor {
 
     function getLastProofs() external view returns (bytes32[][] memory) {
         return lastProofs;
+    }
+
+    function getOperator(address user, address operator) external view returns (bool) {
+        return operators[user][operator];
     }
 }
