@@ -141,6 +141,12 @@ contract ATokenVaultMerklRewardClaimerTest is ATokenVaultBaseTest {
         vaultMerklRewardClaimer.toggleOperator(operator);
     }
 
+    function testToggleOperatorRevertsIfNotOwner() public {
+        address operator = makeAddr("operator");
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        vaultMerklRewardClaimer.toggleOperator(operator);
+    }
+
     function testSetMerklDistributor() public {
         vm.prank(OWNER);
         vaultMerklRewardClaimer.setMerklDistributor(address(merklDistributor));
