@@ -33,22 +33,13 @@ contract ATokenVaultMerklRewardClaimer is ATokenVault, IATokenVaultMerklRewardCl
         onlyOwner
     {
         require(_s.merklDistributor != address(0), "MERKL_DISTRIBUTOR_NOT_SET");
+        require(rewardTokens.length == amounts.length && rewardTokens.length == proofs.length, "ARRAY_LENGTH_MISMATCH");
 
         address[] memory users = new address[](rewardTokens.length);
         for (uint256 i = 0; i < rewardTokens.length; i++) {
-            // users represent depositors into Aave which is this contract
             users[i] = address(this);
         }
-
-        // The claim function does not return a list of tokens and amounts actually received.
-        // It is possible for rewards to be in aTokens, the underlying asset or some other token.
-        // If necessary the owner can use IATokenVault.emergencyRescue(...) to rescue the non-aToken rewards and non-native rewards.
         IMerklDistributor(_s.merklDistributor).claim(users, rewardTokens, amounts, proofs);
-        // Do not attempt to accrue yield as it can be delegated to subsequent calls to this contract.
-        // We do not need to accrue before claiming because new shares are not granted anywhere (rewards are socialized across all current share holders).
-        // We do not need to accrue after claiming because any subsequent call will trigger an accrual before state updates
-        // and preview functions read the balance of aTokens on the vault at runtime.
-
         emit MerklRewardsClaimed(_s.merklDistributor, rewardTokens, amounts);
     }
 
@@ -58,14 +49,6 @@ contract ATokenVaultMerklRewardClaimer is ATokenVault, IATokenVaultMerklRewardCl
         address currentMerklDistributor = _s.merklDistributor;
         _s.merklDistributor = merklDistributor;
         emit MerklDistributorUpdated(currentMerklDistributor, merklDistributor);
-    }
-
-    /// @inheritdoc IATokenVaultMerklRewardClaimer
-    function toggleOperator(address operator) external override onlyOwner {
-        require(_s.merklDistributor != address(0), "MERKL_DISTRIBUTOR_NOT_SET");
-        require(operator != address(0), "ZERO_ADDRESS_NOT_VALID");
-        IMerklDistributor(_s.merklDistributor).toggleOperator(address(this), operator);
-        emit MerklRewardsOperatorToggled(_s.merklDistributor, operator);
     }
 
     /// @inheritdoc IATokenVaultMerklRewardClaimer

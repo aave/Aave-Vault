@@ -7,6 +7,7 @@ import "forge-std/Test.sol";
 import {IAToken} from "@aave-v3-core/interfaces/IAToken.sol";
 
 import {IATokenVaultMerklRewardClaimer} from "../src/interfaces/IATokenVaultMerklRewardClaimer.sol";
+import {IMerklDistributor} from "../src/dependencies/merkl/DistributorInterface.sol";
 
 import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvider.sol";
 import {MockAavePool} from "./mocks/MockAavePool.sol";
@@ -21,168 +22,257 @@ import "./utils/Constants.sol";
  * @notice Unit test suite for claiming Merkl rewards from the ATokenVault
  */
 contract ATokenVaultMerklRewardClaimerTest is ATokenVaultBaseTest {    
-    MockMerklDistributor merklDistributor;
-    MockAavePoolAddressesProvider poolAddrProvider;
-    MockAavePool pool;
-    MockAToken aDai;
-    MockDAI dai;
-    IATokenVaultMerklRewardClaimer vaultMerklRewardClaimer;
+    MockMerklDistributor internal _merklDistributor;
+    MockAavePoolAddressesProvider internal __poolAddrProvider;
+    MockAavePool internal _pool;
+    MockAToken internal _aDai;
+    MockDAI internal _dai;
+    IATokenVaultMerklRewardClaimer internal _vaultMerklRewardClaimer;
 
     function setUp() public override {
         // NOTE: Real DAI has non-standard permit. These tests assume tokens with standard permit
-        dai = new MockDAI();
+        _dai = new MockDAI();
 
-        aDai = new MockAToken(address(dai));
-        pool = new MockAavePool();
-        pool.mockReserve(address(dai), aDai);
-        poolAddrProvider = new MockAavePoolAddressesProvider(address(pool));
+        _aDai = new MockAToken(address(_dai));
+        _pool = new MockAavePool();
+        _pool.mockReserve(address(_dai), _aDai);
+        __poolAddrProvider = new MockAavePoolAddressesProvider(address(_pool));
 
-        vaultAssetAddress = address(aDai);
+        vaultAssetAddress = address(_aDai);
 
-        pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
+        _pool.setReserveConfigMap(RESERVE_CONFIG_MAP_UNCAPPED_ACTIVE);
 
-        merklDistributor = new MockMerklDistributor();
+        _merklDistributor = new MockMerklDistributor();
 
         // Sets the `vault`, but we will not use the vault deployment
-        _deployATokenVaultMerklRewardClaimer(address(dai), address(poolAddrProvider));
-        vaultMerklRewardClaimer = IATokenVaultMerklRewardClaimer(address(vault));
+        _deployATokenVaultMerklRewardClaimer(address(_dai), address(__poolAddrProvider));
+        _vaultMerklRewardClaimer = IATokenVaultMerklRewardClaimer(address(vault));
     }
     
     function testClaimMerklRewards() public {
         _setMerklDistributor();
 
         bytes32 proof = keccak256("proof1");
-        (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData(address(dai), 1000, proof);
+        (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData(address(_dai), 1000, proof);
 
+        address[] memory users = new address[](rewardTokens.length);
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            users[i] = address(_vaultMerklRewardClaimer);
+        }
+
+        vm.expectCall(
+            address(_merklDistributor),
+            0,
+            abi.encodeCall(MockMerklDistributor.claim, (users, rewardTokens, amounts, proofs))
+        );
+        vm.expectEmit(true, true, false, true, address(_vaultMerklRewardClaimer));
+        emit IATokenVaultMerklRewardClaimer.MerklRewardsClaimed(address(_merklDistributor), rewardTokens, amounts);
         vm.prank(OWNER);
-        vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
-        
-        assertEq(merklDistributor.getLastUsers().length, 1);
-        assertEq(merklDistributor.getLastUsers()[0], address(vaultMerklRewardClaimer));
-        assertEq(merklDistributor.getLastTokens().length, 1);
-        assertEq(merklDistributor.getLastTokens()[0], address(dai));
-        assertEq(merklDistributor.getLastAmounts().length, 1);
-        assertEq(merklDistributor.getLastAmounts()[0], 1000);
-        assertEq(merklDistributor.getLastProofs().length, 1);
-        assertEq(merklDistributor.getLastProofs()[0][0], proof);
+        _vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
     }
 
-    function testClaimMerklRewardsEmitsEvent() public {
+    function testClaimMerklRewardsIfATokenIsRewarded() public {
+        _setMerklDistributor();
+        
+        uint256 amountOfATokenRewarded = 789 * 1e18;
+        address[] memory mockRecipients = new address[](1);
+        mockRecipients[0] = address(_vaultMerklRewardClaimer);
+        address[] memory mockRewardTokens = new address[](1);
+        mockRewardTokens[0] = address(_aDai);
+        uint256[] memory mockAmounts = new uint256[](1);
+        mockAmounts[0] = amountOfATokenRewarded;
+        _merklDistributor.mockTokensToSend(mockRecipients, mockRewardTokens, mockAmounts);
+
+        _aDai.mint(address(this), address(_merklDistributor), amountOfATokenRewarded, 0);
+        assertEq(_aDai.balanceOf(address(_merklDistributor)), amountOfATokenRewarded);
+
+        address user1 = makeAddr("user1");
+        address user2 = makeAddr("user2");
+        uint256 amountOfDAIDepositedByUser = 100_000 * 1e18;
+        _depositFromUser(user1, amountOfDAIDepositedByUser);
+        _depositFromUser(user2, amountOfDAIDepositedByUser);
+        uint256 user1ShareBalanceBefore = vault.balanceOf(user1);
+        uint256 user2ShareBalanceBefore = vault.balanceOf(user2);
+        uint256 user1ATokenBalanceBefore = vault.previewRedeem(user1ShareBalanceBefore);
+        uint256 user2ATokenBalanceBefore = vault.previewRedeem(user2ShareBalanceBefore);
+        uint256 vaultATokenBalanceBefore = _aDai.balanceOf(address(vault));
+
+        // Avoid stack too deep error
+        _claimMerklRewards();
+
+        uint256 vaultATokenBalanceAfter = _aDai.balanceOf(address(vault));
+        assertEq(vaultATokenBalanceAfter, vaultATokenBalanceBefore + amountOfATokenRewarded);
+
+        uint256 user1ShareBalanceAfter = vault.balanceOf(user1);
+        assertEq(user1ShareBalanceAfter, user1ShareBalanceBefore);
+        uint256 user2ShareBalanceAfter = vault.balanceOf(user2);
+        assertEq(user2ShareBalanceAfter, user2ShareBalanceBefore);
+        uint256 user1ATokenBalanceAfter = vault.previewRedeem(user1ShareBalanceAfter);
+        assertGt(user1ATokenBalanceAfter, user1ATokenBalanceBefore);
+        uint256 user2ATokenBalanceAfter = vault.previewRedeem(user2ShareBalanceAfter);
+        assertGt(user2ATokenBalanceAfter, user2ATokenBalanceBefore);
+    }
+
+    function testClaimMerklRewardsIfUnderlyingTokenAndRescue() public {
+        _setMerklDistributor();
+                
+        uint256 amountOfUnderlyingTokenRewarded = 789 * 1e18;
+        address[] memory mockRecipients = new address[](1);
+        mockRecipients[0] = address(_vaultMerklRewardClaimer);
+        address[] memory mockRewardTokens = new address[](1);
+        mockRewardTokens[0] = address(_dai);
+        uint256[] memory mockAmounts = new uint256[](1);
+        mockAmounts[0] = amountOfUnderlyingTokenRewarded;
+        _merklDistributor.mockTokensToSend(mockRecipients, mockRewardTokens, mockAmounts);
+        _dai.mint(address(_merklDistributor), amountOfUnderlyingTokenRewarded);
+
+        uint256 vaultBalanceOfUnderlyingTokenBefore = _dai.balanceOf(address(vault));
+        uint256 vaultBalanceOfATokenBefore = _aDai.balanceOf(address(vault));
+
+        _claimMerklRewards();
+
+        uint256 vaultBalanceOfUnderlyingTokenAfter = _dai.balanceOf(address(vault));
+        assertEq(vaultBalanceOfUnderlyingTokenAfter, vaultBalanceOfUnderlyingTokenBefore + amountOfUnderlyingTokenRewarded);
+        uint256 vaultBalanceOfATokenAfter = _aDai.balanceOf(address(vault));
+        assertEq(vaultBalanceOfATokenAfter, vaultBalanceOfATokenBefore);
+
+        // Rescue the underlying
+        vm.prank(OWNER);
+        vault.emergencyRescue(address(_dai), address(this), amountOfUnderlyingTokenRewarded);
+        assertEq(_dai.balanceOf(address(this)), amountOfUnderlyingTokenRewarded);
+        assertEq(_dai.balanceOf(address(vault)), 0);
+    }
+
+    function testClaimMerklRewardsRevertsIfNativeTokenIsRewarded() public {
         _setMerklDistributor();
 
+        address[] memory mockRecipients = new address[](1);
+        mockRecipients[0] = address(_vaultMerklRewardClaimer);
+        uint256 amountOfNativeToken = 789;
+        address[] memory mockRewardTokens = new address[](1);
+        mockRewardTokens[0] = address(0);
+        uint256[] memory mockAmounts = new uint256[](1);
+        mockAmounts[0] = amountOfNativeToken;
+        _merklDistributor.mockTokensToSend(mockRecipients, mockRewardTokens, mockAmounts);
+        vm.deal(address(_merklDistributor), amountOfNativeToken);
+        
         bytes32 proof = keccak256("proof1");
-        (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData(address(dai), 1000, proof);
+        (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData(address(_dai), 1000, proof);
+        vm.expectRevert();
         vm.prank(OWNER);
-        vm.expectEmit(true, true, false, true, address(vaultMerklRewardClaimer));
-        emit IATokenVaultMerklRewardClaimer.MerklRewardsClaimed(address(merklDistributor), rewardTokens, amounts);
-        vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
+        _vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
     }
 
     function testClaimMerklRewardsRevertsIfMerklDistributorNotSet() public {
-        bytes32 proof = keccak256("proof1");
-        (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData(address(dai), 1000, proof);
+        address[] memory rewardTokens = new address[](0);
+        uint256[] memory amounts = new uint256[](0);
+        bytes32[][] memory proofs = new bytes32[][](0);
         vm.prank(OWNER);
         vm.expectRevert(bytes("MERKL_DISTRIBUTOR_NOT_SET"));
-        vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
+        _vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
+    }
+
+    function testClaimMerklRewardsRevertsIfArrayLengthMismatchFromTokens() public {
+        _setMerklDistributor();
+        bytes32 proof = keccak256("proof1");
+        address[] memory rewardTokens = new address[](2);
+        rewardTokens[0] = address(_dai);
+        rewardTokens[1] = address(_dai);
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 1000;
+        bytes32[][] memory proofs = new bytes32[][](1);
+        proofs[0] = new bytes32[](1);
+        proofs[0][0] = proof;
+        vm.expectRevert(bytes("ARRAY_LENGTH_MISMATCH"));
+        vm.prank(OWNER);
+        _vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
+    }
+
+    function testClaimMerklRewardsRevertsIfArrayLengthMismatchFromAmounts() public {
+        _setMerklDistributor();
+        bytes32 proof = keccak256("proof1");
+        address[] memory rewardTokens = new address[](1);
+        rewardTokens[0] = address(_dai);
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 1000;
+        amounts[1] = 1000;
+        bytes32[][] memory proofs = new bytes32[][](1);
+        proofs[0] = new bytes32[](1);
+        proofs[0][0] = proof;
+        vm.expectRevert(bytes("ARRAY_LENGTH_MISMATCH"));
+        vm.prank(OWNER);
+        _vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
+    }
+
+    function testClaimMerklRewardsRevertsIfArrayLengthMismatchFromProofs() public {
+        _setMerklDistributor();
+        bytes32 proof = keccak256("proof1");
+        address[] memory rewardTokens = new address[](1);
+        rewardTokens[0] = address(_dai);
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 1000;
+        bytes32[][] memory proofs = new bytes32[][](2);
+        proofs[0] = new bytes32[](1);
+        proofs[0][0] = proof;
+        proofs[1] = new bytes32[](1);
+        proofs[1][0] = proof;
+        vm.expectRevert(bytes("ARRAY_LENGTH_MISMATCH"));
+        vm.prank(OWNER);
+        _vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
     }
 
     function testClaimMerklRewardsRevertsIfNotOwner() public {
-        bytes32 proof = keccak256("proof1");
-        (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData(address(dai), 1000, proof);
+        address[] memory rewardTokens = new address[](0);
+        uint256[] memory amounts = new uint256[](0);
+        bytes32[][] memory proofs = new bytes32[][](0);
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
-        vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
+        _vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
     }
 
     function testClaimMerklRewardsRevertsIfMerklDistributorReverts() public {
         _setMerklDistributor();
 
         bytes32 proof = keccak256("proof1");
-        (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData(address(dai), 1000, proof);
+        (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData(address(_dai), 1000, proof);
         string memory revertReason = "revert because of insufficient balance";
-        merklDistributor.setShouldRevert(true, revertReason);
+        _merklDistributor.setShouldRevert(true, revertReason);
         vm.expectRevert(bytes(revertReason));
         vm.prank(OWNER);
-        vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
-    }
-
-    function testToggleOperator() public {
-        _setMerklDistributor();
-        address operator = makeAddr("newOperator");
-        vm.prank(OWNER);
-        vaultMerklRewardClaimer.toggleOperator(operator);
-
-        assertEq(merklDistributor.getOperator(address(vaultMerklRewardClaimer), operator), true);
-
-        vm.prank(OWNER);
-        vaultMerklRewardClaimer.toggleOperator(operator);
-        assertEq(merklDistributor.getOperator(address(vaultMerklRewardClaimer), operator), false);
-    }
-
-    function testToggleOperatorEmitsEvent() public {
-        _setMerklDistributor();
-        address operator = makeAddr("newOperator");
-        vm.prank(OWNER);
-        vm.expectEmit(true, true, false, true, address(vaultMerklRewardClaimer));
-        emit IATokenVaultMerklRewardClaimer.MerklRewardsOperatorToggled(address(merklDistributor), operator);
-        vaultMerklRewardClaimer.toggleOperator(operator);
-    }
-
-    function testToggleOperatorRevertsIfOperatorIsZeroAddress() public {
-        _setMerklDistributor();
-        vm.prank(OWNER);
-        vm.expectRevert(bytes("ZERO_ADDRESS_NOT_VALID"));
-        vaultMerklRewardClaimer.toggleOperator(address(0));
-    }
-
-    function testToggleOperatorRevertsIfMerklDistributorNotSet() public {
-        address operator = makeAddr("operator");
-        vm.prank(OWNER);
-        vm.expectRevert(bytes("MERKL_DISTRIBUTOR_NOT_SET"));
-        vaultMerklRewardClaimer.toggleOperator(operator);
-    }
-
-    function testToggleOperatorRevertsIfNotOwner() public {
-        address operator = makeAddr("operator");
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
-        vaultMerklRewardClaimer.toggleOperator(operator);
+        _vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
     }
 
     function testSetMerklDistributor() public {
+        vm.expectEmit(true, true, false, true, address(_vaultMerklRewardClaimer));
+        emit IATokenVaultMerklRewardClaimer.MerklDistributorUpdated(address(0), address(_merklDistributor));
         vm.prank(OWNER);
-        vaultMerklRewardClaimer.setMerklDistributor(address(merklDistributor));
-        assertEq(vaultMerklRewardClaimer.getMerklDistributor(), address(merklDistributor));
-    }
-
-    function testSetMerklDistributorEmitsEvent() public {
-        vm.prank(OWNER);
-        vm.expectEmit(true, true, false, true, address(vaultMerklRewardClaimer));
-        emit IATokenVaultMerklRewardClaimer.MerklDistributorUpdated(address(0), address(merklDistributor));
-        vaultMerklRewardClaimer.setMerklDistributor(address(merklDistributor));
+        _vaultMerklRewardClaimer.setMerklDistributor(address(_merklDistributor));
+        assertEq(_vaultMerklRewardClaimer.getMerklDistributor(), address(_merklDistributor));
 
         address newMerklDistributor = makeAddr("newMerklDistributor");
+        vm.expectEmit(true, true, false, true, address(_vaultMerklRewardClaimer));
+        emit IATokenVaultMerklRewardClaimer.MerklDistributorUpdated(address(_merklDistributor), newMerklDistributor);
         vm.prank(OWNER);
-        vm.expectEmit(true, true, false, true, address(vaultMerklRewardClaimer));
-        emit IATokenVaultMerklRewardClaimer.MerklDistributorUpdated(address(merklDistributor), newMerklDistributor);
-        vaultMerklRewardClaimer.setMerklDistributor(newMerklDistributor);
+        _vaultMerklRewardClaimer.setMerklDistributor(newMerklDistributor);
+        assertEq(_vaultMerklRewardClaimer.getMerklDistributor(), newMerklDistributor);
     }
 
     function testSetMerklDistributorAllowsZeroAddress() public {
         vm.prank(OWNER);
-        vaultMerklRewardClaimer.setMerklDistributor(address(merklDistributor));
-        assertEq(vaultMerklRewardClaimer.getMerklDistributor(), address(merklDistributor));
+        _vaultMerklRewardClaimer.setMerklDistributor(address(_merklDistributor));
+        assertEq(_vaultMerklRewardClaimer.getMerklDistributor(), address(_merklDistributor));
         vm.prank(OWNER);
-        vaultMerklRewardClaimer.setMerklDistributor(address(0));
-        assertEq(vaultMerklRewardClaimer.getMerklDistributor(), address(0));
+        _vaultMerklRewardClaimer.setMerklDistributor(address(0));
+        assertEq(_vaultMerklRewardClaimer.getMerklDistributor(), address(0));
     }
 
     function testSetMerklDistributorRevertsIfNotOwner() public {
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
-        vaultMerklRewardClaimer.setMerklDistributor(address(merklDistributor));
+        _vaultMerklRewardClaimer.setMerklDistributor(address(_merklDistributor));
     }
 
     function _setMerklDistributor() internal {
         vm.prank(OWNER);
-        vaultMerklRewardClaimer.setMerklDistributor(address(merklDistributor));
+        _vaultMerklRewardClaimer.setMerklDistributor(address(_merklDistributor));
     }
 
     function _buildMerklRewardsClaimData(
@@ -197,5 +287,20 @@ contract ATokenVaultMerklRewardClaimerTest is ATokenVaultBaseTest {
         proofs = new bytes32[][](1);
         proofs[0] = new bytes32[](1);
         proofs[0][0] = proof;
+    }
+
+    function _claimMerklRewards() internal {
+        bytes32 proof = keccak256("proof1");
+        (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData(address(_dai), 1000, proof);
+        vm.prank(OWNER);
+        _vaultMerklRewardClaimer.claimMerklRewards(rewardTokens, amounts, proofs);
+    }
+
+    function _depositFromUser(address user, uint256 amount) internal {
+        _dai.mint(user, amount);
+        vm.startPrank(user);
+        _dai.approve(address(vault), amount);
+        vault.deposit(amount, user);
+        vm.stopPrank();
     }
 }

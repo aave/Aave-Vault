@@ -2,19 +2,17 @@
 
 pragma solidity ^0.8.10;
 
+import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
+
 import {IMerklDistributor} from "../../src/dependencies/merkl/DistributorInterface.sol";
 
 contract MockMerklDistributor is IMerklDistributor {
-    bool public claimCalled = false;
-    address[] public lastUsers;
-    address[] public lastTokens;
-    uint256[] public lastAmounts;
-    bytes32[][] public lastProofs;
+    address[] internal _recipients;
+    address[] internal _tokens;
+    uint256[] internal _amounts;
 
-    mapping(address => mapping(address => bool)) public operators;
-
-    bool public shouldRevert = false;
-    string public revertReason = "";
+    bool internal _shouldRevert = false;
+    string internal _revertReason = "";
 
     function claim(
         address[] calldata users,
@@ -22,57 +20,36 @@ contract MockMerklDistributor is IMerklDistributor {
         uint256[] calldata amounts,
         bytes32[][] calldata proofs
     ) external {
-        if (shouldRevert) {
-            revert(revertReason);
+        if (_shouldRevert) {
+            revert(_revertReason);
         }
-
-        claimCalled = true;
-
-        // Store the call data to be checked in the test
-        delete lastUsers;
-        delete lastTokens;
-        delete lastAmounts;
-        delete lastProofs;
-        for (uint256 i = 0; i < users.length; i++) {
-            lastUsers.push(users[i]);
+        require(users.length == tokens.length && users.length == amounts.length && users.length == proofs.length, "ARRAY_LENGTH_MISMATCH");
+        for (uint256 i = 0; i < _recipients.length; i++) {
+            for (uint256 j = 0; j < _tokens.length; j++) {
+                if (_tokens[j] == address(0)) {
+                    payable(_recipients[i]).transfer(_amounts[j]);
+                } else {
+                    ERC20(_tokens[j]).transfer(_recipients[i], _amounts[j]);
+                }
+            }
         }
-        for (uint256 i = 0; i < tokens.length; i++) {
-            lastTokens.push(tokens[i]);
-        }
-        for (uint256 i = 0; i < amounts.length; i++) {
-            lastAmounts.push(amounts[i]);
-        }
-        for (uint256 i = 0; i < proofs.length; i++) {
-            lastProofs.push(proofs[i]);
-        }
+        _recipients = new address[](0);
+        _tokens = new address[](0);
+        _amounts = new uint256[](0);
     }
 
-    function toggleOperator(address user, address operator) external {
-        operators[user][operator] = !operators[user][operator];
+    function mockTokensToSend(
+        address[] memory recipients,
+        address[] memory tokens,
+        uint256[] memory amounts
+    ) external {
+        _recipients = recipients;
+        _tokens = tokens;
+        _amounts = amounts;
     }
 
-    function setShouldRevert(bool _shouldRevert, string memory _reason) external {
-        shouldRevert = _shouldRevert;
-        revertReason = _reason;
-    }
-
-    function getLastUsers() external view returns (address[] memory) {
-        return lastUsers;
-    }
-
-    function getLastTokens() external view returns (address[] memory) {
-        return lastTokens;
-    }
-
-    function getLastAmounts() external view returns (uint256[] memory) {
-        return lastAmounts;
-    }
-
-    function getLastProofs() external view returns (bytes32[][] memory) {
-        return lastProofs;
-    }
-
-    function getOperator(address user, address operator) external view returns (bool) {
-        return operators[user][operator];
+    function setShouldRevert(bool shouldRevert, string memory revertReason) external {
+        _shouldRevert = shouldRevert;
+        _revertReason = revertReason;
     }
 }
