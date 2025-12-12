@@ -33,9 +33,6 @@ contract MockMerklDistributor is IMerklDistributor {
                 }
             }
         }
-        _recipients = new address[](0);
-        _tokens = new address[](0);
-        _amounts = new uint256[](0);
     }
 
     function mockTokensToSend(

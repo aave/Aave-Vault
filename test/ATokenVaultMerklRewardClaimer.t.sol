@@ -111,6 +111,11 @@ contract ATokenVaultMerklRewardClaimerTest is ATokenVaultBaseTest {
         assertGt(user1ATokenBalanceAfter, user1ATokenBalanceBefore);
         uint256 user2ATokenBalanceAfter = vault.previewRedeem(user2ShareBalanceAfter);
         assertGt(user2ATokenBalanceAfter, user2ATokenBalanceBefore);
+
+        // Check that emergency rescue is not allowed
+        vm.expectRevert(bytes("CANNOT_RESCUE_ATOKEN"));
+        vm.prank(OWNER);
+        vault.emergencyRescue(address(_aDai), address(this), vaultATokenBalanceAfter);
     }
 
     function testClaimMerklRewardsIfUnderlyingTokenAndRescue() public {

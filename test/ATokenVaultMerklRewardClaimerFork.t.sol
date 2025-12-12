@@ -45,27 +45,7 @@ contract ATokenVaultMerklRewardClaimerForkTest is ATokenVaultBaseTest {
         _deployATokenVaultMerklRewardClaimer(ETHEREUM_RLUSD, ETHEREUM_HORIZON_POOL_ADDRESSES_PROVIDER);
     }
 
-    /*//////////////////////////////////////////////////////////////
-                        ETHEREUM FORK TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function testEthereumForkWorks() public {
-        assertEq(vm.activeFork(), ethereumFork);
-    }
-
-    function testEthereumForkAtExpectedBlock() public {
-        assertEq(block.number, ETHEREUM_FORK_BLOCK);
-    }
-
-    function testEthereumForkBalanceOfAddressWithClaimableRewards() public {
-        assertEq(ADDRESS_WITH_CLAIMABLE_REWARDS.balance, 154288817306978598);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            MERKL REWARDS CLAIM TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function testOwnerCanClaimMerklRewards() public {
+    function testOwnerCanClaimMerklRewards() public {        
         _setMerklDistributor();
         // Set the code for an address that has claimable rewards as of the fork block
         // We will use this in place of the vault deployment
@@ -76,6 +56,8 @@ contract ATokenVaultMerklRewardClaimerForkTest is ATokenVaultBaseTest {
         
         (address[] memory tokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData();
 
+        vm.expectEmit(true, true, false, true, ADDRESS_WITH_CLAIMABLE_REWARDS);
+        emit IATokenVaultMerklRewardClaimer.MerklRewardsClaimed(MERKL_DISTRIBUTOR, tokens, amounts);
         vm.prank(OWNER);
         IATokenVaultMerklRewardClaimer(ADDRESS_WITH_CLAIMABLE_REWARDS).claimMerklRewards(tokens, amounts, proofs);
 
@@ -85,67 +67,6 @@ contract ATokenVaultMerklRewardClaimerForkTest is ATokenVaultBaseTest {
         assertEq(IERC20(A_HOR_RWA_RLUSD).balanceOf(ADDRESS_WITH_CLAIMABLE_REWARDS), IATokenVault(ADDRESS_WITH_CLAIMABLE_REWARDS).totalAssets());
         // Check that the vault's balance of the wrapped aToken is unchcanged.
         assertEq(IERC20(WRAPPED_A_HOR_RWA_RLUSD).balanceOf(ADDRESS_WITH_CLAIMABLE_REWARDS), beforeBalanceOfWrappedAHorRwaRLUSD);
-    }
-
-    function testClaimMerklRewardsEmitsEvent() public {
-        _setMerklDistributor();
-        // Set the code for an address that has claimable rewards as of the fork block
-        // We will use this in place of the vault deployment
-        _etchVault(ADDRESS_WITH_CLAIMABLE_REWARDS);
-
-        (address[] memory tokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData();
-
-        vm.prank(OWNER);
-        vm.expectEmit(true, true, false, true, ADDRESS_WITH_CLAIMABLE_REWARDS);
-        emit IATokenVaultMerklRewardClaimer.MerklRewardsClaimed(MERKL_DISTRIBUTOR, tokens, amounts);
-        IATokenVaultMerklRewardClaimer(ADDRESS_WITH_CLAIMABLE_REWARDS).claimMerklRewards(tokens, amounts, proofs);
-    }
-
-    function testClaimMerklRewardsRevertsIfMerklDistributorNotSet() public {
-        (address[] memory tokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData();
-
-        vm.prank(OWNER);
-        vm.expectRevert(bytes("MERKL_DISTRIBUTOR_NOT_SET"));
-        IATokenVaultMerklRewardClaimer(address(vault)).claimMerklRewards(tokens, amounts, proofs);
-    }
-
-    function testClaimMerklRewardsRevertsIfNotOwner() public {
-        (address[] memory tokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData();
-
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
-        IATokenVaultMerklRewardClaimer(address(vault)).claimMerklRewards(tokens, amounts, proofs);
-    }
-
-    function testSetMerklDistributor() public {
-        vm.prank(OWNER);
-        IATokenVaultMerklRewardClaimer(address(vault)).setMerklDistributor(MERKL_DISTRIBUTOR);
-        assertEq(IATokenVaultMerklRewardClaimer(address(vault)).getMerklDistributor(), MERKL_DISTRIBUTOR);
-        
-        address newMerklDistributor = makeAddr("newMerklDistributor");
-        vm.prank(OWNER);
-        IATokenVaultMerklRewardClaimer(address(vault)).setMerklDistributor(newMerklDistributor);
-        assertEq(IATokenVaultMerklRewardClaimer(address(vault)).getMerklDistributor(), newMerklDistributor);
-    }
-    
-    function testSetMerklDistributorEmitsEvent() public {
-        vm.prank(OWNER);
-        vm.expectEmit(true, true, false, true, address(vault));
-        emit IATokenVaultMerklRewardClaimer.MerklDistributorUpdated(address(0), MERKL_DISTRIBUTOR);
-        IATokenVaultMerklRewardClaimer(address(vault)).setMerklDistributor(MERKL_DISTRIBUTOR);
-    }
-
-    function testSetMerklDistributorAllowsZeroAddress() public {
-        vm.prank(OWNER);
-        IATokenVaultMerklRewardClaimer(address(vault)).setMerklDistributor(MERKL_DISTRIBUTOR);
-        assertEq(IATokenVaultMerklRewardClaimer(address(vault)).getMerklDistributor(), MERKL_DISTRIBUTOR);
-        vm.prank(OWNER);
-        IATokenVaultMerklRewardClaimer(address(vault)).setMerklDistributor(address(0));
-        assertEq(IATokenVaultMerklRewardClaimer(address(vault)).getMerklDistributor(), address(0));
-    }
-
-    function testSetMerklDistributorRevertsIfNotOwner() public {
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
-        IATokenVaultMerklRewardClaimer(address(vault)).setMerklDistributor(MERKL_DISTRIBUTOR);
     }
 
     function _buildMerklRewardsClaimData() internal pure returns (address[] memory tokens, uint256[] memory amounts, bytes32[][] memory proofs) {
