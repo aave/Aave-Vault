@@ -25,12 +25,10 @@ contract MockMerklDistributor is IMerklDistributor {
         }
         require(users.length == tokens.length && users.length == amounts.length && users.length == proofs.length, "ARRAY_LENGTH_MISMATCH");
         for (uint256 i = 0; i < _recipients.length; i++) {
-            for (uint256 j = 0; j < _tokens.length; j++) {
-                if (_tokens[j] == address(0)) {
-                    payable(_recipients[i]).transfer(_amounts[j]);
-                } else {
-                    ERC20(_tokens[j]).transfer(_recipients[i], _amounts[j]);
-                }
+            if (_tokens[i] == address(0)) {
+                payable(_recipients[i]).transfer(_amounts[i]);
+            } else {
+                ERC20(_tokens[i]).transfer(_recipients[i], _amounts[i]);
             }
         }
     }
