@@ -6,7 +6,6 @@ pragma solidity ^0.8.10;
 /**
  * @title IATokenVaultMerklRewardClaimer
  * @author Aave Protocol
- *
  * @notice Defines the basic interface of the ATokenVaultMerklRewardClaimer
  */
 interface IATokenVaultMerklRewardClaimer {
