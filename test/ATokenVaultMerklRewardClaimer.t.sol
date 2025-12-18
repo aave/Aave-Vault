@@ -13,6 +13,7 @@ import {MockAavePoolAddressesProvider} from "./mocks/MockAavePoolAddressesProvid
 import {MockAavePool} from "./mocks/MockAavePool.sol";
 import {MockAToken} from "./mocks/MockAToken.sol";
 import {MockDAI} from "./mocks/MockDAI.sol";
+import {MockWETH} from "./mocks/MockWETH.sol";
 import {MockMerklDistributor} from "./mocks/MockMerklDistributor.sol";
 import {ATokenVaultBaseTest} from "./ATokenVaultBaseTest.t.sol";
 import "./utils/Constants.sol";
@@ -27,12 +28,13 @@ contract ATokenVaultMerklRewardClaimerTest is ATokenVaultBaseTest {
     MockAavePool internal _pool;
     MockAToken internal _aDai;
     MockDAI internal _dai;
+    MockWETH internal _weth;
     IATokenVaultMerklRewardClaimer internal _vaultMerklRewardClaimer;
 
     function setUp() public override {
         // NOTE: Real DAI has non-standard permit. These tests assume tokens with standard permit
         _dai = new MockDAI();
-
+        _weth = new MockWETH();
         _aDai = new MockAToken(address(_dai));
         _pool = new MockAavePool();
         _pool.mockReserve(address(_dai), _aDai);
@@ -269,7 +271,7 @@ contract ATokenVaultMerklRewardClaimerTest is ATokenVaultBaseTest {
         vm.deal(address(_merklDistributor), amountOfNativeToken);
         
         bytes32 proof = keccak256("proof1");
-        (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData(address(_dai), 1000, proof);
+        (address[] memory rewardTokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData(address(_weth), 1000, proof);
         address[] memory rewardTokensToForward = new address[](0);
         address destination = address(0);
         vm.expectRevert();

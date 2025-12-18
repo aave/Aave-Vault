@@ -4,13 +4,11 @@
 pragma solidity ^0.8.10;
 
 import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
-
 import {IERC20Upgradeable} from "@openzeppelin-upgradeable/interfaces/IERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "@openzeppelin-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-
+import {IMerklDistributor} from "./dependencies/merkl/DistributorInterface.sol";
 import {ATokenVault} from "./ATokenVault.sol";
 import {IATokenVaultMerklRewardClaimer} from "./interfaces/IATokenVaultMerklRewardClaimer.sol";
-import {IMerklDistributor} from "./dependencies/merkl/DistributorInterface.sol";
 
 /**
  * @title ATokenVaultMerklRewardClaimer
