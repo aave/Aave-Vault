@@ -16,6 +16,7 @@ import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
 import {ProxyAdmin as ProxyAdmin_v4_7} from "@openzeppelin/proxy/transparent/ProxyAdmin.sol";
+import {ATokenVaultRevenueSplitterOwner} from "../src/ATokenVaultRevenueSplitterOwner.sol";
 
 contract ATokenVaultFactoryTest is Test {
     using SafeERC20 for IERC20;
@@ -31,16 +32,6 @@ contract ATokenVaultFactoryTest is Test {
     address constant ALICE = address(0x1);
     address constant BOB = address(0x2);
     address constant CHARLIE = address(0x3);
-
-    event VaultDeployed(
-        address indexed vault,
-        address indexed implementation,
-        address indexed underlying,
-        address deployer,
-        address owner,
-        uint16 referralCode,
-        address poolAddressesProvider
-    );
 
     function setUp() public {
         underlying = _deployUnderlying();
@@ -78,9 +69,10 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test Vault",
             shareSymbol: "tVault",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
-
+        
         address vault = factory.deployVault(params);
         vm.stopPrank();
 
@@ -93,6 +85,109 @@ contract ATokenVaultFactoryTest is Test {
         assertEq(vaultContract.name(), "Test Vault");
         assertEq(vaultContract.symbol(), "tVault");
         assertEq(vaultContract.getFee(), 0);
+    }
+
+    function testDeployRevenueSplitterAndSetAsVaultOwnerAfterwards() public {
+        uint256 initialDeposit = 1000 * 1e18;
+        deal(address(underlying), ALICE, initialDeposit);
+
+        vm.startPrank(ALICE);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
+
+        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+            underlying: address(underlying),
+            referralCode: 42,
+            poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
+            owner: ALICE,
+            initialFee: 0,
+            shareName: "Test Vault",
+            shareSymbol: "tVault",
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
+        });
+
+        address vault = factory.deployVault(params);
+
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory revenueRecipients = new ATokenVaultRevenueSplitterOwner.Recipient[](2);
+        revenueRecipients[0] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: BOB,
+            shareInBps: 50_00
+        });
+        revenueRecipients[1] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: CHARLIE,
+            shareInBps: 50_00
+        });
+
+        address revenueSplitter = factory.deployRevenueSplitterOwner(vault, ALICE, revenueRecipients);
+
+        assertEq(ATokenVaultRevenueSplitterOwner(payable(revenueSplitter)).owner(), ALICE);
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory actualRecipients = ATokenVaultRevenueSplitterOwner(payable(revenueSplitter)).getRecipients();
+        assertEq(actualRecipients.length, revenueRecipients.length);
+        for (uint256 i = 0; i < actualRecipients.length; i++) {
+            assertEq(actualRecipients[i].addr, revenueRecipients[i].addr);
+            assertEq(actualRecipients[i].shareInBps, revenueRecipients[i].shareInBps);
+        }
+
+        assertEq(ATokenVault(payable(vault)).owner(), ALICE);
+
+        ATokenVault(payable(vault)).transferOwnership(revenueSplitter);
+
+        assertEq(ATokenVault(payable(vault)).owner(), revenueSplitter);
+    }
+
+    function testDeployVaultWithRevenueSplitter() public {
+        uint256 initialDeposit = 1000 * 1e18;
+        deal(address(underlying), ALICE, initialDeposit);
+
+        vm.startPrank(ALICE);
+        IERC20(underlying).safeApprove(address(factory), initialDeposit);
+
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory revenueRecipients = new ATokenVaultRevenueSplitterOwner.Recipient[](3);
+        revenueRecipients[0] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: ALICE,
+            shareInBps: 20_00
+        });
+        revenueRecipients[1] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: BOB,
+            shareInBps: 20_00
+        });
+        revenueRecipients[2] = ATokenVaultRevenueSplitterOwner.Recipient({
+            addr: CHARLIE,
+            shareInBps: 60_00
+        });
+
+        ATokenVaultFactory.VaultParams memory params = ATokenVaultFactory.VaultParams({
+            underlying: address(underlying),
+            referralCode: 42,
+            poolAddressesProvider: IPoolAddressesProvider(address(poolAddrProvider)),
+            owner: ALICE,
+            initialFee: 0,
+            shareName: "Test Vault",
+            shareSymbol: "tVault",
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: revenueRecipients
+        });
+
+        address vault = factory.deployVault(params);
+        vm.stopPrank();
+
+        assertTrue(vault != address(0));
+
+        ATokenVault vaultContract = ATokenVault(vault);
+        assertEq(address(vaultContract.UNDERLYING()), address(underlying));
+        assertEq(vaultContract.REFERRAL_CODE(), 42);
+        assertEq(vaultContract.name(), "Test Vault");
+        assertEq(vaultContract.symbol(), "tVault");
+        assertEq(vaultContract.getFee(), 0);
+        
+        address owner = vaultContract.owner();
+        assertEq(ATokenVaultRevenueSplitterOwner(payable(owner)).owner(), ALICE);
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory actualRecipients = ATokenVaultRevenueSplitterOwner(payable(owner)).getRecipients();
+        assertEq(actualRecipients.length, revenueRecipients.length);
+        for (uint256 i = 0; i < actualRecipients.length; i++) {
+            assertEq(actualRecipients[i].addr, revenueRecipients[i].addr);
+            assertEq(actualRecipients[i].shareInBps, revenueRecipients[i].shareInBps);
+        }
     }
 
     function testDeployVaultWithFee() public {
@@ -111,7 +206,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: fee,
             shareName: "Fee Vault",
             shareSymbol: "fVault",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -141,7 +237,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Vault 1",
             shareSymbol: "V1",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault1 = factory.deployVault(params1);
@@ -162,7 +259,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Vault 2",
             shareSymbol: "V2",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault2 = factory.deployVault(params2);
@@ -191,7 +289,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test Vault",
             shareSymbol: "tVault",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.recordLogs();
@@ -203,7 +302,7 @@ contract ATokenVaultFactoryTest is Test {
         // Find the VaultDeployed event (should be the last one)
         bool eventFound = false;
         for (uint i = 0; i < logs.length; i++) {
-            if (logs[i].topics[0] == keccak256("VaultDeployed(address,address,address,address,(address,uint16,address,address,uint256,string,string,uint256))")) {
+            if (logs[i].topics[0] == keccak256("VaultDeployed(address,address,address,address,(address,uint16,address,address,uint256,string,string,uint256,(address,uint16)[]))")) {
                 eventFound = true;
 
                 // Decode the event data
@@ -252,7 +351,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Max Referral Vault",
             shareSymbol: "MRV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -278,7 +378,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: maxFee,
             shareName: "Max Fee Vault",
             shareSymbol: "MFV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -303,7 +404,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Different Owner Vault",
             shareSymbol: "DOV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -328,7 +430,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test",
             shareSymbol: "TEST",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("ZERO_ADDRESS_NOT_VALID");
@@ -346,7 +449,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test",
             shareSymbol: "TEST",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("ZERO_ADDRESS_NOT_VALID");
@@ -362,7 +466,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test",
             shareSymbol: "TEST",
-            initialLockDeposit: 0
+            initialLockDeposit: 0,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("ZERO_INITIAL_LOCK_DEPOSIT");
@@ -380,7 +485,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "",
             shareSymbol: "TEST",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("EMPTY_SHARE_NAME");
@@ -398,7 +504,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test",
             shareSymbol: "",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("EMPTY_SHARE_SYMBOL");
@@ -416,7 +523,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test",
             shareSymbol: "TEST",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("ZERO_ADDRESS_NOT_VALID");
@@ -438,7 +546,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test",
             shareSymbol: "TEST",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("ERC20: insufficient allowance");
@@ -461,7 +570,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test",
             shareSymbol: "TEST",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("ERC20: transfer amount exceeds balance");
@@ -486,7 +596,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: initFee,
             shareName: "Max Fee Vault",
             shareSymbol: "MFV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         vm.expectRevert("FEE_TOO_HIGH");
@@ -535,7 +646,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test Vault",
             shareSymbol: "tVault",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = newFactory.deployVault(params);
@@ -567,7 +679,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test Vault",
             shareSymbol: "tVault",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -610,7 +723,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "underlying Vault",
             shareSymbol: "dVault",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address underlyingVault = factory.deployVault(underlyingParams);
@@ -623,7 +737,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "USDC Vault",
             shareSymbol: "uVault",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address usdcVault = factory.deployVault(usdcParams);
@@ -648,7 +763,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Test Vault",
             shareSymbol: "TV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault1 = factory.deployVault(params);
@@ -685,7 +801,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Minimal Deposit Vault",
             shareSymbol: "MDV",
-            initialLockDeposit: minDeposit
+            initialLockDeposit: minDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -709,7 +826,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Zero Fee Vault",
             shareSymbol: "ZFV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -734,7 +852,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 1e18,
             shareName: "Max Fee Vault",
             shareSymbol: "MFV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -769,7 +888,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: initialFee,
             shareName: "Fuzz Vault",
             shareSymbol: "FV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -802,7 +922,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: initialFee,
             shareName: "Fuzz Edge Case Vault",
             shareSymbol: "FECV",
-            initialLockDeposit: minDeposit
+            initialLockDeposit: minDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault = factory.deployVault(params);
@@ -834,7 +955,8 @@ contract ATokenVaultFactoryTest is Test {
             initialFee: 0,
             shareName: "Zero Fee Fuzz Vault",
             shareSymbol: "ZFFV",
-            initialLockDeposit: initialDeposit
+            initialLockDeposit: initialDeposit,
+            revenueRecipients: new ATokenVaultRevenueSplitterOwner.Recipient[](0)
         });
 
         address vault1 = factory.deployVault(params);

@@ -9,6 +9,7 @@ import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/Trans
 import {ATokenVault} from "./ATokenVault.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {ProxyAdmin} from "@openzeppelin/proxy/transparent/ProxyAdmin.sol";
+import {ATokenVaultRevenueSplitterOwner} from "./ATokenVaultRevenueSplitterOwner.sol";
 
 /**
  * @title ATokenVaultImplDeploymentLib
@@ -59,6 +60,20 @@ contract ATokenVaultFactory {
         VaultParams params
     );
 
+    /**
+     * @dev Emitted when a new revenue splitter owner is deployed
+     * @param revenueSplitterOwner The address of the deployed revenue splitter owner
+     * @param vault The address of the vault to split the revenue from
+     * @param owner The address of the owner of the revenue splitter, effective owner of the vault
+     * @param revenueRecipients The recipients of the revenue
+     */
+    event RevenueSplitterOwnerDeployed(
+        address indexed revenueSplitterOwner,
+        address indexed vault,
+        address indexed owner,
+        ATokenVaultRevenueSplitterOwner.Recipient[] revenueRecipients
+    );
+
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -83,6 +98,7 @@ contract ATokenVaultFactory {
         string shareName;
         string shareSymbol;
         uint256 initialLockDeposit;
+        ATokenVaultRevenueSplitterOwner.Recipient[] revenueRecipients;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -133,10 +149,19 @@ contract ATokenVaultFactory {
             ""
         ));
 
+        address vaultOwner = params.owner;
+        if (params.revenueRecipients.length > 0) {
+            vaultOwner = _deployRevenueSplitterOwner(
+                vault,
+                params.owner,
+                params.revenueRecipients
+            );
+        }
+
         IERC20(params.underlying).safeApprove(vault, params.initialLockDeposit);
 
         ATokenVault(vault).initialize(
-            params.owner,
+            vaultOwner,
             params.initialFee,
             params.shareName,
             params.shareSymbol,
@@ -150,5 +175,30 @@ contract ATokenVaultFactory {
             msg.sender,
             params
         );
+    }
+
+    /**
+     * @notice Deploys a new ATokenVaultRevenueSplitterOwner with the given parameters
+     * @param vaultAddress The address of the vault to split the revenue from
+     * @param owner The address of the owner of the revenue splitter, effective owner of the vault
+     * @param revenueRecipients The recipients of the revenue
+     * @return revenueSplitter The address of the deployed revenue splitter
+     */
+    function deployRevenueSplitterOwner(
+        address vaultAddress,
+        address owner,
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory revenueRecipients
+    ) external returns (address) {
+        return _deployRevenueSplitterOwner(vaultAddress, owner, revenueRecipients);
+    }
+
+    function _deployRevenueSplitterOwner(
+        address vaultAddress,
+        address owner,
+        ATokenVaultRevenueSplitterOwner.Recipient[] memory revenueRecipients
+    ) internal returns (address) {
+        address revenueSplitter = address(new ATokenVaultRevenueSplitterOwner(vaultAddress, owner, revenueRecipients));
+        emit RevenueSplitterOwnerDeployed(revenueSplitter, vaultAddress, owner, revenueRecipients);
+        return revenueSplitter;
     }
 }
