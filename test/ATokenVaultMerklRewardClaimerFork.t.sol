@@ -70,36 +70,20 @@ contract ATokenVaultMerklRewardClaimerForkTest is ATokenVaultBaseTest {
         assertEq(IERC20(WRAPPED_A_HOR_RWA_RLUSD).balanceOf(ADDRESS_WITH_CLAIMABLE_REWARDS), beforeBalanceOfWrappedAHorRwaRLUSD);
     }
 
-    function testOwnerCanClaimMerklRewardsAndForwardToDestination() public {      
-        uint256 expectedAmountOfAHorRwaRLUSDReceived = 3772222577889726879658;
+    function testOwnerCanNotClaimMerklRewardsAndForwardToDestination() public {
         _setMerklDistributor();
         // Set the code for an address that has claimable rewards as of the fork block
         // We will use this in place of the vault deployment
         _etchVault(ADDRESS_WITH_CLAIMABLE_REWARDS);
         address destination = makeAddr("destination");
-
-        uint256 beforeBalanceOfAHorRwaRLUSD = IERC20(A_HOR_RWA_RLUSD).balanceOf(ADDRESS_WITH_CLAIMABLE_REWARDS);
-        uint256 beforeBalanceOfWrappedAHorRwaRLUSD = IERC20(WRAPPED_A_HOR_RWA_RLUSD).balanceOf(ADDRESS_WITH_CLAIMABLE_REWARDS);
         
         (address[] memory tokens, uint256[] memory amounts, bytes32[][] memory proofs) = _buildMerklRewardsClaimData();
         address[] memory rewardTokensToForward = new address[](1);
         rewardTokensToForward[0] = address(A_HOR_RWA_RLUSD);
 
-        vm.expectEmit(true, true, false, true, ADDRESS_WITH_CLAIMABLE_REWARDS);
-        emit IATokenVaultMerklRewardClaimer.MerklRewardsClaimed(MERKL_DISTRIBUTOR, tokens, amounts);
-        vm.expectEmit(true, true, false, true, ADDRESS_WITH_CLAIMABLE_REWARDS);
-        emit IATokenVaultMerklRewardClaimer.MerklRewardsTokenForwarded(address(A_HOR_RWA_RLUSD), destination, expectedAmountOfAHorRwaRLUSDReceived);
+        vm.expectRevert(bytes("CANNOT_FORWARD_ATOKEN"));
         vm.prank(OWNER);
         IATokenVaultMerklRewardClaimer(ADDRESS_WITH_CLAIMABLE_REWARDS).claimMerklRewards(tokens, amounts, proofs, rewardTokensToForward, destination);
-
-        // Check that the vault did not hold onto the A tokens.
-        assertEq(IERC20(A_HOR_RWA_RLUSD).balanceOf(ADDRESS_WITH_CLAIMABLE_REWARDS), beforeBalanceOfAHorRwaRLUSD);
-        // Check that total assets is the same as the balance of the A tokens.
-        assertEq(IERC20(A_HOR_RWA_RLUSD).balanceOf(ADDRESS_WITH_CLAIMABLE_REWARDS), IATokenVault(ADDRESS_WITH_CLAIMABLE_REWARDS).totalAssets());
-        // Check that the vault's balance of the wrapped aToken is unchcanged.
-        assertEq(IERC20(WRAPPED_A_HOR_RWA_RLUSD).balanceOf(ADDRESS_WITH_CLAIMABLE_REWARDS), beforeBalanceOfWrappedAHorRwaRLUSD);
-        // Check that the destination received the A tokens.
-        assertEq(IERC20(A_HOR_RWA_RLUSD).balanceOf(destination), expectedAmountOfAHorRwaRLUSDReceived);
     }
 
     function _buildMerklRewardsClaimData() internal pure returns (address[] memory tokens, uint256[] memory amounts, bytes32[][] memory proofs) {

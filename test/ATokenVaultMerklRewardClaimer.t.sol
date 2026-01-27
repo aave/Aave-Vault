@@ -76,7 +76,7 @@ contract ATokenVaultMerklRewardClaimerTest is ATokenVaultBaseTest {
     }
 
     function testClaimMerklRewardsAndForwardPartialTokenToDestination() public {
-        // Context: 2 tokens will be rewarded, but only one will be forwarded to the destination.
+        // Context: 2 tokens will be rewarded, but only one (the non-aToken) will be forwarded to the destination.
         _setMerklDistributor();
         
         uint256 amountOfATokenRewarded = 789 * 1e18;
@@ -127,8 +127,8 @@ contract ATokenVaultMerklRewardClaimerTest is ATokenVaultBaseTest {
         assertEq(_aDai.balanceOf(address(_vaultMerklRewardClaimer)), beforeBalanceOfAToken + amountOfATokenRewarded);
     }
 
-    function testClaimMerklRewardsAndForwardFullTokenToDestination() public {
-        // Context: 2 tokens will be rewarded, and both will be forwarded to the destination.
+    function testClaimMerklRewardsAndForwardFailsGivenATokenIsForwarded() public {
+        // Context: 2 tokens will be rewarded, and both will be attempted to be forwarded to the destination.
         _setMerklDistributor();
         
         uint256 amountOfATokenRewarded = 789 * 1e18;
@@ -160,24 +160,10 @@ contract ATokenVaultMerklRewardClaimerTest is ATokenVaultBaseTest {
         rewardTokensToForward[0] = address(_aDai);
         rewardTokensToForward[1] = address(_dai);
         address destination = makeAddr("destination");
-        
-        // Check that the vault does not have any aDAI.
-        uint256 beforeBalanceOfAToken = _aDai.balanceOf(address(_vaultMerklRewardClaimer));
-        uint256 beforeBalanceOfDAI = _dai.balanceOf(address(_vaultMerklRewardClaimer));
 
-        vm.expectEmit(true, true, false, true, address(_vaultMerklRewardClaimer));
-        emit IATokenVaultMerklRewardClaimer.MerklRewardsClaimed(address(_merklDistributor), mockRewardTokens, mockAmounts);
-        vm.expectEmit(true, true, false, true, address(_vaultMerklRewardClaimer));
-        emit IATokenVaultMerklRewardClaimer.MerklRewardsTokenForwarded(address(_dai), destination, amountOfDAIRewarded);
+        vm.expectRevert(bytes("CANNOT_FORWARD_ATOKEN"));
         vm.prank(OWNER);
         _vaultMerklRewardClaimer.claimMerklRewards(mockRewardTokens, mockAmounts, proofs, rewardTokensToForward, destination);
-
-        // Check that the destination received the DAI and aDAI.
-        assertEq(_dai.balanceOf(destination), amountOfDAIRewarded);
-        assertEq(_aDai.balanceOf(destination), amountOfATokenRewarded);
-        // Check that the vault did not hold onto the aDAI and DAI.
-        assertEq(_aDai.balanceOf(address(_vaultMerklRewardClaimer)), beforeBalanceOfAToken);
-        assertEq(_dai.balanceOf(address(_vaultMerklRewardClaimer)), beforeBalanceOfDAI);
     }
 
     function testClaimMerklRewardsIfATokenIsRewarded() public {

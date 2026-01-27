@@ -45,6 +45,7 @@ contract ATokenVaultMerklRewardClaimer is ATokenVault, IATokenVaultMerklRewardCl
 
         uint256[] memory currentBalancesOfRewardTokens = new uint256[](rewardTokensToForward.length);
         for (uint256 i = 0; i < rewardTokensToForward.length; i++) {
+            require(rewardTokensToForward[i] != address(ATOKEN), "CANNOT_FORWARD_ATOKEN");
             currentBalancesOfRewardTokens[i] = IERC20Upgradeable(rewardTokensToForward[i]).balanceOf(address(this));
         }
 
