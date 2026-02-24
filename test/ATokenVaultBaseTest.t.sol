@@ -10,6 +10,7 @@ import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesPro
 import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import {ATokenVault, MathUpgradeable} from "../src/ATokenVault.sol";
+import {ATokenVaultMerklRewardClaimer} from "../src/ATokenVaultMerklRewardClaimer.sol";
 
 contract ATokenVaultBaseTest is Test {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -142,5 +143,32 @@ contract ATokenVaultBaseTest is Test {
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
 
         vault = ATokenVault(address(proxy));
+    }
+
+    function _deployATokenVaultMerklRewardClaimer(address underlying, address addressesProvider) internal {
+        _deployATokenVaultMerklRewardClaimer(underlying, addressesProvider, 10e18);
+    }
+
+    function _deployATokenVaultMerklRewardClaimer(address underlying, address addressesProvider, uint256 _initialLockDeposit) internal {
+        initialLockDeposit = _initialLockDeposit;
+        vault = new ATokenVaultMerklRewardClaimer(underlying, referralCode, IPoolAddressesProvider(addressesProvider));
+
+        bytes memory data = abi.encodeWithSelector(
+            ATokenVault.initialize.selector,
+            OWNER,
+            fee,
+            SHARE_NAME,
+            SHARE_SYMBOL,
+            _initialLockDeposit
+        );
+
+        deal(underlying, address(this), _initialLockDeposit);
+        address proxyAddr = computeCreateAddress(address(this), vm.getNonce(address(this)) + 1);
+
+        IERC20Upgradeable(underlying).safeApprove(address(proxyAddr), _initialLockDeposit);
+
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(vault), PROXY_ADMIN, data);
+
+        vault = ATokenVaultMerklRewardClaimer(address(proxy));
     }
 }

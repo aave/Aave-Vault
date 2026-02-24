@@ -20,9 +20,10 @@ Some of the tests rely on an RPC connection for forking network state. Make sure
 ```
 POLYGON_RPC_URL=[Your favourite Polygon RPC URL]
 AVALANCHE_RPC_URL=[Your favourite Avalanche RPC URL]
+ETHEREUM_RPC_URL=[Your favourite Ethereum RPC URL]
 ```
 
-The fork tests all use Polygon, except tests for claiming Aave rewards, which use Avalanche.
+The fork tests all use Polygon, except tests for claiming Aave rewards, which use Avalanche, and Merkl rewards, which use Ethereum.
 
 This test suite also includes a16z's [ERC-4626 Property Tests](https://a16zcrypto.com/generalized-property-tests-for-erc4626-vaults/), which are in the `ATokenVaultProperties.t.sol` file. These tests do not use a forked network state but rather use mock contracts, found in the `test/mocks` folder.
 
