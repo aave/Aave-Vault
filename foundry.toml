@@ -1,6 +1,7 @@
 [profile.default]
 solc = "0.8.22"
 bytecode_hash = "none"
+evm_version = "shanghai"
 optimizer = true
 optimizer-runs = 30_000
 via_ir = false
